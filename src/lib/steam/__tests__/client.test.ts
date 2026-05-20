@@ -1,0 +1,156 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildWishlistUrl,
+  fetchSteamAppDetails,
+  fetchSteamWishlist,
+  isExactSteamReleaseDate,
+  isSteamId64,
+  normalizeSteamId64,
+  parseWishlistHtml,
+  SteamWishlistError,
+} from '../client';
+
+const steamId64 = '76561199022537892';
+
+describe('steam client', () => {
+  it('validates SteamID64 values', () => {
+    expect(isSteamId64(steamId64)).toBe(true);
+    expect(isSteamId64('nick')).toBe(false);
+    expect(isSteamId64('https://example.com')).toBe(false);
+  });
+
+  it('normalizes supported Steam profile URLs', () => {
+    expect(normalizeSteamId64(steamId64)).toBe(steamId64);
+    expect(normalizeSteamId64(`https://steamcommunity.com/profiles/${steamId64}/`)).toBe(steamId64);
+    expect(normalizeSteamId64(`https://store.steampowered.com/wishlist/profiles/${steamId64}/`)).toBe(steamId64);
+  });
+
+  it('rejects vanity and arbitrary URLs', () => {
+    expect(() => normalizeSteamId64('https://steamcommunity.com/id/someone')).toThrow(SteamWishlistError);
+    expect(() => normalizeSteamId64('https://example.com/profiles/76561199022537892')).toThrow(SteamWishlistError);
+  });
+
+  it('builds the public wishlist URL', () => {
+    expect(buildWishlistUrl(steamId64)).toBe(
+      'https://store.steampowered.com/wishlist/profiles/76561199022537892/wishlist/',
+    );
+  });
+
+  it('parses wishlist data embedded in Steam HTML', () => {
+    const html = `
+      <script>
+        var g_rgWishlistData = [{"appid":123,"name":"Hades II","release_date":{"date":"May 6, 2024"}},{"appid":"456","name":"Silksong","release_string":"Coming soon"}];
+      </script>
+    `;
+
+    expect(parseWishlistHtml(html)).toEqual([
+      {
+        appId: '123',
+        name: 'Hades II',
+        releaseDateText: 'May 6, 2024',
+        storeUrl: 'https://store.steampowered.com/app/123/',
+      },
+      {
+        appId: '456',
+        name: 'Silksong',
+        releaseDateText: 'Coming soon',
+        storeUrl: 'https://store.steampowered.com/app/456/',
+      },
+    ]);
+  });
+
+  it('parses rgApps embedded in Steam store item data', () => {
+    const html = `
+      <script>
+        GStoreItemData.AddStoreItemDataSet({"rgApps":{"264710":{"name":"Subnautica","release_date":"Jan 23, 2018"},"848450":{"name":"Subnautica: Below Zero","release_string":"Coming soon"}}});
+      </script>
+    `;
+
+    expect(parseWishlistHtml(html)).toEqual([
+      {
+        appId: '264710',
+        name: 'Subnautica',
+        releaseDateText: 'Jan 23, 2018',
+        storeUrl: 'https://store.steampowered.com/app/264710/',
+      },
+      {
+        appId: '848450',
+        name: 'Subnautica: Below Zero',
+        releaseDateText: 'Coming soon',
+        storeUrl: 'https://store.steampowered.com/app/848450/',
+      },
+    ]);
+  });
+
+  it('detects Steam rate limit pages', () => {
+    expect(() => parseWishlistHtml('<title>Wishlist - Error</title>{"error":"RateLimit"}')).toThrow(
+      expect.objectContaining({ code: 'wishlist_rate_limited' }),
+    );
+  });
+
+  it('detects Steam welcome pages returned by wishlistdata endpoints', () => {
+    expect(() => parseWishlistHtml('<title>Welcome to Steam</title>')).toThrow(
+      expect.objectContaining({ code: 'wishlist_private_or_unavailable' }),
+    );
+  });
+
+  it('detects exact Steam release dates', () => {
+    expect(isExactSteamReleaseDate('May 14, 2026')).toBe(true);
+    expect(isExactSteamReleaseDate('Jan 23, 2018')).toBe(true);
+    expect(isExactSteamReleaseDate('May 2026')).toBe(false);
+    expect(isExactSteamReleaseDate('Coming soon')).toBe(false);
+    expect(isExactSteamReleaseDate(null)).toBe(false);
+  });
+
+  it('fetches Steam app details', async () => {
+    const response = new Response(
+      JSON.stringify({
+        '1962700': {
+          success: true,
+          data: {
+            name: 'Subnautica 2',
+            release_date: { coming_soon: false, date: 'May 14, 2026' },
+          },
+        },
+      }),
+      { status: 200 },
+    );
+    const calls: string[] = [];
+
+    const result = await fetchSteamAppDetails('1962700', {
+      fetcher: async (url) => {
+        calls.push(url);
+        return response;
+      },
+    });
+
+    expect(calls).toEqual([
+      'https://store.steampowered.com/api/appdetails?appids=1962700&filters=price_overview,release_date,basic&cc=us&l=en',
+    ]);
+    expect(result).toEqual({
+      appId: '1962700',
+      name: 'Subnautica 2',
+      releaseDateText: 'May 14, 2026',
+      hasExactReleaseDate: true,
+      storeUrl: 'https://store.steampowered.com/app/1962700/',
+    });
+  });
+
+  it('fetches wishlist HTML with the constructed URL', async () => {
+    const response = new Response(
+      'var g_rgWishlistData = [{"appid":123,"name":"Hades II","release_date":{"date":"May 6, 2024"}}];\n',
+      { status: 200 },
+    );
+    const calls: string[] = [];
+
+    const result = await fetchSteamWishlist(steamId64, {
+      fetcher: async (url) => {
+        calls.push(url);
+        return response;
+      },
+    });
+
+    expect(calls).toEqual(['https://store.steampowered.com/wishlist/profiles/76561199022537892/wishlist/']);
+    expect(result.games).toHaveLength(1);
+  });
+});
