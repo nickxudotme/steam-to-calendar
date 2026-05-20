@@ -126,8 +126,8 @@ h1 {
 }
 
 .lookup button,
-.subscribe a,
-.subscribe button {
+.actions a,
+.actions button {
   border: 0;
   border-radius: 8px;
   background: var(--accent);
@@ -144,12 +144,12 @@ h1 {
 }
 
 .lookup button:disabled,
-.subscribe button:disabled {
+.actions button:disabled {
   cursor: wait;
   opacity: 0.72;
 }
 
-.subscribe .secondary {
+.actions .secondary {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--fg);
@@ -183,9 +183,38 @@ code {
   padding: 24px;
 }
 
+.resultShell {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.feedPanel,
+.calendarApp {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+}
+
+.feedPanel {
+  padding: 18px;
+}
+
+.panelHeader h2 {
+  font-size: 1.25rem;
+  margin: 0 0 6px;
+}
+
+.panelHeader p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -194,10 +223,10 @@ code {
 }
 
 .summary div {
-  background: var(--panel-strong);
+  background: var(--panel);
   color: var(--muted);
-  padding: 16px;
-  min-height: 92px;
+  padding: 14px;
+  min-height: 76px;
 }
 
 .summary span {
@@ -209,33 +238,25 @@ code {
   margin-bottom: 6px;
 }
 
-.subscribe {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 24px 0 12px;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: flex-end;
-}
-
-.subscribe h2 {
-  font-size: 1.25rem;
-  margin: 0 0 4px;
-}
-
-.subscribe p {
-  margin: 0;
-  color: var(--muted);
+  justify-content: flex-start;
+  margin-top: 18px;
 }
 
 .feedUrl {
-  margin-bottom: 22px;
+  margin: 8px 0 22px;
+}
+
+.feedLabel {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-top: 20px;
+  text-transform: uppercase;
 }
 
 .copyStatus,
@@ -249,9 +270,133 @@ code {
   margin-top: -8px;
 }
 
-.timeline {
+.calendarApp {
+  overflow: hidden;
+}
+
+.calendarChrome {
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.calendarTitle {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.calendarChrome h2 {
+  font-size: 1.55rem;
+  margin: 0;
+}
+
+.monthControls {
+  display: flex;
+  gap: 8px;
+}
+
+.monthControls button {
+  align-items: center;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--fg);
+  cursor: pointer;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.chevronIcon {
+  display: block;
+  fill: none;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.3;
+  width: 20px;
+}
+
+.calendarGrid {
+  background: var(--line);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekday {
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  padding: 10px 8px;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.dayCell {
+  background: var(--panel);
+  min-height: 106px;
+  padding: 8px;
+  position: relative;
+}
+
+.outsideMonth {
+  background: color-mix(in srgb, var(--panel) 66%, var(--panel-strong));
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.dayNumber {
+  color: var(--muted);
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1;
+  margin-bottom: 8px;
+  text-align: right;
+}
+
+.dayEvents {
+  display: grid;
+  gap: 4px;
+}
+
+.calendarPill {
+  border-radius: 5px;
+  color: #ffffff;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.25;
+  overflow: hidden;
+  padding: 4px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendarPill.wishlist_release {
+  background: #1b65d8;
+}
+
+.calendarPill.steam_major_event {
+  background: #4b6b7f;
+}
+
+.agenda {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
   display: grid;
   gap: 10px;
+  padding: 16px;
 }
 
 .eventRow {
@@ -296,14 +441,12 @@ code {
   }
 
   .lookupRow,
-  .summary,
   .eventRow {
     grid-template-columns: 1fr;
   }
 
-  .subscribe {
-    align-items: stretch;
-    flex-direction: column;
+  .resultShell {
+    grid-template-columns: 1fr;
   }
 
   .actions {
@@ -313,5 +456,47 @@ code {
   .actions a,
   .actions button {
     width: 100%;
+  }
+
+  .calendarGrid {
+    font-size: 0.92rem;
+  }
+
+  .dayCell {
+    min-height: 86px;
+    padding: 6px;
+  }
+
+  .calendarPill {
+    font-size: 0.66rem;
+    padding: 3px 5px;
+  }
+}
+
+@media (max-width: 520px) {
+  .calendarChrome {
+    padding: 15px 14px;
+  }
+
+  .weekday {
+    font-size: 0.64rem;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .dayCell {
+    min-height: 70px;
+    padding: 5px;
+  }
+
+  .dayNumber {
+    font-size: 0.76rem;
+    margin-bottom: 6px;
+  }
+
+  .calendarPill {
+    color: transparent;
+    height: 7px;
+    padding: 0;
   }
 }

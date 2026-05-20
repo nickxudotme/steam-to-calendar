@@ -12,9 +12,12 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await page.getByRole('button', { name: 'Preview' }).click();
   await expect((await previewResponse).ok()).toBe(true);
 
-  await expect(page.getByText('Calendar feed')).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText('Subscription')).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole('region', { name: 'Simulated calendar app preview' })).toBeVisible();
+  await expect(page.getByText('Subscribed Calendar Preview')).toBeVisible();
+  await expect(page.getByRole('grid', { name: /calendar preview/i })).toBeVisible();
   await expect(page.getByLabel('Calendar feed URL')).toHaveValue(/\/feed\/76561198115468824\.ics$/);
-  await expect(page.getByText(/Apple Calendar often rejects/)).toBeVisible();
+  await expect(page.getByText(/Apple Calendar may reject/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Import Calendar' })).toHaveAttribute(
     'href',
     /^webcal:\/\/localhost:3000\/cal\/76561198115468824$/,
