@@ -46,7 +46,7 @@ input {
 }
 
 .shell {
-  width: min(1040px, calc(100vw - 32px));
+  width: min(1380px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 56px 0 80px;
 }
@@ -185,7 +185,7 @@ code {
 
 .resultShell {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 330px) minmax(720px, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -271,48 +271,185 @@ code {
 }
 
 .calendarApp {
+  background: #1f1f1f;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.22);
+  color: #e7e7e7;
+  min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.iphoneCalendarChrome,
+.iphoneBottomBar {
+  display: none;
 }
 
 .calendarChrome {
   align-items: center;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  background: #1e1e1e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  min-height: 58px;
+  padding: 12px 14px;
+  position: relative;
+}
+
+.windowControls {
+  display: flex;
+  gap: 8px;
+  left: 18px;
+  position: absolute;
+  top: 18px;
+}
+
+.windowControl {
+  border-radius: 999px;
+  display: block;
+  height: 13px;
+  width: 13px;
+}
+
+.windowControl.close {
+  background: #ff5f57;
+}
+
+.windowControl.minimize {
+  background: #febc2e;
+}
+
+.windowControl.zoom {
+  background: #28c840;
+}
+
+.calendarToolbarLeft {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding-left: 84px;
+}
+
+.toolbarIcon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: #d8d8d8;
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.toolbarIcon.isSelected,
+.toolbarIcon:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.addButton {
+  margin-left: 12px;
+}
+
+.searchButton {
+  justify-self: end;
+}
+
+.toolbarSvg,
+.linkIcon {
+  display: block;
+  fill: none;
+  height: 19px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 19px;
+}
+
+.viewSwitcher {
+  align-items: center;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 38px;
+  justify-self: center;
+  overflow: hidden;
+  width: 270px;
+}
+
+.viewSwitcher button {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cfcfcf;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 760;
+  height: 100%;
+  padding: 0 18px;
+}
+
+.viewSwitcher button:first-child {
+  border-left: 0;
+}
+
+.viewSwitcher .isSelected {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #ffffff;
+}
+
+.calendarMonthBar {
+  align-items: center;
+  background: #1f1f1f;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
+  padding: 22px 20px 12px;
 }
 
-.calendarTitle {
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 800;
-  margin: 0 0 4px;
-  text-transform: uppercase;
-}
-
-.calendarChrome h2 {
-  font-size: 1.55rem;
+.calendarMonthBar h2 {
+  color: #eeeeee;
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  font-weight: 830;
+  letter-spacing: 0;
+  line-height: 1;
   margin: 0;
 }
 
 .monthControls {
   display: flex;
-  gap: 8px;
+  gap: 9px;
 }
 
 .monthControls button {
   align-items: center;
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--fg);
+  background: rgba(255, 255, 255, 0.09);
+  border: 0;
+  border-radius: 999px;
+  color: #eeeeee;
   cursor: pointer;
   display: inline-flex;
-  height: 42px;
+  height: 36px;
   justify-content: center;
-  width: 42px;
+  min-width: 36px;
+  padding: 0 10px;
+}
+
+.monthControls button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.monthControls .todayButton {
+  font-size: 0.92rem;
+  font-weight: 820;
+  min-width: 58px;
 }
 
 .chevronIcon {
@@ -327,68 +464,231 @@ code {
 }
 
 .calendarGrid {
-  background: var(--line);
+  background: rgba(255, 255, 255, 0.13);
   display: grid;
   gap: 1px;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: 34px repeat(6, minmax(108px, auto));
 }
 
 .weekday {
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 850;
-  padding: 10px 8px;
+  background: #1f1f1f;
+  color: #b7b7b7;
+  font-size: 1rem;
+  font-weight: 760;
+  padding: 7px 12px;
   text-align: right;
-  text-transform: uppercase;
 }
 
 .dayCell {
-  background: var(--panel);
-  min-height: 106px;
-  padding: 8px;
+  background: #222222;
+  min-height: 108px;
+  padding: 10px 12px;
   position: relative;
 }
 
 .outsideMonth {
-  background: color-mix(in srgb, var(--panel) 66%, var(--panel-strong));
-  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: #1d1d1d;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .dayNumber {
-  color: var(--muted);
+  color: #e6e6e6;
   display: block;
-  font-size: 0.84rem;
-  font-weight: 750;
+  font-size: 1.18rem;
+  font-weight: 780;
   line-height: 1;
-  margin-bottom: 8px;
   text-align: right;
 }
 
-.dayEvents {
-  display: grid;
-  gap: 4px;
+.outsideMonth .dayNumber {
+  color: rgba(255, 255, 255, 0.33);
 }
 
-.calendarPill {
-  border-radius: 5px;
-  color: #ffffff;
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 750;
+.calendarSegment {
+  align-self: start;
+  border: 0;
+  color: #d7f2ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.86rem;
+  font-weight: 760;
+  height: 19px;
+  justify-content: flex-start;
   line-height: 1.25;
+  margin-top: calc(31px + (var(--segment-lane) * 23px));
+  min-width: 0;
   overflow: hidden;
-  padding: 4px 6px;
+  padding: 1px 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.calendarSegment.startsAtEvent {
+  border-bottom-left-radius: 6px;
+  border-top-left-radius: 6px;
+}
+
+.calendarSegment.endsAtEvent {
+  border-bottom-right-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.calendarSegment.wishlist_release {
+  background: #5abcf1;
+  color: #06283d;
+}
+
+.calendarSegment.steam_major_event {
+  background: rgba(72, 130, 156, 0.72);
+}
+
+.calendarSegment.isSelected {
+  background: #62c7ff;
+  color: #06283d;
+}
+
+.calendarPopover {
+  background: rgba(42, 33, 33, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.23);
+  border-radius: 22px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+  color: #f4eeee;
+  display: grid;
+  gap: 14px;
+  max-width: min(420px, calc(100% - 36px));
+  padding: 20px 18px 18px;
+  position: absolute;
+  right: 22px;
+  top: 138px;
+  width: 390px;
+  z-index: 8;
+}
+
+.popoverAnchor {
+  border-bottom: 16px solid transparent;
+  border-right: 16px solid rgba(42, 33, 33, 0.94);
+  border-top: 16px solid transparent;
+  height: 0;
+  left: -15px;
+  position: absolute;
+  top: 220px;
+  width: 0;
+}
+
+.popoverHeader {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr auto;
+}
+
+.popoverHeader h3 {
+  font-size: 1.35rem;
+  line-height: 1.18;
+  margin: 0;
+}
+
+.popoverHeader button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0;
+  border-radius: 999px;
+  color: #e8dfdf;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1.2rem;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.popoverCalendar,
+.popoverLink,
+.popoverDate,
+.calendarPopover p,
+.popoverUrl {
+  background: rgba(255, 255, 255, 0.055);
+  border-radius: 15px;
+  color: #f2eeee;
+  padding: 14px 16px;
+}
+
+.popoverCalendar {
+  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  font-weight: 780;
+}
+
+.calendarDot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+}
+
+.calendarDot.wishlist_release {
+  background: #5abcf1;
+}
+
+.calendarDot.steam_major_event {
+  background: #62c7ff;
+}
+
+.popoverLink {
+  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.popoverLink span {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.calendarPill.wishlist_release {
-  background: #1b65d8;
+.popoverLink a {
+  background: rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+  color: #f5eeee;
+  font-weight: 770;
+  padding: 7px 12px;
+  text-decoration: none;
 }
 
-.calendarPill.steam_major_event {
-  background: #4b6b7f;
+.popoverDate {
+  display: block;
+  font-size: 1.08rem;
+  font-weight: 780;
+}
+
+.calendarPopover p {
+  line-height: 1.42;
+  margin: 0;
+}
+
+.popoverUrl {
+  color: #69c5ff;
+  overflow-wrap: anywhere;
+}
+
+.unsubscribeButton {
+  align-self: end;
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+  border-radius: 9px;
+  color: #f5eeee;
+  cursor: pointer;
+  font-weight: 780;
+  justify-self: end;
+  padding: 9px 14px;
 }
 
 .agenda {
@@ -449,6 +749,108 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .calendarApp {
+    background: #050505;
+    border: 0;
+    border-radius: 38px;
+    box-shadow: 0 22px 50px rgba(12, 18, 30, 0.22);
+    color: #f5f5f7;
+    margin: 0 auto;
+    max-width: 430px;
+    min-height: 760px;
+    overflow: hidden;
+    padding: 0 0 82px;
+    width: min(100%, 430px);
+  }
+
+  .iphoneCalendarChrome {
+    background: #050505;
+    display: block;
+    padding: 15px 18px 0;
+  }
+
+  .iphoneStatusBar {
+    align-items: center;
+    display: flex;
+    font-size: 0.76rem;
+    font-weight: 780;
+    justify-content: space-between;
+    letter-spacing: 0;
+    min-height: 20px;
+    padding: 0 4px 10px;
+  }
+
+  .iphoneStatusIcons {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.68rem;
+  }
+
+  .iphoneTopBar {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .iphoneYearButton,
+  .iphoneTopActions {
+    align-items: center;
+    background: rgba(118, 118, 128, 0.22);
+    border: 0;
+    border-radius: 999px;
+    color: #f4f4f5;
+    display: inline-flex;
+    min-height: 38px;
+  }
+
+  .iphoneYearButton {
+    cursor: pointer;
+    font-size: 0.98rem;
+    font-weight: 760;
+    gap: 1px;
+    padding: 0 12px 0 6px;
+  }
+
+  .iphoneYearButton .chevronIcon {
+    height: 22px;
+    width: 22px;
+  }
+
+  .iphoneTopActions {
+    gap: 4px;
+    padding: 2px 4px;
+  }
+
+  .iphoneMonthTitle {
+    color: #ffffff;
+    font-size: 2.25rem;
+    font-weight: 820;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 20px 0 8px;
+  }
+
+  .calendarChrome {
+    display: none;
+  }
+
+  .calendarMonthBar {
+    display: none;
+  }
+
+  .toolbarIcon {
+    background: transparent;
+    border: 0;
+    color: #f4f4f5;
+    height: 33px;
+    width: 33px;
+  }
+
+  .toolbarSvg,
+  .linkIcon {
+    height: 20px;
+    width: 20px;
+  }
+
   .actions {
     justify-content: stretch;
   }
@@ -459,44 +861,177 @@ code {
   }
 
   .calendarGrid {
-    font-size: 0.92rem;
+    background: #050505;
+    gap: 0;
+    grid-template-rows: 24px repeat(6, minmax(72px, auto));
+    padding: 0 0 8px;
   }
 
   .dayCell {
-    min-height: 86px;
-    padding: 6px;
+    background: #050505;
+    border-top: 1px solid rgba(255, 255, 255, 0.13);
+    min-height: 72px;
+    padding: 7px 8px;
   }
 
-  .calendarPill {
-    font-size: 0.66rem;
-    padding: 3px 5px;
+  .outsideMonth {
+    background: #050505;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .weekday {
+    background: #050505;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.68rem;
+    font-weight: 760;
+    padding: 3px 7px 8px;
+    text-align: center;
+  }
+
+  .dayNumber {
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 1.05rem;
+    font-weight: 760;
+    text-align: center;
+  }
+
+  .outsideMonth .dayNumber {
+    color: rgba(255, 255, 255, 0.34);
+  }
+
+  .calendarSegment {
+    background: rgba(69, 130, 154, 0.76);
+    color: #6bd4ff;
+    font-size: 0.68rem;
+    font-weight: 760;
+    height: 13px;
+    margin-top: calc(32px + (var(--segment-lane) * 15px));
+    padding: 0 5px;
+  }
+
+  .calendarSegment.isSelected {
+    background: #5cc9ff;
+    color: #06283d;
+  }
+
+  .calendarPopover {
+    background: #1c1c1e;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px 22px 0 0;
+    bottom: 0;
+    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+    left: 0;
+    margin: 0;
+    max-height: 64%;
+    max-width: none;
+    overflow: auto;
+    padding: 18px 18px 22px;
+    position: absolute;
+    right: 0;
+    top: auto;
+    width: auto;
+  }
+
+  .calendarPopover::before {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    content: "";
+    height: 4px;
+    justify-self: center;
+    margin-bottom: 1px;
+    width: 42px;
+  }
+
+  .popoverAnchor {
+    display: none;
+  }
+
+  .popoverHeader h3 {
+    font-size: 1.2rem;
+  }
+
+  .popoverCalendar,
+  .popoverLink,
+  .popoverDate,
+  .calendarPopover p,
+  .popoverUrl {
+    background: #2c2c2e;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+
+  .popoverDate {
+    font-size: 0.98rem;
+  }
+
+  .iphoneBottomBar {
+    align-items: center;
+    background: linear-gradient(180deg, rgba(5, 5, 5, 0), #050505 22%);
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    left: 0;
+    padding: 28px 24px 18px;
+    position: absolute;
+    right: 0;
+  }
+
+  .iphoneBottomBar > span:first-child {
+    align-items: center;
+    background: rgba(118, 118, 128, 0.22);
+    border-radius: 999px;
+    color: #f4f4f5;
+    display: inline-flex;
+    font-weight: 780;
+    min-height: 42px;
+    padding: 0 16px;
+  }
+
+  .iphoneBottomActions {
+    align-items: center;
+    background: rgba(118, 118, 128, 0.22);
+    border-radius: 999px;
+    color: #f4f4f5;
+    display: inline-flex;
+    gap: 18px;
+    min-height: 42px;
+    padding: 0 16px;
+  }
+
+  .iphoneBottomActions .toolbarSvg {
+    height: 22px;
+    width: 22px;
   }
 }
 
 @media (max-width: 520px) {
-  .calendarChrome {
-    padding: 15px 14px;
+  .calendarApp {
+    border-radius: 32px;
+    min-height: 710px;
   }
 
-  .weekday {
-    font-size: 0.64rem;
-    padding: 8px 4px;
-    text-align: center;
+  .iphoneCalendarChrome {
+    padding-left: 15px;
+    padding-right: 15px;
   }
 
   .dayCell {
-    min-height: 70px;
-    padding: 5px;
+    min-height: 64px;
+    padding: 6px 5px;
+  }
+
+  .calendarGrid {
+    grid-template-rows: 22px repeat(6, minmax(64px, auto));
   }
 
   .dayNumber {
-    font-size: 0.76rem;
-    margin-bottom: 6px;
+    font-size: 0.86rem;
   }
 
-  .calendarPill {
-    color: transparent;
-    height: 7px;
-    padding: 0;
+  .calendarSegment {
+    font-size: 0.52rem;
+    height: 11px;
+    margin-top: calc(28px + (var(--segment-lane) * 13px));
+    padding: 0 3px;
   }
 }

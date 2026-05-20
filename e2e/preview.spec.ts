@@ -14,8 +14,21 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
 
   await expect(page.getByText('Subscription')).toBeVisible({ timeout: 45_000 });
   await expect(page.getByRole('region', { name: 'Simulated calendar app preview' })).toBeVisible();
-  await expect(page.getByText('Subscribed Calendar Preview')).toBeVisible();
   await expect(page.getByRole('grid', { name: /calendar preview/i })).toBeVisible();
+  const nextFestSegments = page.locator('[data-event-id="steam-next-fest-june-2026"]');
+  await expect(nextFestSegments).toHaveCount(2);
+  await expect(nextFestSegments.nth(0)).toHaveCSS('grid-column-start', '2');
+  await expect(nextFestSegments.nth(0)).toHaveCSS('grid-column-end', '8');
+  await expect(nextFestSegments.nth(1)).toHaveCSS('grid-column-start', '1');
+  await expect(nextFestSegments.nth(1)).toHaveCSS('grid-column-end', '3');
+  await nextFestSegments.nth(0).click();
+  const popover = page.getByTestId('event-popover');
+  await expect(popover).toBeVisible();
+  await expect(popover.getByText('🧪 Steam Next Fest')).toBeVisible();
+  await expect(popover.getByText('Wishlist in Calendar')).toBeVisible();
+  await expect(popover.getByText('2026年6月8日 – 2026年6月15日')).toBeVisible();
+  await expect(page.getByRole('link', { name: '打开' })).toHaveAttribute('href', 'https://store.steampowered.com/');
+  await expect(page.getByRole('button', { name: '取消订阅' })).toBeVisible();
   await expect(page.getByLabel('Calendar feed URL')).toHaveValue(/\/feed\/76561198115468824\.ics$/);
   await expect(page.getByText(/Apple Calendar may reject/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Import Calendar' })).toHaveAttribute(
