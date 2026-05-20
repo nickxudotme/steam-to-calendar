@@ -2,7 +2,27 @@
 
 Put your Steam wishlist into the calendar you actually live in.
 
-This is the local Weekend Prototype. It accepts a SteamID64, reads the public Steam wishlist page, fetches Steam app details, keeps future exact release dates plus a small Steam major-events seed, and serves an `.ics` feed.
+Wishlist in Calendar is a small Next.js prototype that turns a public Steam wishlist into a subscribable calendar feed. It previews future Steam moments in a simulated calendar app, then exposes both an HTTPS `.ics` URL and an extensionless `webcal://` subscription URL for calendar apps.
+
+Live prototype:
+
+```text
+https://wishlist-in-calender.vercel.app/
+```
+
+## What works now
+
+- SteamID64 input.
+- Public wishlist import through Steam's wishlist service endpoint.
+- Steam app detail lookup for wishlist appIDs.
+- Future exact release dates mapped to all-day calendar events.
+- A small fixed seed of major Steam events.
+- Simulated monthly calendar preview with an agenda list.
+- Copyable `.ics` feed URL.
+- One-click `webcal://` subscription route.
+- Apple Calendar-compatible ICS response headers and event shape.
+- Unit tests for Steam ingestion, event mapping, and ICS generation.
+- Playwright coverage for preview and feed subscription UI.
 
 ## Run locally
 
@@ -23,9 +43,9 @@ Sample SteamID64:
 76561198115468824
 ```
 
-## Calendar feed
+## Calendar routes
 
-The feed route is:
+The direct ICS route is:
 
 ```text
 http://localhost:3000/feed/{steamId64}.ics
@@ -41,31 +61,36 @@ For the sample:
 
 ```text
 http://localhost:3000/feed/76561198115468824.ics
+webcal://localhost:3000/cal/76561198115468824
 ```
 
-Apple Calendar local check:
+Apple Calendar may reject local `webcal://localhost:3000` subscriptions. For local testing, paste the HTTP feed URL into Apple Calendar with `File -> New Calendar Subscription`. The deployed Vercel URL is the better end-to-end subscription target.
 
-1. Open the homepage.
-2. Click `Preview`.
-3. Click `Apple Calendar`, or copy the feed URL.
-4. In Apple Calendar, use `File -> New Calendar Subscription`.
+## Project docs
 
-## What is in scope
+- [Current status](docs/current-status.md)
+- [Product design](docs/product-design.md)
+- [Engineering plan](docs/engineering-plan.md)
+- [Test plan](docs/test-plan.md)
+
+## Scope
+
+In scope for the current prototype:
 
 - SteamID64 only.
 - Public wishlist only.
 - Future exact release dates only.
-- Small fixed Steam major-events seed.
-- Local `.ics` feed.
-- Apple Calendar manual verification.
+- Major Steam events seed.
+- Dynamic `.ics` feed generated on request.
+- Local and deployed Apple Calendar validation.
 
-## What is intentionally out of scope
+Intentionally out of scope for now:
 
 - Steam login.
 - Vanity profile URLs.
-- Accounts.
+- Accounts or saved user settings.
 - Share pages.
-- Donation.
+- Donation flow.
 - Historical lows.
 - Per-game discount events.
 - Full Steam search.
