@@ -6,11 +6,12 @@ import {
   isExactSteamReleaseDate,
   isSteamId64,
   normalizeSteamId64,
+  parseWishlistApiJson,
   parseWishlistHtml,
   SteamWishlistError,
 } from '../client';
 
-const steamId64 = '76561199022537892';
+const steamId64 = '76561198115468824';
 
 describe('steam client', () => {
   it('validates SteamID64 values', () => {
@@ -27,13 +28,39 @@ describe('steam client', () => {
 
   it('rejects vanity and arbitrary URLs', () => {
     expect(() => normalizeSteamId64('https://steamcommunity.com/id/someone')).toThrow(SteamWishlistError);
-    expect(() => normalizeSteamId64('https://example.com/profiles/76561199022537892')).toThrow(SteamWishlistError);
+    expect(() => normalizeSteamId64('https://example.com/profiles/76561198115468824')).toThrow(SteamWishlistError);
   });
 
   it('builds the public wishlist URL', () => {
     expect(buildWishlistUrl(steamId64)).toBe(
-      'https://store.steampowered.com/wishlist/profiles/76561199022537892/wishlist/',
+      'https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=76561198115468824',
     );
+  });
+
+  it('parses Steam wishlist API appIDs', () => {
+    const json = JSON.stringify({
+      response: {
+        items: [
+          { appid: 281990, priority: 2, date_added: 1653998488 },
+          { appid: 1962700, priority: 0, date_added: 1778337224 },
+        ],
+      },
+    });
+
+    expect(parseWishlistApiJson(json)).toEqual([
+      {
+        appId: '281990',
+        name: 'Steam app 281990',
+        releaseDateText: null,
+        storeUrl: 'https://store.steampowered.com/app/281990/',
+      },
+      {
+        appId: '1962700',
+        name: 'Steam app 1962700',
+        releaseDateText: null,
+        storeUrl: 'https://store.steampowered.com/app/1962700/',
+      },
+    ]);
   });
 
   it('parses wishlist data embedded in Steam HTML', () => {
@@ -136,9 +163,9 @@ describe('steam client', () => {
     });
   });
 
-  it('fetches wishlist HTML with the constructed URL', async () => {
+  it('fetches wishlist appIDs from Steam wishlist API', async () => {
     const response = new Response(
-      'var g_rgWishlistData = [{"appid":123,"name":"Hades II","release_date":{"date":"May 6, 2024"}}];\n',
+      JSON.stringify({ response: { items: [{ appid: 123 }] } }),
       { status: 200 },
     );
     const calls: string[] = [];
@@ -150,7 +177,7 @@ describe('steam client', () => {
       },
     });
 
-    expect(calls).toEqual(['https://store.steampowered.com/wishlist/profiles/76561199022537892/wishlist/']);
+    expect(calls).toEqual(['https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=76561198115468824']);
     expect(result.games).toHaveLength(1);
   });
 });

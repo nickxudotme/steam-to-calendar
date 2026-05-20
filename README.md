@@ -20,7 +20,7 @@ http://localhost:3000
 Sample SteamID64:
 
 ```text
-76561199022537892
+76561198115468824
 ```
 
 ## Calendar feed
@@ -40,7 +40,7 @@ webcal://localhost:3000/cal/{steamId64}
 For the sample:
 
 ```text
-http://localhost:3000/feed/76561199022537892.ics
+http://localhost:3000/feed/76561198115468824.ics
 ```
 
 Apple Calendar local check:

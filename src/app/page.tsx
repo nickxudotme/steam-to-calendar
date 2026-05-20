@@ -27,7 +27,7 @@ type PreviewResponse = {
   events: PreviewEvent[];
 };
 
-const SAMPLE_STEAM_ID = '76561199022537892';
+const SAMPLE_STEAM_ID = '76561198115468824';
 
 export default function Home() {
   const [steamId64, setSteamId64] = useState(SAMPLE_STEAM_ID);
@@ -134,9 +134,7 @@ export default function Home() {
             </button>
           </div>
           <p className="hint">
-            Prototype supports SteamID64 only. Example wishlist path:
-            {' '}
-            <code>/wishlist/profiles/{steamId64 || SAMPLE_STEAM_ID}/wishlist/</code>
+            Prototype supports SteamID64 only. Public wishlist appIDs come from Steam's wishlist service.
           </p>
         </form>
 

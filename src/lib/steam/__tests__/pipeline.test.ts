@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fetchWishlistCalendarData } from '../pipeline';
 
-const steamId64 = '76561199022537892';
+const steamId64 = '76561198115468824';
 
 function response(body: unknown, status = 200) {
   return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
@@ -16,10 +16,12 @@ describe('Steam wishlist pipeline', () => {
       fetcher: async (url) => {
         calls.push(url);
 
-        if (url.includes('/wishlist/')) {
-          return response(
-            'GStoreItemData.AddStoreItemDataSet({"rgApps":{"1":{"name":"One"},"2":{"name":"Two"},"3":{"name":"Three"}}});',
-          );
+        if (url.includes('IWishlistService/GetWishlist')) {
+          return response({
+            response: {
+              items: [{ appid: 1 }, { appid: 2 }, { appid: 3 }],
+            },
+          });
         }
 
         const appId = new URL(url).searchParams.get('appids') ?? 'unknown';
@@ -46,10 +48,12 @@ describe('Steam wishlist pipeline', () => {
       appLimit: 2,
       concurrency: 2,
       fetcher: async (url) => {
-        if (url.includes('/wishlist/')) {
-          return response(
-            'GStoreItemData.AddStoreItemDataSet({"rgApps":{"1":{"name":"One"},"2":{"name":"Two"}}});',
-          );
+        if (url.includes('IWishlistService/GetWishlist')) {
+          return response({
+            response: {
+              items: [{ appid: 1 }, { appid: 2 }],
+            },
+          });
         }
 
         const appId = new URL(url).searchParams.get('appids') ?? 'unknown';

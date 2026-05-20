@@ -71,7 +71,7 @@ export function buildWishlistUrl(steamId64: string): string {
     throw new SteamWishlistError('invalid_steam_id', 'Invalid SteamID64.');
   }
 
-  return `https://store.steampowered.com/wishlist/profiles/${steamId64}/wishlist/`;
+  return `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=${steamId64}`;
 }
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -134,8 +134,8 @@ export async function fetchSteamWishlist(
 ): Promise<SteamWishlistResult> {
   const steamId64 = normalizeSteamId64(input);
   const wishlistUrl = buildWishlistUrl(steamId64);
-  const html = await fetchText(wishlistUrl, options);
-  const games = parseWishlistHtml(html);
+  const json = await fetchText(wishlistUrl, options);
+  const games = parseWishlistApiJson(json);
 
   if (games.length === 0) {
     throw new SteamWishlistError(
@@ -178,6 +178,44 @@ async function fetchText(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export function parseWishlistApiJson(json: string): SteamWishlistGame[] {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(json);
+  } catch (error) {
+    throw new SteamWishlistError('wishlist_parse_failed', 'Could not parse Steam wishlist API response.', error);
+  }
+
+  const response = payload && typeof payload === 'object'
+    ? (payload as Record<string, unknown>).response
+    : null;
+  const items = response && typeof response === 'object'
+    ? (response as Record<string, unknown>).items
+    : null;
+
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.flatMap((item) => {
+    if (!item || typeof item !== 'object') {
+      return [];
+    }
+
+    const appId = readString(item as Record<string, unknown>, 'appid');
+    if (!appId) {
+      return [];
+    }
+
+    return [{
+      appId,
+      name: `Steam app ${appId}`,
+      releaseDateText: null,
+      storeUrl: `https://store.steampowered.com/app/${appId}/`,
+    }];
+  });
 }
 
 export function parseWishlistHtml(html: string): SteamWishlistGame[] {
