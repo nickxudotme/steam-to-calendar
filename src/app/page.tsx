@@ -2,6 +2,7 @@
 
 import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { mapSteamMajorEvents } from '@/lib/events/mapper';
 
 type PreviewEvent = {
   id: string;
@@ -45,53 +46,47 @@ type CalendarEventSegment = {
   endsAtEvent: boolean;
 };
 
-const SAMPLE_STEAM_ID = '76561198115468824';
-const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_EVENT_LANES = 3;
+const PREVIEW_TODAY_ISO = '2026-06-15';
+const PUBLIC_STEAM_EVENTS = mapSteamMajorEvents(undefined, { today: '2026-05-20' });
+const PUBLIC_PREVIEW: PreviewResponse = {
+  steamId64: STEAM_EVENTS_CALENDAR_ID,
+  feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
+  calendarPath: `/cal/${STEAM_EVENTS_CALENDAR_ID}`,
+  wishlistUrl: '',
+  stats: {
+    wishlistGames: 0,
+    appDetails: 0,
+    skippedAppIds: 0,
+    wishlistReleaseEvents: 0,
+    steamMajorEvents: PUBLIC_STEAM_EVENTS.length,
+  },
+  events: PUBLIC_STEAM_EVENTS,
+};
 
 export default function Home() {
-  const [steamId64, setSteamId64] = useState(SAMPLE_STEAM_ID);
-  const [preview, setPreview] = useState<PreviewResponse | null>(null);
+  const [steamId64, setSteamId64] = useState('');
+  const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const [visibleMonth, setVisibleMonth] = useState(() => monthKeyFromIsoDate(new Date().toISOString().slice(0, 10)));
-
-  const feedUrl = useMemo(() => {
-    if (!preview) {
-      return '';
-    }
-
-    if (typeof window === 'undefined') {
-      return preview.feedPath;
-    }
-
-    return `${window.location.origin}${preview.feedPath}`;
-  }, [preview]);
+  const [visibleMonth, setVisibleMonth] = useState(() => monthKeyFromIsoDate(PUBLIC_PREVIEW.events[0]?.startDate ?? new Date().toISOString().slice(0, 10)));
+  const [origin, setOrigin] = useState('');
 
   const webcalUrl = useMemo(() => {
-    if (!preview) {
-      return '';
-    }
-
-    const calendarUrl = typeof window === 'undefined'
-      ? preview.calendarPath
-      : `${window.location.origin}${preview.calendarPath}`;
+    const calendarUrl = origin ? `${origin}${preview.calendarPath}` : preview.calendarPath;
 
     return calendarUrl.replace(/^https?:\/\//, 'webcal://');
-  }, [preview]);
-
-  const isLocalFeed = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-
-    return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-  }, [preview]);
+  }, [origin, preview]);
 
   const sortedEvents = useMemo(() => {
-    return [...(preview?.events ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    return [...preview.events].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [preview]);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     if (sortedEvents.length > 0) {
@@ -101,16 +96,21 @@ export default function Home() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trimmedSteamId64 = steamId64.trim();
+
+    if (!trimmedSteamId64) {
+      window.location.href = webcalUrl;
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    setPreview(null);
-    setCopyStatus('idle');
 
     try {
       const response = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ steamId64 }),
+        body: JSON.stringify({ steamId64: trimmedSteamId64 }),
       });
       const payload = await response.json();
 
@@ -126,109 +126,58 @@ export default function Home() {
     }
   }
 
-  async function copyFeedUrl() {
-    if (!feedUrl) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(feedUrl);
-      setCopyStatus('copied');
-    } catch {
-      setCopyStatus('failed');
-    }
-  }
-
   return (
-    <main className="shell">
-      <section className="intro">
-        <p className="eyebrow">Wishlist in Calendar</p>
-        <h1>Put your Steam wishlist into the calendar you actually live in.</h1>
-        <p className="lede">
-          Paste a SteamID64, preview future release dates and major Steam moments, then subscribe from Apple Calendar.
-        </p>
-      </section>
+    <main className="appRoot">
+      <div className="shell">
+        <header className="siteHeader">
+          <a className="brandMark" href="/" aria-label="Wishlist in Calendar home">
+            <span className="brandIcon"><CalendarListIcon /></span>
+            <span>Wishlist in Calendar</span>
+            <span className="betaBadge">Beta</span>
+          </a>
+        </header>
 
-      <section className="workspace" aria-label="Steam wishlist calendar generator">
-        <form className="lookup" onSubmit={handleSubmit}>
-          <label htmlFor="steam-id">SteamID64</label>
-          <div className="lookupRow">
-            <input
-              id="steam-id"
-              inputMode="numeric"
-              placeholder={SAMPLE_STEAM_ID}
-              value={steamId64}
-              onChange={(event) => setSteamId64(event.target.value)}
+        <section className="heroStage" aria-label="Wishlist in Calendar preview">
+          <div className="heroCopy">
+            <h1>
+              Put your Steam wishlist into <span>your calendar.</span>
+            </h1>
+            <p>
+              Enter a public Steam profile to preview upcoming wishlist releases and subscribe from your calendar app.
+            </p>
+
+            <form className="steamConnectForm" onSubmit={handleSubmit} aria-label="Add Steam wishlist releases to the calendar">
+              <label className="srOnly" htmlFor="steam-id">Add your Steam wishlist</label>
+              <div className="steamInputWrap">
+                <CalendarListIcon />
+                <input
+                  id="steam-id"
+                  inputMode="text"
+                  placeholder="Enter SteamID64 or profile URL"
+                  value={steamId64}
+                  onChange={(event) => setSteamId64(event.target.value)}
+                />
+                <LinkIcon />
+              </div>
+              <button disabled={isLoading} type="submit">
+                <CalendarListIcon />
+                {isLoading ? 'Adding...' : 'Add to your Calendar'}
+              </button>
+            </form>
+
+            {error ? <div className="notice error">{error}</div> : null}
+          </div>
+
+          <div className="calendarExperience">
+            <CalendarPreview
+              events={sortedEvents}
+              visibleMonth={visibleMonth}
+              onPreviousMonth={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
+              onNextMonth={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
             />
-            <button disabled={isLoading} type="submit">
-              {isLoading ? 'Previewing...' : 'Preview'}
-            </button>
           </div>
-          <p className="hint">
-            Prototype supports SteamID64 only. Public wishlist appIDs come from Steam's wishlist service.
-          </p>
-        </form>
-
-        {error ? <div className="notice error">{error}</div> : null}
-
-        {preview ? (
-          <div className="results">
-            <div className="resultShell">
-              <aside className="feedPanel" aria-label="Subscription controls">
-                <div className="panelHeader">
-                  <h2>Subscription</h2>
-                  <p>
-                    {isLocalFeed
-                      ? 'Local mode: one-click uses an extensionless webcal URL. If Calendar rejects localhost, copy the HTTP URL.'
-                      : 'Use the webcal button, or copy the URL into Apple Calendar.'}
-                  </p>
-                </div>
-
-                <div className="summary">
-                  <div>
-                    <span>{preview.stats.wishlistGames}</span>
-                    wishlist apps
-                  </div>
-                  <div>
-                    <span>{preview.stats.wishlistReleaseEvents}</span>
-                    future releases
-                  </div>
-                  <div>
-                    <span>{preview.stats.steamMajorEvents}</span>
-                    Steam events
-                  </div>
-                </div>
-
-                <div className="actions">
-                  <a href={webcalUrl}>Import Calendar</a>
-                  <button className="secondary" type="button" onClick={copyFeedUrl}>Copy URL</button>
-                  <a className="secondary" href={preview.feedPath}>Open .ics</a>
-                </div>
-
-                <label className="feedLabel" htmlFor="feed-url">Feed URL</label>
-                <input id="feed-url" className="feedUrl" readOnly value={feedUrl} aria-label="Calendar feed URL" />
-                {copyStatus !== 'idle' ? (
-                  <p className="copyStatus">
-                    {copyStatus === 'copied' ? 'Copied. Paste it into Apple Calendar subscription.' : 'Copy failed. Select the URL field manually.'}
-                  </p>
-                ) : null}
-                {isLocalFeed ? (
-                  <p className="localNote">
-                    Apple Calendar may reject local <code>webcal://</code> links on non-standard ports. The HTTP feed above is the reliable local fallback.
-                  </p>
-                ) : null}
-              </aside>
-
-              <CalendarPreview
-                events={sortedEvents}
-                visibleMonth={visibleMonth}
-                onPreviousMonth={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
-                onNextMonth={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
-              />
-            </div>
-          </div>
-        ) : null}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
@@ -245,79 +194,30 @@ function CalendarPreview({
   onNextMonth: () => void;
 }) {
   const previewData = useMemo(() => buildCalendarPreviewData(visibleMonth, events), [visibleMonth, events]);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const selectedEvent = selectedEventId ? events.find((event) => event.id === selectedEventId) ?? null : null;
+  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const activeEvent = activeEventId ? events.find((event) => event.id === activeEventId) ?? null : null;
 
   useEffect(() => {
-    setSelectedEventId(null);
+    setActiveEventId(null);
   }, [visibleMonth]);
 
   return (
-    <section className="calendarApp" aria-label="Simulated calendar app preview">
-      <div className="iphoneCalendarChrome">
-        <div className="iphoneStatusBar" aria-hidden="true">
-          <span>1:03</span>
-          <span className="iphoneStatusIcons">▮▮▮  Wi-Fi  77</span>
-        </div>
-        <div className="iphoneTopBar">
-          <button className="iphoneYearButton" type="button" aria-label="Back to year view">
-            <ChevronIcon direction="left" />
-            <span>{visibleMonth.slice(0, 4)}年</span>
-          </button>
-          <div className="iphoneTopActions">
-            <button className="toolbarIcon" type="button" aria-label="Calendar list">
-              <CalendarListIcon />
-            </button>
-            <button className="toolbarIcon" type="button" aria-label="Search">
-              <SearchIcon />
-            </button>
-            <button className="toolbarIcon" type="button" aria-label="Add event">
-              <PlusIcon />
-            </button>
-          </div>
-        </div>
-        <div className="iphoneMonthTitle">{formatChineseMonthName(visibleMonth)}</div>
-      </div>
-
-      <div className="calendarChrome">
-        <div className="windowControls" aria-hidden="true">
-          <span className="windowControl close" />
-          <span className="windowControl minimize" />
-          <span className="windowControl zoom" />
-        </div>
-        <div className="calendarToolbarLeft">
-          <button className="toolbarIcon isSelected" type="button" aria-label="Calendars">
-            <CalendarListIcon />
-          </button>
-          <button className="toolbarIcon" type="button" aria-label="Inbox">
-            <InboxIcon />
-          </button>
-          <button className="toolbarIcon addButton" type="button" aria-label="Add event">
-            <PlusIcon />
-          </button>
-        </div>
-        <div className="viewSwitcher" aria-label="Calendar view">
-          <button type="button">日</button>
-          <button type="button">周</button>
-          <button className="isSelected" type="button">月</button>
-          <button type="button">年</button>
-        </div>
-        <button className="toolbarIcon searchButton" type="button" aria-label="Search">
-          <SearchIcon />
-        </button>
-      </div>
-
-      <div className="calendarMonthBar">
-        <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
+    <section className="calendarApp" aria-label="Calendar preview" onMouseLeave={() => setActiveEventId(null)}>
+      <div className="calendarHeader">
         <div className="monthControls" aria-label="Month navigation">
           <button type="button" onClick={onPreviousMonth} aria-label="Previous month">
             <ChevronIcon direction="left" />
           </button>
-          <button className="todayButton" type="button" aria-label="Today">
-            今天
-          </button>
           <button type="button" onClick={onNextMonth} aria-label="Next month">
             <ChevronIcon direction="right" />
+          </button>
+        </div>
+
+        <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
+
+        <div className="calendarControls">
+          <button className="settingsButton" type="button" aria-label="Calendar settings">
+            <SettingsIcon />
           </button>
         </div>
       </div>
@@ -326,7 +226,6 @@ function CalendarPreview({
         className="calendarGrid"
         role="grid"
         aria-label={`${formatMonth(visibleMonth)} calendar preview`}
-        onClick={() => setSelectedEventId(null)}
       >
         {WEEKDAYS.map((weekday) => (
           <div className="weekday" key={weekday} role="columnheader">{weekday}</div>
@@ -342,7 +241,7 @@ function CalendarPreview({
               gridRow: Math.floor(index / 7) + 2,
             } as CSSProperties}
           >
-            <span className="dayNumber">{cell.day}</span>
+            <span className={cell.date === PREVIEW_TODAY_ISO ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
           </div>
         ))}
         {previewData.segments.map((segment) => (
@@ -351,7 +250,8 @@ function CalendarPreview({
             className={[
               'calendarSegment',
               segment.event.type,
-              selectedEventId === segment.event.id ? 'isSelected' : '',
+              eventVisualClass(segment.event),
+              activeEventId === segment.event.id ? 'isSelected' : '',
               segment.startsAtEvent ? 'startsAtEvent' : '',
               segment.endsAtEvent ? 'endsAtEvent' : '',
             ].filter(Boolean).join(' ')}
@@ -365,27 +265,17 @@ function CalendarPreview({
             } as CSSProperties}
             title={segment.event.title}
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              setSelectedEventId(segment.event.id);
-            }}
+            onFocus={() => setActiveEventId(segment.event.id)}
+            onMouseEnter={() => setActiveEventId(segment.event.id)}
           >
-            {compactEventTitle(segment.event.title)}
+            <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
           </button>
         ))}
       </div>
 
-      {selectedEvent ? (
-        <EventPopover event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+      {activeEvent ? (
+        <EventPopover event={activeEvent} isPersonalized={events.some((event) => event.type === 'wishlist_release')} />
       ) : null}
-
-      <div className="iphoneBottomBar" aria-hidden="true">
-        <span>今天</span>
-        <span className="iphoneBottomActions">
-          <CalendarListIcon />
-          <InboxIcon />
-        </span>
-      </div>
     </section>
   );
 }
@@ -399,32 +289,6 @@ function CalendarListIcon() {
   );
 }
 
-function InboxIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="M4.2 8.5 6.1 5h7.8l1.9 3.5v5.1a1.7 1.7 0 0 1-1.7 1.7H5.9a1.7 1.7 0 0 1-1.7-1.7Z" />
-      <path d="M4.5 9h3.2l.8 1.8h3L12.3 9h3.2" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="M10 4v12M4 10h12" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <circle cx="9" cy="9" r="5" />
-      <path d="m12.8 12.8 3.2 3.2" />
-    </svg>
-  );
-}
-
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   return (
     <svg aria-hidden="true" className="chevronIcon" viewBox="0 0 20 20">
@@ -433,20 +297,29 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
-function EventPopover({ event, onClose }: { event: PreviewEvent; onClose: () => void }) {
+function SettingsIcon() {
+  return (
+    <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
+      <path d="M8.9 3.2h2.2l.5 1.8 1.3.5 1.6-.9 1.6 1.6-.9 1.6.5 1.3 1.8.5v2.2l-1.8.5-.5 1.3.9 1.6-1.6 1.6-1.6-.9-1.3.5-.5 1.8H8.9l-.5-1.8-1.3-.5-1.6.9-1.6-1.6.9-1.6-.5-1.3-1.8-.5V9.6l1.8-.5.5-1.3-.9-1.6 1.6-1.6 1.6.9 1.3-.5.5-1.8Z" />
+      <circle cx="10" cy="10.7" r="2.2" />
+    </svg>
+  );
+}
+
+function EventPopover({ event, isPersonalized }: { event: PreviewEvent; isPersonalized: boolean }) {
   const sourceHost = event.sourceUrl ? new URL(event.sourceUrl).host : null;
+  const isWishlistRelease = event.type === 'wishlist_release';
+  const isSale = eventVisualClass(event) === 'saleEvent';
 
   return (
     <aside className="calendarPopover" aria-label={`${event.title} details`} data-testid="event-popover">
       <div className="popoverAnchor" aria-hidden="true" />
+      <div className={`popoverBanner ${eventVisualClass(event)}`} aria-hidden="true" />
       <div className="popoverHeader">
         <h3>{event.title}</h3>
-        <button type="button" aria-label="Close event details" onClick={onClose}>
-          ×
-        </button>
       </div>
       <div className="popoverCalendar">
-        <span className={`calendarDot ${event.type}`} />
+        <span className={`calendarDot ${event.type} ${eventVisualClass(event)}`} />
         <span>Wishlist in Calendar</span>
         <ChevronIcon direction="right" />
       </div>
@@ -454,15 +327,40 @@ function EventPopover({ event, onClose }: { event: PreviewEvent; onClose: () => 
         <div className="popoverLink">
           <LinkIcon />
           <span>{sourceHost}</span>
-          <a href={event.sourceUrl} target="_blank" rel="noreferrer">打开</a>
+          <a href={event.sourceUrl} target="_blank" rel="noreferrer">Open site</a>
         </div>
       ) : null}
       <time className="popoverDate" dateTime={event.startDate}>
         {formatPopoverDateRange(event)}
       </time>
+      <div className="popoverMeta">
+        {isWishlistRelease ? 'Release date from your wishlist' : isPersonalized ? 'Wishlist-related Steam season' : 'Add SteamID64 to see wishlist matches'}
+      </div>
       <p>{event.description.split('\n')[0]}</p>
+      {isSale ? (
+        <div className="popoverMatches" aria-label="Wishlist sale matches">
+          <div className="matchSummary">
+            <span>8 wishlist games on sale</span>
+            <ChevronIcon direction="right" />
+          </div>
+          <div className="discountRow">
+            <span className="gameThumb red" />
+            <span>RPG adventure</span>
+            <strong>-60%</strong>
+          </div>
+          <div className="discountRow">
+            <span className="gameThumb amber" />
+            <span>Co-op roguelite</span>
+            <strong>-50%</strong>
+          </div>
+          <div className="discountRow">
+            <span className="gameThumb blue" />
+            <span>Detective story</span>
+            <strong>-75%</strong>
+          </div>
+        </div>
+      ) : null}
       {event.sourceUrl ? <a className="popoverUrl" href={event.sourceUrl} target="_blank" rel="noreferrer">{event.sourceUrl}</a> : null}
-      <button className="unsubscribeButton" type="button">取消订阅</button>
     </aside>
   );
 }
@@ -624,14 +522,7 @@ function formatMonth(value: string): string {
 }
 
 function formatCalendarMonthTitle(value: string): string {
-  const [year, month] = value.split('-').map(Number);
-  return `${year}年${month}月`;
-}
-
-function formatChineseMonthName(value: string): string {
-  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-  const month = Number(value.slice(5, 7));
-  return monthNames[month - 1] ?? formatCalendarMonthTitle(value);
+  return formatMonth(value);
 }
 
 function formatDate(value: string): string {
@@ -645,15 +536,26 @@ function formatDate(value: string): string {
 
 function formatPopoverDateRange(event: PreviewEvent): string {
   if (!event.endDate) {
-    return formatChineseDate(event.startDate);
+    return formatDate(event.startDate);
   }
 
-  return `${formatChineseDate(event.startDate)} – ${formatChineseDate(addDays(event.endDate, -1))}`;
+  return `${formatDate(event.startDate)} – ${formatDate(addDays(event.endDate, -1))}`;
 }
 
-function formatChineseDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number);
-  return `${year}年${month}月${day}日`;
+function eventVisualClass(event: PreviewEvent): string {
+  if (event.type === 'wishlist_release') {
+    return 'wishlistEvent';
+  }
+
+  if (event.id.includes('next-fest')) {
+    return 'nextFestEvent';
+  }
+
+  if (event.id.includes('sale')) {
+    return 'saleEvent';
+  }
+
+  return 'seasonalEvent';
 }
 
 function compactEventTitle(title: string): string {

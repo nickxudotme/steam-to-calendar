@@ -3,8 +3,20 @@ import { calendarContentType, generateCalendar } from '@/lib/ics/generator';
 import { SteamWishlistError } from '@/lib/steam/client';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
 
+export const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
+
 export async function buildCalendarResponse(steamId64: string): Promise<Response> {
   try {
+    if (steamId64 === STEAM_EVENTS_CALENDAR_ID) {
+      const events = mapSteamMajorEvents();
+      const calendar = generateCalendar(events);
+
+      return new Response(calendar, {
+        status: 200,
+        headers: calendarHeaders(steamId64),
+      });
+    }
+
     const data = await fetchWishlistCalendarData(steamId64);
     const events = [
       ...mapWishlistReleaseEvents(data.appDetails),
@@ -32,9 +44,13 @@ export async function buildCalendarResponse(steamId64: string): Promise<Response
 }
 
 export function calendarHeaders(steamId64: string): HeadersInit {
+  const filename = steamId64 === STEAM_EVENTS_CALENDAR_ID
+    ? 'steam-events.ics'
+    : `steam-wishlist-${steamId64}.ics`;
+
   return {
     'content-type': calendarContentType(),
-    'content-disposition': `attachment; filename=steam-wishlist-${steamId64}.ics`,
+    'content-disposition': `attachment; filename=${filename}`,
     'cache-control': 'public, max-age=1800, s-maxage=1800',
   };
 }

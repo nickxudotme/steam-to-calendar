@@ -1,30 +1,5 @@
 :root {
-  color-scheme: light dark;
-  --bg: #f6f7f8;
-  --fg: #111827;
-  --muted: #64748b;
-  --line: #d7dde6;
-  --panel: #ffffff;
-  --panel-strong: #f0f4f8;
-  --accent: #1b65d8;
-  --accent-strong: #0b3a75;
-  --danger: #b42318;
-  --shadow: 0 18px 55px rgba(15, 23, 42, 0.1);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e141b;
-    --fg: #edf4fb;
-    --muted: #9aa9ba;
-    --line: #263342;
-    --panel: #151d26;
-    --panel-strong: #101821;
-    --accent: #66c0f4;
-    --accent-strong: #9bd8ff;
-    --danger: #ffb4a8;
-    --shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
-  }
+  color-scheme: dark;
 }
 
 * {
@@ -33,10 +8,8 @@
 
 body {
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(102, 192, 244, 0.08), transparent 260px),
-    var(--bg);
-  color: var(--fg);
+  background: #020711;
+  color: #f6fbff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -45,97 +18,169 @@ input {
   font: inherit;
 }
 
+.appRoot {
+  --bg: #020711;
+  --fg: #f7fbff;
+  --muted: #aeb9cb;
+  --line: rgba(155, 183, 226, 0.18);
+  --panel: rgba(9, 17, 31, 0.74);
+  --panel-solid: rgba(8, 16, 30, 0.9);
+  --panel-strong: rgba(255, 255, 255, 0.07);
+  --accent: #72c8ff;
+  --accent-purple: #8b5cf6;
+  --accent-green: #42c978;
+  --accent-strong: #c2e9ff;
+  --accent-ink: #031426;
+  --danger: #ffb4a8;
+  --shadow: 0 34px 110px rgba(0, 0, 0, 0.46);
+  --soft-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+  background:
+    linear-gradient(180deg, rgba(2, 7, 17, 0.18), rgba(2, 7, 17, 0.78) 58%, #020711),
+    linear-gradient(90deg, rgba(2, 7, 17, 0.18), rgba(2, 7, 17, 0.36) 42%, rgba(2, 7, 17, 0.85)),
+    url("/backgrounds/game-library-universe.png"),
+    radial-gradient(circle at 46% 4%, rgba(115, 89, 255, 0.22), transparent 30rem),
+    linear-gradient(135deg, #081a31, #050914 54%, #03060c);
+  background-position: center;
+  background-size: cover;
+  color: var(--fg);
+  min-height: 100dvh;
+  overflow: hidden;
+  position: relative;
+}
+
+.appRoot::before,
+.appRoot::after {
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+}
+
+.appRoot::before {
+  background:
+    radial-gradient(ellipse at 12% 20%, rgba(88, 140, 208, 0.18), transparent 22rem),
+    radial-gradient(ellipse at 76% 8%, rgba(190, 158, 255, 0.12), transparent 20rem),
+    linear-gradient(90deg, rgba(2, 7, 17, 0.16), rgba(2, 7, 17, 0.68) 50%, rgba(2, 7, 17, 0.28));
+  opacity: 0.95;
+}
+
+.appRoot::after {
+  background:
+    linear-gradient(120deg, transparent 0 12%, rgba(255, 255, 255, 0.03) 12.2% 12.5%, transparent 12.7% 100%),
+    radial-gradient(circle at 30% 92%, rgba(60, 128, 200, 0.15), transparent 16rem),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 120px);
+  mask-image: linear-gradient(180deg, transparent, black 9%, black 84%, transparent);
+  opacity: 0.42;
+}
+
 .shell {
-  width: min(1380px, calc(100vw - 32px));
+  position: relative;
+  z-index: 1;
+  width: min(1560px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 56px 0 80px;
+  min-height: 100dvh;
+  padding: 28px 0 64px;
 }
 
-.intro {
-  max-width: 760px;
-  margin-bottom: 32px;
+.siteHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 58px;
 }
 
-.eyebrow {
-  margin: 0 0 12px;
+.brandMark {
+  align-items: center;
+  color: var(--fg);
+  display: inline-flex;
+  gap: 11px;
+  font-size: 0.98rem;
+  font-weight: 820;
+  text-decoration: none;
+}
+
+.brandIcon {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent-purple) 24%, rgba(255, 255, 255, 0.08));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
   color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 700;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.betaBadge {
+  background: rgba(139, 92, 246, 0.22);
+  border: 1px solid rgba(139, 92, 246, 0.42);
+  border-radius: 999px;
+  color: #d8ccff;
+  font-size: 0.68rem;
+  font-weight: 850;
   letter-spacing: 0.08em;
+  padding: 3px 8px;
   text-transform: uppercase;
+}
+
+.heroStage {
+  align-items: center;
+  display: grid;
+  gap: 46px;
+  grid-template-columns: minmax(360px, 410px) minmax(0, 1fr);
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.4rem, 6vw, 4.8rem);
-  line-height: 0.98;
+  font-size: clamp(2.85rem, 3.35vw, 3.85rem);
+  line-height: 1.1;
   letter-spacing: 0;
-  max-width: 860px;
 }
 
-.lede {
+h1 span {
+  background: linear-gradient(90deg, #8d7cff, #ad5cff 56%, #66c0f4);
+  background-clip: text;
+  color: transparent;
+}
+
+.heroCopy p {
   color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.65;
-  margin: 20px 0 0;
-  max-width: 650px;
+  font-size: 1.06rem;
+  line-height: 1.72;
+  margin: 28px 0 0;
+  max-width: 330px;
 }
 
-.workspace {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.lookup {
-  padding: 24px;
-  border-bottom: 1px solid var(--line);
-}
-
-.lookup label {
-  display: block;
-  font-size: 0.86rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.lookupRow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-}
-
-.lookup input,
-.feedUrl {
+.steamConnectForm input {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-strong);
+  border-radius: 12px;
+  background: rgba(7, 14, 28, 0.58);
   color: var(--fg);
-  padding: 12px 14px;
+  min-height: 56px;
+  padding: 14px 46px 14px 48px;
   outline: none;
 }
 
-.lookup input:focus,
-.feedUrl:focus {
+.steamConnectForm input:focus,
+.steamConnectForm button:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
+  outline: none;
 }
 
-.lookup button,
-.actions a,
-.actions button {
+.steamConnectForm button {
   border: 0;
-  border-radius: 8px;
-  background: var(--accent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f7cff, #7c3aed);
+  box-shadow: 0 16px 42px rgba(83, 94, 255, 0.32);
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 46px;
   padding: 0 18px;
   font-weight: 800;
@@ -143,23 +188,9 @@ h1 {
   white-space: nowrap;
 }
 
-.lookup button:disabled,
-.actions button:disabled {
+.steamConnectForm button:disabled {
   cursor: wait;
   opacity: 0.72;
-}
-
-.actions .secondary {
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--fg);
-}
-
-.hint {
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.5;
 }
 
 code {
@@ -168,7 +199,7 @@ code {
 }
 
 .notice {
-  margin: 24px;
+  margin: 14px 0 0;
   border-radius: 8px;
   padding: 14px 16px;
   border: 1px solid var(--line);
@@ -179,187 +210,52 @@ code {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
-.results {
-  padding: 24px;
+.calendarExperience {
+  background:
+    radial-gradient(circle at 78% 12%, rgba(122, 93, 255, 0.12), transparent 24rem),
+    linear-gradient(180deg, rgba(11, 20, 37, 0.76), rgba(5, 10, 20, 0.8));
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(153, 167, 238, 0.28);
+  border-radius: 22px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  min-height: 690px;
+  overflow: visible;
 }
 
-.resultShell {
-  display: grid;
-  grid-template-columns: minmax(260px, 330px) minmax(720px, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.feedPanel,
 .calendarApp {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-strong);
-}
-
-.feedPanel {
-  padding: 18px;
-}
-
-.panelHeader h2 {
-  font-size: 1.25rem;
-  margin: 0 0 6px;
-}
-
-.panelHeader p {
-  color: var(--muted);
-  line-height: 1.5;
-  margin: 0 0 18px;
-}
-
-.summary {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--line);
-}
-
-.summary div {
-  background: var(--panel);
-  color: var(--muted);
-  padding: 14px;
-  min-height: 76px;
-}
-
-.summary span {
-  display: block;
   color: var(--fg);
-  font-size: 2rem;
-  font-weight: 850;
-  line-height: 1.1;
-  margin-bottom: 6px;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-start;
-  margin-top: 18px;
-}
-
-.feedUrl {
-  margin: 8px 0 22px;
-}
-
-.feedLabel {
-  display: block;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 800;
-  margin-top: 20px;
-  text-transform: uppercase;
-}
-
-.copyStatus,
-.localNote {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: -10px 0 22px;
-}
-
-.localNote {
-  margin-top: -8px;
-}
-
-.calendarApp {
-  background: #1f1f1f;
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.22);
-  color: #e7e7e7;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
-.iphoneCalendarChrome,
-.iphoneBottomBar {
-  display: none;
-}
-
-.calendarChrome {
+.calendarHeader {
   align-items: center;
-  background: #1e1e1e;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: grid;
+  gap: 18px;
   grid-template-columns: 1fr auto 1fr;
-  gap: 14px;
-  min-height: 58px;
-  padding: 12px 14px;
-  position: relative;
+  padding: 26px 30px 20px;
 }
 
-.windowControls {
-  display: flex;
-  gap: 8px;
-  left: 18px;
-  position: absolute;
-  top: 18px;
+.calendarHeader h2 {
+  color: var(--fg);
+  font-size: 1.45rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
 }
 
-.windowControl {
-  border-radius: 999px;
-  display: block;
-  height: 13px;
-  width: 13px;
-}
-
-.windowControl.close {
-  background: #ff5f57;
-}
-
-.windowControl.minimize {
-  background: #febc2e;
-}
-
-.windowControl.zoom {
-  background: #28c840;
-}
-
-.calendarToolbarLeft {
+.calendarControls {
   align-items: center;
   display: flex;
-  gap: 8px;
-  padding-left: 84px;
-}
-
-.toolbarIcon {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  color: #d8d8d8;
-  cursor: pointer;
-  display: inline-flex;
-  height: 34px;
-  justify-content: center;
-  padding: 0;
-  width: 34px;
-}
-
-.toolbarIcon.isSelected,
-.toolbarIcon:hover {
-  background: rgba(255, 255, 255, 0.13);
-}
-
-.addButton {
-  margin-left: 12px;
-}
-
-.searchButton {
-  justify-self: end;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .toolbarSvg,
-.linkIcon {
+.linkIcon,
+.miniIcon {
   display: block;
   fill: none;
   height: 19px;
@@ -370,86 +266,38 @@ code {
   width: 19px;
 }
 
-.viewSwitcher {
-  align-items: center;
-  align-self: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  height: 38px;
-  justify-self: center;
-  overflow: hidden;
-  width: 270px;
-}
-
-.viewSwitcher button {
-  background: transparent;
-  border: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cfcfcf;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 760;
-  height: 100%;
-  padding: 0 18px;
-}
-
-.viewSwitcher button:first-child {
-  border-left: 0;
-}
-
-.viewSwitcher .isSelected {
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  color: #ffffff;
-}
-
-.calendarMonthBar {
-  align-items: center;
-  background: #1f1f1f;
-  display: flex;
-  justify-content: space-between;
-  padding: 22px 20px 12px;
-}
-
-.calendarMonthBar h2 {
-  color: #eeeeee;
-  font-size: clamp(2.2rem, 4vw, 3.6rem);
-  font-weight: 830;
-  letter-spacing: 0;
-  line-height: 1;
-  margin: 0;
+.steamInputWrap > .toolbarSvg {
+  color: var(--muted);
+  left: 16px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .monthControls {
   display: flex;
-  gap: 9px;
+  gap: 8px;
 }
 
 .monthControls button {
   align-items: center;
-  background: rgba(255, 255, 255, 0.09);
-  border: 0;
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: #eeeeee;
+  color: var(--fg);
   cursor: pointer;
   display: inline-flex;
-  height: 36px;
+  height: 40px;
   justify-content: center;
-  min-width: 36px;
-  padding: 0 10px;
+  min-width: 40px;
+  padding: 0 11px;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
 .monthControls button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.monthControls .todayButton {
-  font-size: 0.92rem;
-  font-weight: 820;
-  min-width: 58px;
+  background: var(--panel);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  transform: translateY(-1px);
 }
 
 .chevronIcon {
@@ -463,147 +311,254 @@ code {
   width: 20px;
 }
 
+.settingsButton {
+  align-items: center;
+  background: rgba(9, 18, 35, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: #dbe6f7;
+  cursor: pointer;
+  display: inline-flex;
+  min-height: 40px;
+}
+
+.settingsButton {
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.settingsButton:hover {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+}
+
 .calendarGrid {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(155, 183, 226, 0.09);
+  border-top: 1px solid rgba(155, 183, 226, 0.12);
   display: grid;
   gap: 1px;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: 34px repeat(6, minmax(108px, auto));
+  grid-template-rows: 34px repeat(6, minmax(102px, auto));
 }
 
 .weekday {
-  background: #1f1f1f;
-  color: #b7b7b7;
-  font-size: 1rem;
-  font-weight: 760;
-  padding: 7px 12px;
+  background: rgba(6, 13, 25, 0.26);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  text-transform: uppercase;
   text-align: right;
 }
 
 .dayCell {
-  background: #222222;
-  min-height: 108px;
-  padding: 10px 12px;
+  background: rgba(7, 15, 29, 0.25);
+  min-height: 102px;
+  padding: 11px 12px;
   position: relative;
 }
 
+.dayCell:hover {
+  background: rgba(18, 32, 58, 0.26);
+}
+
 .outsideMonth {
-  background: #1d1d1d;
-  color: rgba(255, 255, 255, 0.35);
+  background: rgba(12, 22, 39, 0.25);
 }
 
 .dayNumber {
-  color: #e6e6e6;
+  color: var(--fg);
   display: block;
-  font-size: 1.18rem;
-  font-weight: 780;
+  font-size: 1rem;
+  font-weight: 820;
   line-height: 1;
-  text-align: right;
+  position: absolute;
+  right: 12px;
+  text-align: center;
+  top: 11px;
+  z-index: 3;
+}
+
+.dayNumber.isToday {
+  align-items: center;
+  background: linear-gradient(135deg, #5f7cff, #7a5cff);
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(85, 112, 255, 0.35);
+  color: #fff;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  right: 6px;
+  top: 5px;
+  width: 28px;
 }
 
 .outsideMonth .dayNumber {
-  color: rgba(255, 255, 255, 0.33);
+  color: color-mix(in srgb, var(--muted) 58%, transparent);
 }
 
 .calendarSegment {
+  align-items: center;
   align-self: start;
-  border: 0;
-  color: #d7f2ff;
+  border: 1px solid rgba(210, 226, 255, 0.14);
+  color: rgba(237, 245, 255, 0.9);
   cursor: pointer;
   display: flex;
-  align-items: center;
-  font-size: 0.86rem;
-  font-weight: 760;
-  height: 19px;
+  font-size: 0.73rem;
+  font-weight: 780;
+  height: 23px;
   justify-content: flex-start;
   line-height: 1.25;
-  margin-top: calc(31px + (var(--segment-lane) * 23px));
+  margin-top: calc(34px + (var(--segment-lane) * 27px));
   min-width: 0;
   overflow: hidden;
-  padding: 1px 12px;
+  padding: 0 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
   z-index: 2;
 }
 
+.segmentTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segmentTitle {
+  flex: 1;
+}
+
 .calendarSegment.startsAtEvent {
-  border-bottom-left-radius: 6px;
-  border-top-left-radius: 6px;
+  border-bottom-left-radius: 5px;
+  border-top-left-radius: 5px;
 }
 
 .calendarSegment.endsAtEvent {
-  border-bottom-right-radius: 6px;
-  border-top-right-radius: 6px;
+  border-bottom-right-radius: 5px;
+  border-top-right-radius: 5px;
 }
 
 .calendarSegment.wishlist_release {
-  background: #5abcf1;
-  color: #06283d;
+  background: rgba(59, 128, 229, 0.38);
+  border-color: rgba(116, 176, 255, 0.3);
 }
 
-.calendarSegment.steam_major_event {
-  background: rgba(72, 130, 156, 0.72);
+.calendarSegment.nextFestEvent {
+  background: rgba(105, 82, 198, 0.42);
+  border-color: rgba(158, 138, 245, 0.28);
+}
+
+.calendarSegment.saleEvent {
+  background: rgba(43, 135, 79, 0.42);
+  border-color: rgba(101, 205, 143, 0.28);
 }
 
 .calendarSegment.isSelected {
-  background: #62c7ff;
-  color: #06283d;
+  border-color: rgba(210, 230, 255, 0.46);
+  box-shadow: 0 0 0 1px rgba(210, 230, 255, 0.18);
+}
+
+.steamConnectForm {
+  display: grid;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.steamInputWrap {
+  position: relative;
+}
+
+.steamInputWrap .linkIcon {
+  color: var(--muted);
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.steamConnectForm button {
+  min-height: 56px;
+  width: 100%;
+}
+
+.steamConnectForm .toolbarSvg {
+  height: 20px;
+  width: 20px;
+}
+
+.srOnly {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
 }
 
 .calendarPopover {
-  background: rgba(42, 33, 33, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.23);
-  border-radius: 22px;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
-  color: #f4eeee;
+  background: rgba(8, 15, 28, 0.94);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(176, 194, 232, 0.24);
+  border-radius: 16px;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.52);
+  color: var(--fg);
   display: grid;
-  gap: 14px;
-  max-width: min(420px, calc(100% - 36px));
-  padding: 20px 18px 18px;
+  gap: 12px;
+  max-width: min(440px, calc(100% - 36px));
+  padding: 18px;
   position: absolute;
-  right: 22px;
-  top: 138px;
-  width: 390px;
+  right: -26px;
+  top: 210px;
+  width: 410px;
   z-index: 8;
 }
 
 .popoverAnchor {
-  border-bottom: 16px solid transparent;
-  border-right: 16px solid rgba(42, 33, 33, 0.94);
-  border-top: 16px solid transparent;
+  border-bottom: 14px solid transparent;
+  border-right: 14px solid var(--line);
+  border-top: 14px solid transparent;
   height: 0;
-  left: -15px;
+  left: -14px;
   position: absolute;
-  top: 220px;
+  top: 142px;
   width: 0;
+}
+
+.popoverBanner {
+  border-radius: 12px;
+  height: 96px;
+  overflow: hidden;
+}
+
+.popoverBanner.nextFestEvent {
+  background:
+    radial-gradient(circle at 20% 45%, rgba(255, 255, 255, 0.16), transparent 24%),
+    url("/backgrounds/floating-game-capsules.png") center / cover,
+    linear-gradient(135deg, rgba(118, 82, 255, 0.86), rgba(29, 18, 69, 0.95));
+}
+
+.popoverBanner.saleEvent {
+  background:
+    radial-gradient(circle at 76% 28%, rgba(200, 255, 216, 0.16), transparent 28%),
+    url("/backgrounds/calendar-genre-panes.png") center / cover,
+    linear-gradient(135deg, rgba(52, 176, 103, 0.82), rgba(11, 53, 37, 0.96));
+}
+
+.popoverBanner.wishlistEvent {
+  background:
+    radial-gradient(circle at 72% 32%, rgba(190, 220, 255, 0.18), transparent 26%),
+    url("/backgrounds/game-library-universe.png") center / cover,
+    linear-gradient(135deg, rgba(55, 150, 255, 0.86), rgba(42, 44, 118, 0.96));
 }
 
 .popoverHeader {
   align-items: start;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr auto;
 }
 
 .popoverHeader h3 {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   line-height: 1.18;
   margin: 0;
-}
-
-.popoverHeader button {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 0;
-  border-radius: 999px;
-  color: #e8dfdf;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 1.2rem;
-  height: 28px;
-  justify-content: center;
-  line-height: 1;
-  width: 28px;
 }
 
 .popoverCalendar,
@@ -611,10 +566,11 @@ code {
 .popoverDate,
 .calendarPopover p,
 .popoverUrl {
-  background: rgba(255, 255, 255, 0.055);
-  border-radius: 15px;
-  color: #f2eeee;
-  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--fg);
+  padding: 12px 14px;
 }
 
 .popoverCalendar {
@@ -628,16 +584,13 @@ code {
 .calendarDot {
   border-radius: 999px;
   display: inline-block;
-  height: 14px;
-  width: 14px;
+  height: 12px;
+  width: 12px;
 }
 
-.calendarDot.wishlist_release {
-  background: #5abcf1;
-}
-
+.calendarDot.wishlist_release,
 .calendarDot.steam_major_event {
-  background: #62c7ff;
+  background: var(--accent);
 }
 
 .popoverLink {
@@ -655,291 +608,262 @@ code {
 }
 
 .popoverLink a {
-  background: rgba(255, 255, 255, 0.13);
+  background: var(--accent);
   border-radius: 9px;
-  color: #f5eeee;
-  font-weight: 770;
+  color: #06283d;
+  font-weight: 820;
   padding: 7px 12px;
   text-decoration: none;
 }
 
 .popoverDate {
   display: block;
-  font-size: 1.08rem;
+  font-size: 1rem;
+  font-weight: 780;
+}
+
+.popoverMeta {
+  color: var(--accent-strong);
+  font-size: 0.82rem;
   font-weight: 780;
 }
 
 .calendarPopover p {
+  color: var(--muted);
   line-height: 1.42;
   margin: 0;
 }
 
 .popoverUrl {
-  color: #69c5ff;
-  overflow-wrap: anywhere;
-}
-
-.unsubscribeButton {
-  align-self: end;
-  background: rgba(255, 255, 255, 0.12);
-  border: 0;
-  border-radius: 9px;
-  color: #f5eeee;
-  cursor: pointer;
-  font-weight: 780;
-  justify-self: end;
-  padding: 9px 14px;
-}
-
-.agenda {
-  background: var(--panel);
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-}
-
-.eventRow {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 18px;
-  align-items: start;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel-strong) 70%, transparent);
-}
-
-.eventRow time {
   color: var(--accent-strong);
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.eventRow h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.eventRow p {
-  margin: 6px 0 0;
-  color: var(--muted);
   overflow-wrap: anywhere;
 }
 
-.empty {
-  color: var(--muted);
-  padding: 22px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
+.popoverMatches {
+  display: grid;
+  gap: 8px;
 }
 
-@media (max-width: 720px) {
+.matchSummary {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(255, 210, 72, 0.14), rgba(114, 200, 255, 0.08));
+  border: 1px solid rgba(255, 210, 72, 0.16);
+  border-radius: 12px;
+  color: #ffd766;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 850;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.discountRow {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  font-size: 0.78rem;
+  gap: 10px;
+  grid-template-columns: 42px 1fr auto;
+}
+
+.gameThumb {
+  border-radius: 5px;
+  height: 22px;
+}
+
+.gameThumb.red {
+  background: linear-gradient(135deg, #b5363a, #4a1725);
+}
+
+.gameThumb.amber {
+  background: linear-gradient(135deg, #a56a2b, #382314);
+}
+
+.gameThumb.blue {
+  background: linear-gradient(135deg, #3f7bd7, #172750);
+}
+
+.discountRow strong {
+  background: rgba(66, 201, 120, 0.24);
+  border-radius: 6px;
+  color: #86f2ad;
+  font-size: 0.72rem;
+  padding: 4px 7px;
+}
+
+
+@media (max-width: 1180px) {
+  .heroStage {
+    gap: 24px;
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  }
+
+  .heroCopy {
+    max-width: 300px;
+  }
+
+  h1 {
+    font-size: clamp(2.35rem, 3.45vw, 2.95rem);
+    line-height: 1.04;
+  }
+
+  .heroCopy p {
+    font-size: 0.98rem;
+    line-height: 1.64;
+    margin-top: 22px;
+  }
+
+  .calendarExperience {
+    min-height: 590px;
+  }
+
+  .calendarHeader {
+    padding: 24px 24px 16px;
+  }
+
+  .calendarGrid {
+    grid-template-rows: 32px repeat(6, minmax(84px, auto));
+  }
+
+  .dayCell {
+    min-height: 84px;
+    padding: 9px 10px;
+  }
+
+  .calendarSegment {
+    font-size: 0.68rem;
+    height: 21px;
+    margin-top: calc(32px + (var(--segment-lane) * 25px));
+    padding: 0 9px;
+  }
+
+  .steamConnectForm input {
+    min-height: 62px;
+  }
+
+  .steamConnectForm button {
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 900px) {
   .shell {
     width: min(100vw - 24px, 1040px);
-    padding-top: 34px;
+    padding-top: 18px;
   }
 
-  .lookupRow,
-  .eventRow {
+  .siteHeader {
+    margin-bottom: 26px;
+  }
+
+  .brandMark span:not(.brandIcon) {
+    display: none;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1.04;
+  }
+
+  .heroCopy p {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin-top: 12px;
+  }
+
+  .heroStage {
     grid-template-columns: 1fr;
   }
 
-  .resultShell {
+  .heroCopy {
+    max-width: 680px;
+  }
+
+  .steamConnectForm {
+    margin-top: 20px;
+  }
+
+  .steamConnectForm input {
+    min-height: 52px;
+  }
+
+  .steamConnectForm button {
+    min-height: 52px;
+  }
+
+  .calendarExperience {
+    min-height: auto;
+  }
+
+  .calendarHeader {
     grid-template-columns: 1fr;
+    padding: 18px;
   }
 
-  .calendarApp {
-    background: #050505;
-    border: 0;
-    border-radius: 38px;
-    box-shadow: 0 22px 50px rgba(12, 18, 30, 0.22);
-    color: #f5f5f7;
-    margin: 0 auto;
-    max-width: 430px;
-    min-height: 760px;
-    overflow: hidden;
-    padding: 0 0 82px;
-    width: min(100%, 430px);
-  }
-
-  .iphoneCalendarChrome {
-    background: #050505;
-    display: block;
-    padding: 15px 18px 0;
-  }
-
-  .iphoneStatusBar {
-    align-items: center;
-    display: flex;
-    font-size: 0.76rem;
-    font-weight: 780;
-    justify-content: space-between;
-    letter-spacing: 0;
-    min-height: 20px;
-    padding: 0 4px 10px;
-  }
-
-  .iphoneStatusIcons {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.68rem;
-  }
-
-  .iphoneTopBar {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .iphoneYearButton,
-  .iphoneTopActions {
-    align-items: center;
-    background: rgba(118, 118, 128, 0.22);
-    border: 0;
-    border-radius: 999px;
-    color: #f4f4f5;
-    display: inline-flex;
-    min-height: 38px;
-  }
-
-  .iphoneYearButton {
-    cursor: pointer;
-    font-size: 0.98rem;
-    font-weight: 760;
-    gap: 1px;
-    padding: 0 12px 0 6px;
-  }
-
-  .iphoneYearButton .chevronIcon {
-    height: 22px;
-    width: 22px;
-  }
-
-  .iphoneTopActions {
-    gap: 4px;
-    padding: 2px 4px;
-  }
-
-  .iphoneMonthTitle {
-    color: #ffffff;
+  .calendarHeader h2 {
     font-size: 2.25rem;
-    font-weight: 820;
-    letter-spacing: 0;
-    line-height: 1;
-    padding: 20px 0 8px;
   }
 
-  .calendarChrome {
-    display: none;
+  .calendarControls {
+    justify-content: flex-start;
+    width: 100%;
   }
 
-  .calendarMonthBar {
-    display: none;
-  }
-
-  .toolbarIcon {
-    background: transparent;
-    border: 0;
-    color: #f4f4f5;
-    height: 33px;
-    width: 33px;
+  .monthControls {
+    justify-content: flex-start;
   }
 
   .toolbarSvg,
-  .linkIcon {
+  .linkIcon,
+  .miniIcon {
     height: 20px;
     width: 20px;
   }
 
-  .actions {
-    justify-content: stretch;
-  }
-
-  .actions a,
-  .actions button {
-    width: 100%;
-  }
-
   .calendarGrid {
-    background: #050505;
-    gap: 0;
-    grid-template-rows: 24px repeat(6, minmax(72px, auto));
-    padding: 0 0 8px;
+    grid-template-rows: 30px repeat(6, minmax(72px, auto));
   }
 
   .dayCell {
-    background: #050505;
-    border-top: 1px solid rgba(255, 255, 255, 0.13);
     min-height: 72px;
     padding: 7px 8px;
   }
 
-  .outsideMonth {
-    background: #050505;
-    color: rgba(255, 255, 255, 0.35);
-  }
-
   .weekday {
-    background: #050505;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 0.68rem;
-    font-weight: 760;
-    padding: 3px 7px 8px;
+    font-size: 0.7rem;
+    padding: 7px 7px 6px;
     text-align: center;
   }
 
   .dayNumber {
-    color: rgba(255, 255, 255, 0.94);
-    font-size: 1.05rem;
-    font-weight: 760;
-    text-align: center;
+    font-size: 0.92rem;
+    right: 8px;
+    top: 7px;
   }
 
-  .outsideMonth .dayNumber {
-    color: rgba(255, 255, 255, 0.34);
+  .dayNumber.isToday {
+    height: 24px;
+    right: 2px;
+    top: 2px;
+    width: 24px;
   }
 
   .calendarSegment {
-    background: rgba(69, 130, 154, 0.76);
-    color: #6bd4ff;
     font-size: 0.68rem;
-    font-weight: 760;
-    height: 13px;
-    margin-top: calc(32px + (var(--segment-lane) * 15px));
+    height: 15px;
+    margin-top: calc(30px + (var(--segment-lane) * 17px));
     padding: 0 5px;
   }
 
-  .calendarSegment.isSelected {
-    background: #5cc9ff;
-    color: #06283d;
-  }
-
   .calendarPopover {
-    background: #1c1c1e;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 22px 22px 0 0;
-    bottom: 0;
-    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
-    left: 0;
-    margin: 0;
-    max-height: 64%;
+    bottom: 14px;
+    left: 14px;
+    max-height: 72%;
     max-width: none;
     overflow: auto;
-    padding: 18px 18px 22px;
-    position: absolute;
     right: 0;
     top: auto;
-    width: auto;
-  }
-
-  .calendarPopover::before {
-    background: rgba(255, 255, 255, 0.28);
-    border-radius: 999px;
-    content: "";
-    height: 4px;
-    justify-self: center;
-    margin-bottom: 1px;
-    width: 42px;
+    width: calc(100% - 28px);
   }
 
   .popoverAnchor {
@@ -950,69 +874,18 @@ code {
     font-size: 1.2rem;
   }
 
-  .popoverCalendar,
-  .popoverLink,
-  .popoverDate,
-  .calendarPopover p,
-  .popoverUrl {
-    background: #2c2c2e;
-    border-radius: 14px;
-    padding: 12px 14px;
-  }
-
   .popoverDate {
     font-size: 0.98rem;
-  }
-
-  .iphoneBottomBar {
-    align-items: center;
-    background: linear-gradient(180deg, rgba(5, 5, 5, 0), #050505 22%);
-    bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    left: 0;
-    padding: 28px 24px 18px;
-    position: absolute;
-    right: 0;
-  }
-
-  .iphoneBottomBar > span:first-child {
-    align-items: center;
-    background: rgba(118, 118, 128, 0.22);
-    border-radius: 999px;
-    color: #f4f4f5;
-    display: inline-flex;
-    font-weight: 780;
-    min-height: 42px;
-    padding: 0 16px;
-  }
-
-  .iphoneBottomActions {
-    align-items: center;
-    background: rgba(118, 118, 128, 0.22);
-    border-radius: 999px;
-    color: #f4f4f5;
-    display: inline-flex;
-    gap: 18px;
-    min-height: 42px;
-    padding: 0 16px;
-  }
-
-  .iphoneBottomActions .toolbarSvg {
-    height: 22px;
-    width: 22px;
   }
 }
 
 @media (max-width: 520px) {
-  .calendarApp {
-    border-radius: 32px;
-    min-height: 710px;
+  h1 {
+    font-size: 2.12rem;
   }
 
-  .iphoneCalendarChrome {
-    padding-left: 15px;
-    padding-right: 15px;
+  .calendarApp {
+    border-radius: 16px;
   }
 
   .dayCell {
@@ -1021,16 +894,25 @@ code {
   }
 
   .calendarGrid {
-    grid-template-rows: 22px repeat(6, minmax(64px, auto));
+    grid-template-rows: 28px repeat(6, minmax(64px, auto));
   }
 
   .dayNumber {
     font-size: 0.86rem;
+    right: 5px;
+    top: 6px;
+  }
+
+  .dayNumber.isToday {
+    height: 22px;
+    right: 0;
+    top: 1px;
+    width: 22px;
   }
 
   .calendarSegment {
     font-size: 0.52rem;
-    height: 11px;
+    height: 13px;
     margin-top: calc(28px + (var(--segment-lane) * 13px));
     padding: 0 3px;
   }
