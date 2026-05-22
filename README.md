@@ -32,10 +32,11 @@ npm install
 npm run dev
 ```
 
-To use the richer Steam data source locally, point the app at your compiled CLI:
+The default local setup builds and uses the bundled CLI at `bin/steam-cli`:
 
 ```bash
-STEAM_CLI_PATH=/Users/nx/Workspace/steam-cli/steam-cli
+npm run build:steam-cli
+STEAM_CLI_PATH=bin/steam-cli
 ```
 
 See `.env.example` for optional locale and timeout settings. The default adapter forces English Steam date strings so the calendar parser can reliably detect exact release dates.
@@ -99,6 +100,7 @@ Apple Calendar may reject local `webcal://localhost:3000` subscriptions. For loc
 - [Product design](docs/product-design.md)
 - [Engineering plan](docs/engineering-plan.md)
 - [Test plan](docs/test-plan.md)
+- [Asset inventory](docs/assets.md)
 
 ## Scope
 

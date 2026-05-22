@@ -9,11 +9,11 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', type: 'image/x-icon', sizes: 'any' },
       { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
-      { url: '/logo/icon-192.png', type: 'image/png', sizes: '192x192' },
-      { url: '/logo/icon-512.png', type: 'image/png', sizes: '512x512' },
+      { url: '/assets/brand/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/assets/brand/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
     apple: [
-      { url: '/logo/apple-touch-icon.png', type: 'image/png', sizes: '180x180' },
+      { url: '/assets/brand/apple-touch-icon.png', type: 'image/png', sizes: '180x180' },
     ],
   },
 };

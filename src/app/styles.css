@@ -42,7 +42,7 @@ input {
   background:
     linear-gradient(180deg, rgba(3, 12, 20, 0), rgba(3, 12, 20, 0.22) 58%, #07131d 100%),
     linear-gradient(90deg, rgba(3, 12, 20, 0.08), rgba(3, 12, 20, 0.18) 44%, rgba(3, 12, 20, 0.42)),
-    url("/backgrounds/steam-wishlist-hero.png"),
+    url("/assets/backgrounds/steam-wishlist-hero.png"),
     linear-gradient(135deg, #1b2838, #171a21 58%, #0e141b);
   background-position: center top;
   background-size: cover;
@@ -234,7 +234,7 @@ code {
 .calendarExperience {
   background:
     linear-gradient(180deg, rgba(42, 71, 94, 0.86), rgba(27, 40, 56, 0.95) 13%, rgba(16, 24, 34, 0.96)),
-    url("/backgrounds/calendar-genre-panes.png") center / cover;
+    url("/assets/backgrounds/calendar-genre-panes.png") center / cover;
   border: 1px solid rgba(102, 192, 244, 0.28);
   border-radius: 5px;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -596,21 +596,21 @@ code {
 .popoverBanner.nextFestEvent {
   background:
     radial-gradient(circle at 20% 45%, rgba(255, 255, 255, 0.16), transparent 24%),
-    url("/backgrounds/floating-game-capsules.png") center / cover,
+    url("/assets/backgrounds/floating-game-capsules.png") center / cover,
     linear-gradient(135deg, rgba(118, 82, 255, 0.86), rgba(29, 18, 69, 0.95));
 }
 
 .popoverBanner.saleEvent {
   background:
     radial-gradient(circle at 76% 28%, rgba(200, 255, 216, 0.16), transparent 28%),
-    url("/backgrounds/calendar-genre-panes.png") center / cover,
+    url("/assets/backgrounds/calendar-genre-panes.png") center / cover,
     linear-gradient(135deg, rgba(52, 176, 103, 0.82), rgba(11, 53, 37, 0.96));
 }
 
 .popoverBanner.wishlistEvent {
   background:
     radial-gradient(circle at 72% 32%, rgba(190, 220, 255, 0.18), transparent 26%),
-    url("/backgrounds/game-library-universe.png") center / cover,
+    url("/assets/backgrounds/game-library-universe.png") center / cover,
     linear-gradient(135deg, rgba(55, 150, 255, 0.86), rgba(42, 44, 118, 0.96));
 }
 

@@ -8,6 +8,7 @@ This directory keeps both the original planning documents and the current implem
 - `product-design.md` — product/design plan generated during office-hours review.
 - `engineering-plan.md` — engineering plan generated during implementation planning.
 - `test-plan.md` — focused test plan generated from the engineering review.
+- `assets.md` — runtime and design asset locations.
 
 The original planning files were copied from:
 

@@ -1,10 +1,9 @@
 import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
+import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
 import { calendarContentType, generateCalendar } from '@/lib/ics/generator';
 import { SteamWishlistError } from '@/lib/steam/client';
 import { fetchSteamMajorEvents } from '@/lib/steam/events';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
-
-export const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
 
 export async function buildCalendarResponse(steamId64: string): Promise<Response> {
   try {

@@ -2,7 +2,7 @@
 
 import type { CSSProperties, FormEvent, WheelEvent } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { mapSteamMajorEvents } from '@/lib/events/mapper';
+import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
 
 type PreviewEvent = {
   id: string;
@@ -52,7 +52,6 @@ type CalendarWeek = {
   segments: CalendarEventSegment[];
 };
 
-const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_EVENT_LANES = 3;
 const INITIAL_WEEK_BUFFER = 8;
@@ -63,7 +62,6 @@ const MONTH_WHEEL_THRESHOLD = 20;
 const MONTH_SCROLL_COOLDOWN_MS = 620;
 const PREVIEW_TODAY_ISO = '2026-06-15';
 const INITIAL_PREVIEW_MONTH = monthKeyFromIsoDate(PREVIEW_TODAY_ISO);
-const PUBLIC_STEAM_EVENTS = mapSteamMajorEvents(undefined, { today: '2026-05-20' });
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -74,9 +72,9 @@ const PUBLIC_PREVIEW: PreviewResponse = {
     appDetails: 0,
     skippedAppIds: 0,
     wishlistReleaseEvents: 0,
-    steamMajorEvents: PUBLIC_STEAM_EVENTS.length,
+    steamMajorEvents: 0,
   },
-  events: PUBLIC_STEAM_EVENTS,
+  events: [],
 };
 
 export default function Home() {
@@ -99,6 +97,35 @@ export default function Home() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPublicPreview() {
+      try {
+        const response = await fetch('/api/public-preview');
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.message ?? 'Could not load Steam events.');
+        }
+
+        if (isMounted) {
+          setPreview((currentPreview) => (
+            currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview
+          ));
+        }
+      } catch (caught) {
+        console.error(caught);
+      }
+    }
+
+    void loadPublicPreview();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -143,7 +170,7 @@ export default function Home() {
         <header className="siteHeader">
           <a className="brandMark" href="/" aria-label="Wishlist in Calendar home">
             <span className="brandIcon">
-              <img src="/logo/wishlist-in-calendar-logo.png" alt="" />
+              <img src="/assets/brand/wishlist-in-calendar-logo.png" alt="" />
             </span>
             <span>Wishlist in Calendar</span>
             <span className="betaBadge">Beta</span>
