@@ -1,8 +1,10 @@
-import { mapSteamMajorEvents, mapWishlistReleaseEvents } from '@/lib/events/mapper';
+import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
 import { SteamWishlistError, normalizeSteamId64 } from '@/lib/steam/client';
+import { fetchSteamMajorEvents } from '@/lib/steam/events';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +12,7 @@ export async function POST(request: Request) {
     const steamId64 = normalizeSteamId64(String(body.steamId64 ?? ''));
     const data = await fetchWishlistCalendarData(steamId64, { appLimit: 100 });
     const wishlistEvents = mapWishlistReleaseEvents(data.appDetails);
-    const steamEvents = mapSteamMajorEvents();
+    const steamEvents = await fetchSteamMajorEvents();
     const feedPath = `/feed/${steamId64}.ics`;
     const calendarPath = `/cal/${steamId64}`;
 

@@ -2,6 +2,7 @@ import { buildCalendarResponse, logCalendarRequest } from '@/lib/calendar-respon
 import { SteamWishlistError } from '@/lib/steam/client';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function parseFeedPath(feedPath: string[]): string {
   if (feedPath.length !== 1 || !feedPath[0].endsWith('.ics')) {

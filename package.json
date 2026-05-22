@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build:steam-cli": "node scripts/build-steam-cli.mjs",
+    "prebuild": "npm run build:steam-cli",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run",
+    "test": "vitest run src",
     "test:e2e": "playwright test",
-    "test:watch": "vitest"
+    "test:watch": "vitest src"
   },
   "dependencies": {
     "ics": "^3.12.0",

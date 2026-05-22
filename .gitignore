@@ -1,5 +1,7 @@
 node_modules
 .next
+bin/steam-cli
+.vercel-go
 out
 .vercel
 .env*.local

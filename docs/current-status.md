@@ -1,6 +1,6 @@
 # Current Status
 
-Last updated: 2026-05-21
+Last updated: 2026-05-23
 
 ## Product
 
@@ -28,20 +28,34 @@ Key routes:
 Key modules:
 
 - `src/lib/steam/client.ts` — SteamID validation, wishlist service fetch, app details fetch, timeout/cache helpers.
+- `src/lib/steam/cli.ts` — optional `steam-cli --json` adapter controlled by `STEAM_CLI_PATH`.
+- `src/lib/steam/events.ts` — official Steam event loading through `steam-cli events --json`, with static fallback.
 - `src/lib/steam/pipeline.ts` — wishlist appID import plus app detail hydration.
 - `src/lib/events/mapper.ts` — exact release dates and major Steam events to internal calendar events.
 - `src/lib/ics/generator.ts` — Apple Calendar-compatible ICS generation.
 - `src/lib/calendar-response.ts` — shared feed response assembly and request logging.
+- `scripts/build-steam-cli.mjs` — Vercel build helper that compiles the `vendor/steam-cli` submodule into `bin/steam-cli`.
 
 ## Current data behavior
 
-Wishlist import uses:
+Wishlist import now prefers the local `steam-cli` when `STEAM_CLI_PATH` is configured:
+
+```text
+steam-cli wishlist {steamId64} --count {limit} --json --cc US --lang english --ui-lang en
+steam-cli events --past-days 0 --future-days 365 --json --cc US --lang english --ui-lang en
+```
+
+The adapter maps the CLI JSON envelope into the app's existing `WishlistCalendarData` and `CalendarEvent` shapes. It deliberately defaults to English Steam data so exact dates continue to match the current parser.
+
+When no configured or bundled `steam-cli` binary is available, wishlist import falls back to:
 
 ```text
 https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid={steamId64}
 ```
 
-This avoids the earlier HTML parsing issue where Steam redirects could expose unrelated storefront data. The prototype still only supports public wishlists.
+This keeps development and emergency deployments functional even if the CLI adapter is unavailable. The prototype still only supports public wishlists.
+
+For Vercel, the repo now includes `steam-cli` as a public HTTPS Git submodule at `vendor/steam-cli`. The normal `npm run build` flow compiles that source into `bin/steam-cli`, and `next.config.ts` includes the binary in server function traces. At runtime the adapter uses `STEAM_CLI_PATH` if present, otherwise it falls back to `bin/steam-cli`.
 
 For SteamID64 `76561198115468824`, the current public wishlist import returns 11 wishlist appIDs. As of 2026-05-21, none of those games have future exact release dates, so the preview shows 0 wishlist release events and keeps the major Steam events visible.
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fetchWishlistCalendarData } from '../pipeline';
+import { fetchWishlistCalendarData, mapSteamCliWishlist } from '../pipeline';
 
 const steamId64 = '76561198115468824';
 
@@ -75,5 +75,40 @@ describe('Steam wishlist pipeline', () => {
 
     expect(result.appDetails.map((app) => app.appId)).toEqual(['1']);
     expect(result.skippedAppIds).toEqual(['2']);
+  });
+
+  it('maps steam-cli wishlist JSON into calendar pipeline data', () => {
+    const result = mapSteamCliWishlist({
+      steamid64: steamId64,
+      total: 2,
+      offset: 0,
+      count: 2,
+      items: [
+        {
+          appid: 1962700,
+          details: {
+            name: 'Subnautica 2',
+            steam_appid: 1962700,
+            release_date: { coming_soon: false, date: 'May 14, 2026' },
+          },
+        },
+        {
+          appid: 123,
+          error: 'details unavailable',
+        },
+      ],
+    });
+
+    expect(result.wishlistGames).toHaveLength(2);
+    expect(result.appDetails).toEqual([
+      {
+        appId: '1962700',
+        name: 'Subnautica 2',
+        releaseDateText: 'May 14, 2026',
+        hasExactReleaseDate: true,
+        storeUrl: 'https://store.steampowered.com/app/1962700/',
+      },
+    ]);
+    expect(result.skippedAppIds).toEqual(['123']);
   });
 });

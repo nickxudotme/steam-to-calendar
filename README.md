@@ -13,10 +13,11 @@ https://wishlist-in-calender.vercel.app/
 ## What works now
 
 - SteamID64 input.
-- Public wishlist import through Steam's wishlist service endpoint.
+- Optional `steam-cli --json` integration for wishlist import, app details, and official Steam events.
+- Public wishlist import through Steam's wishlist service endpoint as a fallback.
 - Steam app detail lookup for wishlist appIDs.
 - Future exact release dates mapped to all-day calendar events.
-- A small fixed seed of major Steam events.
+- Official Steam events from `steam-cli events --json`, with a small fixed seed fallback.
 - Simulated monthly calendar preview with an agenda list.
 - Copyable `.ics` feed URL.
 - One-click `webcal://` subscription route.
@@ -29,6 +30,32 @@ https://wishlist-in-calender.vercel.app/
 ```bash
 npm install
 npm run dev
+```
+
+To use the richer Steam data source locally, point the app at your compiled CLI:
+
+```bash
+STEAM_CLI_PATH=/Users/nx/Workspace/steam-cli/steam-cli
+```
+
+See `.env.example` for optional locale and timeout settings. The default adapter forces English Steam date strings so the calendar parser can reliably detect exact release dates.
+
+## Vercel deployment
+
+`steam-cli` is included as a Git submodule under `vendor/steam-cli`. Vercel can deploy this through the normal Git flow:
+
+1. Push this repo and its submodule pointer.
+2. Vercel clones the repo and public HTTPS submodule.
+3. `npm run build` runs `prebuild`, which compiles `vendor/steam-cli` into `bin/steam-cli`.
+4. Next.js includes `bin/steam-cli` in server function traces through `outputFileTracingIncludes`.
+5. Runtime code finds `bin/steam-cli` automatically when `STEAM_CLI_PATH` is not set.
+
+The submodule points at a specific `steam-cli` commit. After changing `steam-cli`, commit and push that repo first, then update the submodule pointer in this repo:
+
+```bash
+git submodule update --remote vendor/steam-cli
+git add vendor/steam-cli
+git commit -m "Update steam-cli"
 ```
 
 Open:
@@ -81,6 +108,7 @@ In scope for the current prototype:
 - Public wishlist only.
 - Future exact release dates only.
 - Major Steam events seed.
+- Optional local `steam-cli` data adapter.
 - Dynamic `.ics` feed generated on request.
 - Local and deployed Apple Calendar validation.
 

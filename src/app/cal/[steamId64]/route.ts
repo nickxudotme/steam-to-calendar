@@ -1,6 +1,7 @@
 import { buildCalendarResponse, logCalendarRequest } from '@/lib/calendar-response';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 type RouteContext = {
   params: Promise<{ steamId64: string }>;

@@ -1,0 +1,3 @@
+[submodule "vendor/steam-cli"]
+	path = vendor/steam-cli
+	url = https://github.com/nickxudotme/steam-cli.git

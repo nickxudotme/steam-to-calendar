@@ -23,20 +23,21 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await expect((await previewResponse).ok()).toBe(true);
 
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
-  await expect(page.getByRole('grid', { name: /calendar preview/i })).toBeVisible();
-  const nextFestSegments = page.locator('[data-event-id="steam-next-fest-june-2026"]');
+  await expect(page.getByRole('grid', { name: /continuous calendar grid/i })).toBeVisible();
+  const nextFestSegments = page.locator('[data-event-id="steam-event-2026-06-15-steam-next-fest"]');
   await expect(nextFestSegments).toHaveCount(2);
-  await expect(nextFestSegments.nth(0)).toHaveCSS('grid-column-start', '2');
-  await expect(nextFestSegments.nth(0)).toHaveCSS('grid-column-end', '8');
-  await expect(nextFestSegments.nth(1)).toHaveCSS('grid-column-start', '1');
-  await expect(nextFestSegments.nth(1)).toHaveCSS('grid-column-end', '3');
+  await expect(nextFestSegments.nth(0)).toHaveAttribute('style', /--segment-start: 1; --segment-span: 6/);
+  await expect(nextFestSegments.nth(1)).toHaveAttribute('style', /--segment-start: 0; --segment-span: 1/);
   await nextFestSegments.nth(0).click();
   const popover = page.getByTestId('event-popover');
   await expect(popover).toBeVisible();
   await expect(popover.getByText('🧪 Steam Next Fest')).toBeVisible();
   await expect(popover.getByText('Wishlist in Calendar')).toBeVisible();
-  await expect(popover.getByText('Jun 8, 2026 – Jun 15, 2026')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open site' })).toHaveAttribute('href', 'https://store.steampowered.com/');
+  await expect(popover.getByText('Jun 15, 2026 – Jun 21, 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open site' })).toHaveAttribute(
+    'href',
+    'https://partner.steamgames.com/doc/marketing/upcoming_events/nextfest/2026june',
+  );
 
   const feedResponse = await request.get('/feed/76561198115468824.ics');
   expect(feedResponse.ok()).toBe(true);

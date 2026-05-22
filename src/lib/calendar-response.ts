@@ -1,6 +1,7 @@
-import { mapSteamMajorEvents, mapWishlistReleaseEvents } from '@/lib/events/mapper';
+import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
 import { calendarContentType, generateCalendar } from '@/lib/ics/generator';
 import { SteamWishlistError } from '@/lib/steam/client';
+import { fetchSteamMajorEvents } from '@/lib/steam/events';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
 
 export const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
@@ -8,7 +9,7 @@ export const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
 export async function buildCalendarResponse(steamId64: string): Promise<Response> {
   try {
     if (steamId64 === STEAM_EVENTS_CALENDAR_ID) {
-      const events = mapSteamMajorEvents();
+      const events = await fetchSteamMajorEvents();
       const calendar = generateCalendar(events);
 
       return new Response(calendar, {
@@ -18,9 +19,10 @@ export async function buildCalendarResponse(steamId64: string): Promise<Response
     }
 
     const data = await fetchWishlistCalendarData(steamId64);
+    const steamEvents = await fetchSteamMajorEvents();
     const events = [
       ...mapWishlistReleaseEvents(data.appDetails),
-      ...mapSteamMajorEvents(),
+      ...steamEvents,
     ];
     const calendar = generateCalendar(events);
 

@@ -1,7 +1,7 @@
 'use client';
 
-import type { CSSProperties, FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties, FormEvent, WheelEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mapSteamMajorEvents } from '@/lib/events/mapper';
 
 type PreviewEvent = {
@@ -46,10 +46,23 @@ type CalendarEventSegment = {
   endsAtEvent: boolean;
 };
 
+type CalendarWeek = {
+  weekStartIso: string;
+  cells: CalendarCell[];
+  segments: CalendarEventSegment[];
+};
+
 const STEAM_EVENTS_CALENDAR_ID = 'steam-events';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_EVENT_LANES = 3;
+const INITIAL_WEEK_BUFFER = 8;
+const INITIAL_WEEK_SPAN = 34;
+const WEEK_EXTENSION_SIZE = 16;
+const WEEK_EXTENSION_THRESHOLD = 4;
+const MONTH_WHEEL_THRESHOLD = 20;
+const MONTH_SCROLL_COOLDOWN_MS = 620;
 const PREVIEW_TODAY_ISO = '2026-06-15';
+const INITIAL_PREVIEW_MONTH = monthKeyFromIsoDate(PREVIEW_TODAY_ISO);
 const PUBLIC_STEAM_EVENTS = mapSteamMajorEvents(undefined, { today: '2026-05-20' });
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
@@ -71,7 +84,7 @@ export default function Home() {
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [visibleMonth, setVisibleMonth] = useState(() => monthKeyFromIsoDate(PUBLIC_PREVIEW.events[0]?.startDate ?? new Date().toISOString().slice(0, 10)));
+  const [initialMonth, setInitialMonth] = useState(INITIAL_PREVIEW_MONTH);
   const [origin, setOrigin] = useState('');
 
   const webcalUrl = useMemo(() => {
@@ -89,9 +102,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (sortedEvents.length > 0) {
-      setVisibleMonth(monthKeyFromIsoDate(sortedEvents[0].startDate));
-    }
+    setInitialMonth(INITIAL_PREVIEW_MONTH);
   }, [sortedEvents]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -131,7 +142,9 @@ export default function Home() {
       <div className="shell">
         <header className="siteHeader">
           <a className="brandMark" href="/" aria-label="Wishlist in Calendar home">
-            <span className="brandIcon"><CalendarListIcon /></span>
+            <span className="brandIcon">
+              <img src="/logo/wishlist-in-calendar-logo.png" alt="" />
+            </span>
             <span>Wishlist in Calendar</span>
             <span className="betaBadge">Beta</span>
           </a>
@@ -171,9 +184,7 @@ export default function Home() {
           <div className="calendarExperience">
             <CalendarPreview
               events={sortedEvents}
-              visibleMonth={visibleMonth}
-              onPreviousMonth={() => setVisibleMonth(shiftMonth(visibleMonth, -1))}
-              onNextMonth={() => setVisibleMonth(shiftMonth(visibleMonth, 1))}
+              initialMonth={initialMonth}
             />
           </div>
         </section>
@@ -184,34 +195,214 @@ export default function Home() {
 
 function CalendarPreview({
   events,
-  visibleMonth,
-  onPreviousMonth,
-  onNextMonth,
+  initialMonth,
 }: {
   events: PreviewEvent[];
-  visibleMonth: string;
-  onPreviousMonth: () => void;
-  onNextMonth: () => void;
+  initialMonth: string;
 }) {
-  const previewData = useMemo(() => buildCalendarPreviewData(visibleMonth, events), [visibleMonth, events]);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const weekRefs = useRef(new Map<string, HTMLElement>());
+  const initialWeekStart = useMemo(() => calendarGridStartForMonth(initialMonth), [initialMonth]);
+  const [weekRange, setWeekRange] = useState(() => buildInitialWeekRange(initialWeekStart));
+  const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
+  const shouldAlignInitialWeek = useRef(true);
+  const hasUserScrollIntent = useRef(false);
+  const isMonthScrollLocked = useRef(false);
+  const monthScrollUnlockTimer = useRef<number | null>(null);
+  const pendingMonthScroll = useRef<string | null>(null);
+  const pendingPrepend = useRef<null | {
+    previousFirstWeek: string;
+    previousScrollTop: number;
+  }>(null);
+  const [visibleMonth, setVisibleMonth] = useState(initialMonth);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const activeEvent = activeEventId ? events.find((event) => event.id === activeEventId) ?? null : null;
+
+  useLayoutEffect(() => {
+    shouldAlignInitialWeek.current = true;
+    setWeekRange(buildInitialWeekRange(initialWeekStart));
+  }, [initialWeekStart]);
+
+  useLayoutEffect(() => {
+    const scrollElement = scrollRef.current;
+
+    if (!scrollElement) {
+      return;
+    }
+
+    if (pendingPrepend.current) {
+      const preservedWeek = weekRefs.current.get(pendingPrepend.current.previousFirstWeek);
+
+      if (preservedWeek) {
+        scrollElement.scrollTop = pendingPrepend.current.previousScrollTop + preservedWeek.offsetTop - scrollElement.offsetTop;
+      }
+
+      pendingPrepend.current = null;
+      return;
+    }
+
+    if (!shouldAlignInitialWeek.current) {
+      if (pendingMonthScroll.current) {
+        const targetMonth = pendingMonthScroll.current;
+        pendingMonthScroll.current = null;
+        scrollToCalendarMonth(targetMonth, 'auto');
+      }
+
+      return;
+    }
+
+    const targetWeek = weekRefs.current.get(initialWeekStart);
+
+    if (scrollElement && targetWeek) {
+      scrollElement.scrollTop = targetWeek.offsetTop - scrollElement.offsetTop;
+      setVisibleMonth(initialMonth);
+      shouldAlignInitialWeek.current = false;
+    }
+  }, [initialMonth, initialWeekStart, weeks]);
+
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+
+    if (!scrollElement) {
+      return;
+    }
+
+    let frameId = 0;
+    const updateVisibleMonth = () => {
+      if (shouldAlignInitialWeek.current) {
+        return;
+      }
+
+      frameId = 0;
+      const scrollTop = scrollElement.scrollTop;
+      let nearestWeek = weeks[0]?.weekStartIso ?? initialWeekStart;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      weekRefs.current.forEach((node, weekStartIso) => {
+        const distance = Math.abs(node.offsetTop - scrollElement.offsetTop - scrollTop);
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestWeek = weekStartIso;
+        }
+      });
+
+      setVisibleMonth(inferVisibleMonthFromWeek(nearestWeek));
+
+      if (!hasUserScrollIntent.current) {
+        return;
+      }
+
+      const rowHeight = getCalendarWeekStep(scrollElement);
+
+      if (scrollTop < rowHeight * WEEK_EXTENSION_THRESHOLD) {
+        pendingPrepend.current = {
+          previousFirstWeek: weekRange.startIso,
+          previousScrollTop: scrollTop,
+        };
+        setWeekRange((range) => ({
+          startIso: addDays(range.startIso, -WEEK_EXTENSION_SIZE * 7),
+          endIso: range.endIso,
+        }));
+        return;
+      }
+
+      if (scrollElement.scrollHeight - scrollElement.clientHeight - scrollTop < rowHeight * WEEK_EXTENSION_THRESHOLD) {
+        setWeekRange((range) => ({
+          startIso: range.startIso,
+          endIso: addDays(range.endIso, WEEK_EXTENSION_SIZE * 7),
+        }));
+      }
+    };
+
+    const handleScroll = () => {
+      if (frameId) {
+        return;
+      }
+
+      frameId = requestAnimationFrame(updateVisibleMonth);
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    updateVisibleMonth();
+
+    return () => {
+      scrollElement.removeEventListener('scroll', handleScroll);
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [initialMonth, initialWeekStart, weekRange, weeks]);
 
   useEffect(() => {
     setActiveEventId(null);
   }, [visibleMonth]);
 
+  useEffect(() => {
+    return () => {
+      if (monthScrollUnlockTimer.current !== null) {
+        window.clearTimeout(monthScrollUnlockTimer.current);
+      }
+    };
+  }, []);
+
+  function markCalendarScrollIntent() {
+    hasUserScrollIntent.current = true;
+  }
+
+  function unlockMonthScrollAfterCooldown() {
+    if (monthScrollUnlockTimer.current !== null) {
+      window.clearTimeout(monthScrollUnlockTimer.current);
+    }
+
+    monthScrollUnlockTimer.current = window.setTimeout(() => {
+      isMonthScrollLocked.current = false;
+    }, MONTH_SCROLL_COOLDOWN_MS);
+  }
+
+  function scrollToCalendarMonth(monthKey: string, behavior: ScrollBehavior = 'smooth') {
+    const scrollElement = scrollRef.current;
+    const targetWeekIso = calendarGridStartForMonth(monthKey);
+    const targetWeek = weekRefs.current.get(targetWeekIso);
+
+    if (!scrollElement || !targetWeek) {
+      pendingMonthScroll.current = monthKey;
+      setWeekRange((range) => ({
+        startIso: targetWeekIso < range.startIso ? addDays(targetWeekIso, -WEEK_EXTENSION_SIZE * 7) : range.startIso,
+        endIso: targetWeekIso >= range.endIso ? addDays(targetWeekIso, (WEEK_EXTENSION_SIZE + 1) * 7) : range.endIso,
+      }));
+      return;
+    }
+
+    scrollElement.scrollTo({
+      top: targetWeek.offsetTop - scrollElement.offsetTop,
+      behavior,
+    });
+    setVisibleMonth(monthKey);
+  }
+
+  function handleCalendarWheel(event: WheelEvent<HTMLDivElement>) {
+    markCalendarScrollIntent();
+
+    if (Math.abs(event.deltaY) < MONTH_WHEEL_THRESHOLD) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isMonthScrollLocked.current) {
+      return;
+    }
+
+    isMonthScrollLocked.current = true;
+    scrollToCalendarMonth(shiftMonth(visibleMonth, event.deltaY > 0 ? 1 : -1));
+    unlockMonthScrollAfterCooldown();
+  }
+
   return (
     <section className="calendarApp" aria-label="Calendar preview" onMouseLeave={() => setActiveEventId(null)}>
       <div className="calendarHeader">
-        <div className="monthControls" aria-label="Month navigation">
-          <button type="button" onClick={onPreviousMonth} aria-label="Previous month">
-            <ChevronIcon direction="left" />
-          </button>
-          <button type="button" onClick={onNextMonth} aria-label="Next month">
-            <ChevronIcon direction="right" />
-          </button>
-        </div>
+        <div className="calendarHeaderSpacer" aria-hidden="true" />
 
         <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
 
@@ -223,54 +414,81 @@ function CalendarPreview({
       </div>
 
       <div
-        className="calendarGrid"
-        role="grid"
-        aria-label={`${formatMonth(visibleMonth)} calendar preview`}
+        className="calendarWeekdays"
+        aria-hidden="true"
       >
         {WEEKDAYS.map((weekday) => (
-          <div className="weekday" key={weekday} role="columnheader">{weekday}</div>
+          <div className="weekday" key={weekday}>{weekday}</div>
         ))}
-        {previewData.cells.map((cell, index) => (
-          <div
-            className={cell.isCurrentMonth ? 'dayCell' : 'dayCell outsideMonth'}
-            key={cell.date}
-            role="gridcell"
-            aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
-            style={{
-              gridColumn: (index % 7) + 1,
-              gridRow: Math.floor(index / 7) + 2,
-            } as CSSProperties}
-          >
-            <span className={cell.date === PREVIEW_TODAY_ISO ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
-          </div>
-        ))}
-        {previewData.segments.map((segment) => (
-          <button
-            aria-label={segment.event.title}
-            className={[
-              'calendarSegment',
-              segment.event.type,
-              eventVisualClass(segment.event),
-              activeEventId === segment.event.id ? 'isSelected' : '',
-              segment.startsAtEvent ? 'startsAtEvent' : '',
-              segment.endsAtEvent ? 'endsAtEvent' : '',
-            ].filter(Boolean).join(' ')}
-            data-event-id={segment.event.id}
-            data-testid="calendar-event-segment"
-            key={`${segment.event.id}-${segment.weekIndex}`}
-            style={{
-              '--segment-lane': segment.lane,
-              gridColumn: `${segment.startColumn + 1} / ${segment.endColumn + 2}`,
-              gridRow: segment.weekIndex + 2,
-            } as CSSProperties}
-            title={segment.event.title}
-            type="button"
-            onFocus={() => setActiveEventId(segment.event.id)}
-            onMouseEnter={() => setActiveEventId(segment.event.id)}
-          >
-            <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
-          </button>
-        ))}
+      </div>
+
+      <div
+        className="calendarScroll"
+        ref={scrollRef}
+        aria-label="Scrollable calendar weeks"
+        onKeyDown={markCalendarScrollIntent}
+        onPointerDown={markCalendarScrollIntent}
+        onTouchStart={markCalendarScrollIntent}
+        onWheel={handleCalendarWheel}
+        tabIndex={0}
+      >
+        <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
+          {weeks.map((week) => (
+            <div
+              aria-label={`Week of ${formatDate(week.weekStartIso)}`}
+              className="calendarWeek"
+              data-week-start={week.weekStartIso}
+              key={week.weekStartIso}
+              ref={(node) => {
+                if (node) {
+                  weekRefs.current.set(week.weekStartIso, node);
+                } else {
+                  weekRefs.current.delete(week.weekStartIso);
+                }
+              }}
+              role="row"
+            >
+              {week.cells.map((cell, index) => (
+                <div
+                  className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
+                  key={cell.date}
+                  role="gridcell"
+                  aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
+                  style={{ gridColumn: index + 1 } as CSSProperties}
+                >
+                  <span className={cell.date === PREVIEW_TODAY_ISO ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
+                </div>
+              ))}
+              {week.segments.map((segment) => (
+                <button
+                  aria-label={segment.event.title}
+                  className={[
+                    'calendarSegment',
+                    segment.event.type,
+                    eventVisualClass(segment.event),
+                    activeEventId === segment.event.id ? 'isSelected' : '',
+                    segment.startsAtEvent ? 'startsAtEvent' : '',
+                    segment.endsAtEvent ? 'endsAtEvent' : '',
+                  ].filter(Boolean).join(' ')}
+                  data-event-id={segment.event.id}
+                  data-testid="calendar-event-segment"
+                  key={`${week.weekStartIso}-${segment.event.id}`}
+                  style={{
+                    '--segment-lane': segment.lane,
+                    '--segment-start': segment.startColumn,
+                    '--segment-span': segment.endColumn - segment.startColumn + 1,
+                  } as CSSProperties}
+                  title={segment.event.title}
+                  type="button"
+                  onFocus={() => setActiveEventId(segment.event.id)}
+                  onMouseEnter={() => setActiveEventId(segment.event.id)}
+                >
+                  <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {activeEvent ? (
@@ -374,6 +592,80 @@ function LinkIcon() {
   );
 }
 
+function buildInitialWeekRange(initialWeekStart: string): { startIso: string; endIso: string } {
+  const startIso = addDays(initialWeekStart, -INITIAL_WEEK_BUFFER * 7);
+
+  return {
+    startIso,
+    endIso: addDays(startIso, INITIAL_WEEK_SPAN * 7),
+  };
+}
+
+function buildContinuousCalendarWeeks(events: PreviewEvent[], gridStartIso: string, gridEndIso: string): CalendarWeek[] {
+  const weeks = [];
+
+  for (let weekStartIso = gridStartIso; weekStartIso < gridEndIso; weekStartIso = addDays(weekStartIso, 7)) {
+    const cells = Array.from({ length: 7 }, (_, index) => {
+      const isoDate = addDays(weekStartIso, index);
+      const [, , day] = isoDate.split('-').map(Number);
+
+      return {
+        date: isoDate,
+        day,
+        isCurrentMonth: true,
+        events: events.filter((event) => eventOccursOn(event, isoDate)),
+      };
+    });
+
+    weeks.push({
+      weekStartIso,
+      cells,
+      segments: buildWeekEventSegments(events, weekStartIso),
+    });
+  }
+
+  return weeks;
+}
+
+function calendarGridStartForMonth(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  const firstOfMonth = new Date(Date.UTC(year, month - 1, 1));
+  firstOfMonth.setUTCDate(firstOfMonth.getUTCDate() - firstOfMonth.getUTCDay());
+  return firstOfMonth.toISOString().slice(0, 10);
+}
+
+function calendarGridEndForMonth(monthKey: string): string {
+  const [year, month] = shiftMonth(monthKey, 1).split('-').map(Number);
+  const firstOfNextMonth = new Date(Date.UTC(year, month - 1, 1));
+  const daysToNextSunday = (7 - firstOfNextMonth.getUTCDay()) % 7;
+  firstOfNextMonth.setUTCDate(firstOfNextMonth.getUTCDate() + daysToNextSunday);
+  return firstOfNextMonth.toISOString().slice(0, 10);
+}
+
+function inferVisibleMonthFromWeek(weekStartIso: string): string {
+  for (let index = 0; index < 7; index += 1) {
+    const isoDate = addDays(weekStartIso, index);
+
+    if (isoDate.endsWith('-01')) {
+      return monthKeyFromIsoDate(isoDate);
+    }
+  }
+
+  return monthKeyFromIsoDate(addDays(weekStartIso, 3));
+}
+
+function getCalendarWeekStep(scrollElement: HTMLElement): number {
+  const firstWeek = scrollElement.querySelector<HTMLElement>('.calendarWeek');
+  const timeline = scrollElement.querySelector<HTMLElement>('.calendarTimeline');
+
+  if (!firstWeek) {
+    return 103;
+  }
+
+  const gap = timeline ? Number.parseFloat(getComputedStyle(timeline).rowGap || '0') : 0;
+  return firstWeek.getBoundingClientRect().height + (Number.isNaN(gap) ? 0 : gap);
+}
+
 function buildCalendarPreviewData(monthKey: string, events: PreviewEvent[]): {
   cells: CalendarCell[];
   segments: CalendarEventSegment[];
@@ -401,6 +693,41 @@ function buildCalendarPreviewData(monthKey: string, events: PreviewEvent[]): {
     cells,
     segments: buildCalendarEventSegments(events, gridStartIso),
   };
+}
+
+function buildWeekEventSegments(events: PreviewEvent[], weekStartIso: string): CalendarEventSegment[] {
+  const weekEndExclusive = addDays(weekStartIso, 7);
+  const occupied: Array<Array<{ startColumn: number; endColumn: number }>> = Array.from(
+    { length: MAX_EVENT_LANES },
+    () => [],
+  );
+
+  return events.flatMap((event) => {
+    const eventStart = event.startDate;
+    const eventEndExclusive = event.endDate ?? addDays(event.startDate, 1);
+
+    if (eventEndExclusive <= weekStartIso || eventStart >= weekEndExclusive) {
+      return [];
+    }
+
+    const startColumn = daysBetween(weekStartIso, maxIsoDate(eventStart, weekStartIso));
+    const endColumn = daysBetween(weekStartIso, minIsoDate(eventEndExclusive, weekEndExclusive)) - 1;
+    const lane = reserveWeekSegmentLane(occupied, startColumn, endColumn);
+
+    if (lane === null) {
+      return [];
+    }
+
+    return [{
+      event,
+      weekIndex: 0,
+      lane,
+      startColumn,
+      endColumn,
+      startsAtEvent: addDays(weekStartIso, startColumn) === eventStart,
+      endsAtEvent: addDays(weekStartIso, endColumn + 1) === eventEndExclusive,
+    }];
+  });
 }
 
 function eventOccursOn(event: PreviewEvent, isoDate: string): boolean {
@@ -478,6 +805,25 @@ function reserveSegmentLane(
 
     if (!hasCollision) {
       occupied[weekIndex][lane].push({ startColumn, endColumn });
+      return lane;
+    }
+  }
+
+  return null;
+}
+
+function reserveWeekSegmentLane(
+  occupied: Array<Array<{ startColumn: number; endColumn: number }>>,
+  startColumn: number,
+  endColumn: number,
+): number | null {
+  for (let lane = 0; lane < MAX_EVENT_LANES; lane += 1) {
+    const hasCollision = occupied[lane].some((range) =>
+      startColumn <= range.endColumn && range.startColumn <= endColumn,
+    );
+
+    if (!hasCollision) {
+      occupied[lane].push({ startColumn, endColumn });
       return lane;
     }
   }
