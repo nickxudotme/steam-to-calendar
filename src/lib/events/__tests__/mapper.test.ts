@@ -100,7 +100,7 @@ describe('event mapper', () => {
     ).toEqual([
       {
         id: 'steam-summer-sale-2026',
-        title: '🛒 Steam Summer Sale',
+        title: '🎮 Steam Summer Sale',
         description: 'Major sale.',
         startDate: '2026-06-25',
         endDate: '2026-07-10',
@@ -109,7 +109,7 @@ describe('event mapper', () => {
       },
       {
         id: 'steam-next-fest-june-2026',
-        title: '🧪 Steam Next Fest',
+        title: '🎮 Steam Next Fest',
         description: 'Steam Next Fest',
         startDate: '2026-06-08',
         endDate: '2026-06-16',

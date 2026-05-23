@@ -60,8 +60,6 @@ const WEEK_EXTENSION_SIZE = 16;
 const WEEK_EXTENSION_THRESHOLD = 4;
 const MONTH_WHEEL_THRESHOLD = 20;
 const MONTH_SCROLL_COOLDOWN_MS = 620;
-const PREVIEW_TODAY_ISO = '2026-06-15';
-const INITIAL_PREVIEW_MONTH = monthKeyFromIsoDate(PREVIEW_TODAY_ISO);
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -82,7 +80,8 @@ export default function Home() {
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [initialMonth, setInitialMonth] = useState(INITIAL_PREVIEW_MONTH);
+  const [todayIso, setTodayIso] = useState(() => localIsoDate());
+  const [initialMonth, setInitialMonth] = useState(() => monthKeyFromIsoDate(localIsoDate()));
   const [origin, setOrigin] = useState('');
 
   const webcalUrl = useMemo(() => {
@@ -97,6 +96,10 @@ export default function Home() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    const browserTodayIso = localIsoDate();
+
+    setTodayIso(browserTodayIso);
+    setInitialMonth(monthKeyFromIsoDate(browserTodayIso));
   }, []);
 
   useEffect(() => {
@@ -129,8 +132,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setInitialMonth(INITIAL_PREVIEW_MONTH);
-  }, [sortedEvents]);
+    setInitialMonth(monthKeyFromIsoDate(todayIso));
+  }, [sortedEvents, todayIso]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,6 +215,7 @@ export default function Home() {
             <CalendarPreview
               events={sortedEvents}
               initialMonth={initialMonth}
+              todayIso={todayIso}
             />
           </div>
         </section>
@@ -223,9 +227,11 @@ export default function Home() {
 function CalendarPreview({
   events,
   initialMonth,
+  todayIso,
 }: {
   events: PreviewEvent[];
   initialMonth: string;
+  todayIso: string;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const weekRefs = useRef(new Map<string, HTMLElement>());
@@ -242,8 +248,6 @@ function CalendarPreview({
     previousScrollTop: number;
   }>(null);
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
-  const [activeEventId, setActiveEventId] = useState<string | null>(null);
-  const activeEvent = activeEventId ? events.find((event) => event.id === activeEventId) ?? null : null;
 
   useLayoutEffect(() => {
     shouldAlignInitialWeek.current = true;
@@ -362,10 +366,6 @@ function CalendarPreview({
   }, [initialMonth, initialWeekStart, weekRange, weeks]);
 
   useEffect(() => {
-    setActiveEventId(null);
-  }, [visibleMonth]);
-
-  useEffect(() => {
     return () => {
       if (monthScrollUnlockTimer.current !== null) {
         window.clearTimeout(monthScrollUnlockTimer.current);
@@ -427,7 +427,7 @@ function CalendarPreview({
   }
 
   return (
-    <section className="calendarApp" aria-label="Calendar preview" onMouseLeave={() => setActiveEventId(null)}>
+    <section className="calendarApp" aria-label="Calendar preview">
       <div className="calendarHeader">
         <div className="calendarHeaderSpacer" aria-hidden="true" />
 
@@ -483,7 +483,7 @@ function CalendarPreview({
                   aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
                   style={{ gridColumn: index + 1 } as CSSProperties}
                 >
-                  <span className={cell.date === PREVIEW_TODAY_ISO ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
+                  <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
                 </div>
               ))}
               {week.segments.map((segment) => (
@@ -493,7 +493,6 @@ function CalendarPreview({
                     'calendarSegment',
                     segment.event.type,
                     eventVisualClass(segment.event),
-                    activeEventId === segment.event.id ? 'isSelected' : '',
                     segment.startsAtEvent ? 'startsAtEvent' : '',
                     segment.endsAtEvent ? 'endsAtEvent' : '',
                   ].filter(Boolean).join(' ')}
@@ -507,8 +506,6 @@ function CalendarPreview({
                   } as CSSProperties}
                   title={segment.event.title}
                   type="button"
-                  onFocus={() => setActiveEventId(segment.event.id)}
-                  onMouseEnter={() => setActiveEventId(segment.event.id)}
                 >
                   <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
                 </button>
@@ -517,10 +514,6 @@ function CalendarPreview({
           ))}
         </div>
       </div>
-
-      {activeEvent ? (
-        <EventPopover event={activeEvent} isPersonalized={events.some((event) => event.type === 'wishlist_release')} />
-      ) : null}
     </section>
   );
 }
@@ -534,79 +527,12 @@ function CalendarListIcon() {
   );
 }
 
-function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
-  return (
-    <svg aria-hidden="true" className="chevronIcon" viewBox="0 0 20 20">
-      <path d={direction === 'left' ? 'M12.5 4.5 7 10l5.5 5.5' : 'M7.5 4.5 13 10l-5.5 5.5'} />
-    </svg>
-  );
-}
-
 function SettingsIcon() {
   return (
     <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
       <path d="M8.9 3.2h2.2l.5 1.8 1.3.5 1.6-.9 1.6 1.6-.9 1.6.5 1.3 1.8.5v2.2l-1.8.5-.5 1.3.9 1.6-1.6 1.6-1.6-.9-1.3.5-.5 1.8H8.9l-.5-1.8-1.3-.5-1.6.9-1.6-1.6.9-1.6-.5-1.3-1.8-.5V9.6l1.8-.5.5-1.3-.9-1.6 1.6-1.6 1.6.9 1.3-.5.5-1.8Z" />
       <circle cx="10" cy="10.7" r="2.2" />
     </svg>
-  );
-}
-
-function EventPopover({ event, isPersonalized }: { event: PreviewEvent; isPersonalized: boolean }) {
-  const sourceHost = event.sourceUrl ? new URL(event.sourceUrl).host : null;
-  const isWishlistRelease = event.type === 'wishlist_release';
-  const isSale = eventVisualClass(event) === 'saleEvent';
-
-  return (
-    <aside className="calendarPopover" aria-label={`${event.title} details`} data-testid="event-popover">
-      <div className="popoverAnchor" aria-hidden="true" />
-      <div className={`popoverBanner ${eventVisualClass(event)}`} aria-hidden="true" />
-      <div className="popoverHeader">
-        <h3>{event.title}</h3>
-      </div>
-      <div className="popoverCalendar">
-        <span className={`calendarDot ${event.type} ${eventVisualClass(event)}`} />
-        <span>Wishlist in Calendar</span>
-        <ChevronIcon direction="right" />
-      </div>
-      {event.sourceUrl ? (
-        <div className="popoverLink">
-          <LinkIcon />
-          <span>{sourceHost}</span>
-          <a href={event.sourceUrl} target="_blank" rel="noreferrer">Open site</a>
-        </div>
-      ) : null}
-      <time className="popoverDate" dateTime={event.startDate}>
-        {formatPopoverDateRange(event)}
-      </time>
-      <div className="popoverMeta">
-        {isWishlistRelease ? 'Release date from your wishlist' : isPersonalized ? 'Wishlist-related Steam season' : 'Add SteamID64 to see wishlist matches'}
-      </div>
-      <p>{event.description.split('\n')[0]}</p>
-      {isSale ? (
-        <div className="popoverMatches" aria-label="Wishlist sale matches">
-          <div className="matchSummary">
-            <span>8 wishlist games on sale</span>
-            <ChevronIcon direction="right" />
-          </div>
-          <div className="discountRow">
-            <span className="gameThumb red" />
-            <span>RPG adventure</span>
-            <strong>-60%</strong>
-          </div>
-          <div className="discountRow">
-            <span className="gameThumb amber" />
-            <span>Co-op roguelite</span>
-            <strong>-50%</strong>
-          </div>
-          <div className="discountRow">
-            <span className="gameThumb blue" />
-            <span>Detective story</span>
-            <strong>-75%</strong>
-          </div>
-        </div>
-      ) : null}
-      {event.sourceUrl ? <a className="popoverUrl" href={event.sourceUrl} target="_blank" rel="noreferrer">{event.sourceUrl}</a> : null}
-    </aside>
   );
 }
 
@@ -880,6 +806,14 @@ function monthKeyFromIsoDate(value: string): string {
   return value.slice(0, 7);
 }
 
+function localIsoDate(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 function shiftMonth(monthKey: string, delta: number): string {
   const [year, month] = monthKey.split('-').map(Number);
   const value = new Date(Date.UTC(year, month - 1 + delta, 1));
@@ -907,14 +841,6 @@ function formatDate(value: string): string {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-function formatPopoverDateRange(event: PreviewEvent): string {
-  if (!event.endDate) {
-    return formatDate(event.startDate);
-  }
-
-  return `${formatDate(event.startDate)} – ${formatDate(addDays(event.endDate, -1))}`;
-}
-
 function eventVisualClass(event: PreviewEvent): string {
   if (event.type === 'wishlist_release') {
     return 'wishlistEvent';
@@ -933,7 +859,6 @@ function eventVisualClass(event: PreviewEvent): string {
 
 function compactEventTitle(title: string): string {
   return title
-    .replace(/^🎮\s*/, '')
-    .replace(/^🧪\s*Steam\s*/, '')
-    .replace(/^🛒\s*Steam\s*/, '');
+    .replace(/^🎮\s*Steam\s*/, '')
+    .replace(/^🎮\s*/, '');
 }

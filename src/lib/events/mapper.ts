@@ -85,7 +85,7 @@ export function mapSteamMajorEvents(
     .filter((seed) => seed.endDate >= today)
     .map((seed) => ({
       id: seed.id,
-      title: seed.title.startsWith('Steam Next Fest') ? `🧪 ${seed.title}` : `🛒 ${seed.title}`,
+      title: `🎮 ${seed.title}`,
       description: seed.description ?? seed.title,
       startDate: seed.startDate,
       endDate: seed.endDate,

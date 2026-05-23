@@ -24,7 +24,7 @@ describe('steam-cli event mapper', () => {
     expect(events).toEqual([
       {
         id: 'steam-event-2026-06-15-steam-next-fest',
-        title: '🧪 Steam Next Fest',
+        title: '🎮 Steam Next Fest',
         description: [
           'Try demos and meet developers.',
           'Timezone: PT',

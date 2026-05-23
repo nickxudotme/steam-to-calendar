@@ -46,11 +46,7 @@ export function mapSteamCliEvents(events: SteamCliEvent[]): CalendarEvent[] {
 }
 
 function eventIcon(event: SteamCliEvent): string {
-  if (event.category === 'next_fest' || /next fest/i.test(event.name)) {
-    return '🧪';
-  }
-
-  return event.category === 'seasonal' ? '🛒' : '🏷️';
+  return '🎮';
 }
 
 function eventDescription(event: SteamCliEvent): string {
