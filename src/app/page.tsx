@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, FormEvent, WheelEvent } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
 
@@ -58,9 +58,6 @@ const INITIAL_WEEK_BUFFER = 8;
 const INITIAL_WEEK_SPAN = 34;
 const WEEK_EXTENSION_SIZE = 16;
 const WEEK_EXTENSION_THRESHOLD = 4;
-const MONTH_WHEEL_THRESHOLD = 20;
-const MONTH_SCROLL_COOLDOWN_MS = 620;
-const CALENDAR_SNAP_IDLE_MS = 120;
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -192,7 +189,7 @@ export default function Home() {
               Put your Steam wishlist into <span>your calendar.</span>
             </h1>
             <p>
-              Enter a public Steam profile to preview upcoming wishlist releases and subscribe from your calendar app.
+              Paste your Steam Profile URL to preview upcoming wishlist releases and subscribe from your calendar app.
             </p>
 
             <form
@@ -201,13 +198,13 @@ export default function Home() {
               onSubmit={handleSubmit}
               aria-label="Add Steam wishlist releases to the calendar"
             >
-              <label className="srOnly" htmlFor="steam-id">Add your Steam wishlist</label>
+              <label className="srOnly" htmlFor="steam-id">Paste your Steam Profile URL</label>
               <div className="steamInputWrap">
                 <CalendarListIcon />
                 <input
                   id="steam-id"
                   inputMode="text"
-                  placeholder="Enter SteamID64 or profile URL"
+                  placeholder="Paste your Steam Profile URL"
                   value={steamId64}
                   onChange={(event) => setSteamId64(event.target.value)}
                 />
@@ -251,9 +248,6 @@ function CalendarPreview({
   const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
   const shouldAlignInitialWeek = useRef(true);
   const hasUserScrollIntent = useRef(false);
-  const isMonthScrollLocked = useRef(false);
-  const monthScrollUnlockTimer = useRef<number | null>(null);
-  const calendarSnapTimer = useRef<number | null>(null);
   const pendingMonthScroll = useRef<string | null>(null);
   const pendingPrepend = useRef<null | {
     previousFirstWeek: string;
@@ -355,10 +349,7 @@ function CalendarPreview({
           startIso: range.startIso,
           endIso: addDays(range.endIso, WEEK_EXTENSION_SIZE * 7),
         }));
-        return;
       }
-
-      scheduleCalendarSnap(scrollElement);
     };
 
     const handleScroll = () => {
@@ -377,75 +368,11 @@ function CalendarPreview({
       if (frameId) {
         cancelAnimationFrame(frameId);
       }
-      if (calendarSnapTimer.current !== null) {
-        window.clearTimeout(calendarSnapTimer.current);
-      }
     };
   }, [initialMonth, initialWeekStart, weekRange, weeks]);
 
-  useEffect(() => {
-    return () => {
-      if (monthScrollUnlockTimer.current !== null) {
-        window.clearTimeout(monthScrollUnlockTimer.current);
-      }
-      if (calendarSnapTimer.current !== null) {
-        window.clearTimeout(calendarSnapTimer.current);
-      }
-    };
-  }, []);
-
-  function scheduleCalendarSnap(scrollElement: HTMLElement) {
-    if (calendarSnapTimer.current !== null) {
-      window.clearTimeout(calendarSnapTimer.current);
-    }
-
-    calendarSnapTimer.current = window.setTimeout(() => {
-      calendarSnapTimer.current = null;
-      snapCalendarToNearestWeek(scrollElement);
-    }, CALENDAR_SNAP_IDLE_MS);
-  }
-
-  function snapCalendarToNearestWeek(scrollElement: HTMLElement) {
-    if (shouldAlignInitialWeek.current || weekRefs.current.size === 0) {
-      return;
-    }
-
-    const scrollTop = scrollElement.scrollTop;
-    let targetTop = scrollTop;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-
-    weekRefs.current.forEach((node) => {
-      const candidateTop = node.offsetTop - scrollElement.offsetTop;
-      const distance = Math.abs(candidateTop - scrollTop);
-
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        targetTop = candidateTop;
-      }
-    });
-
-    if (Math.abs(targetTop - scrollTop) < 1) {
-      return;
-    }
-
-    scrollElement.scrollTo({
-      top: targetTop,
-      behavior: 'smooth',
-    });
-  }
-
   function markCalendarScrollIntent() {
     hasUserScrollIntent.current = true;
-  }
-
-  function unlockMonthScrollAfterCooldown() {
-    if (monthScrollUnlockTimer.current !== null) {
-      window.clearTimeout(monthScrollUnlockTimer.current);
-    }
-
-    monthScrollUnlockTimer.current = window.setTimeout(() => {
-      isMonthScrollLocked.current = false;
-    }, MONTH_SCROLL_COOLDOWN_MS);
   }
 
   function scrollToCalendarMonth(monthKey: string, behavior: ScrollBehavior = 'smooth') {
@@ -467,24 +394,6 @@ function CalendarPreview({
       behavior,
     });
     setVisibleMonth(monthKey);
-  }
-
-  function handleCalendarWheel(event: WheelEvent<HTMLDivElement>) {
-    markCalendarScrollIntent();
-
-    if (Math.abs(event.deltaY) < MONTH_WHEEL_THRESHOLD) {
-      return;
-    }
-
-    event.preventDefault();
-
-    if (isMonthScrollLocked.current) {
-      return;
-    }
-
-    isMonthScrollLocked.current = true;
-    scrollToCalendarMonth(shiftMonth(visibleMonth, event.deltaY > 0 ? 1 : -1));
-    unlockMonthScrollAfterCooldown();
   }
 
   return (
@@ -517,7 +426,6 @@ function CalendarPreview({
         onKeyDown={markCalendarScrollIntent}
         onPointerDown={markCalendarScrollIntent}
         onTouchStart={markCalendarScrollIntent}
-        onWheel={handleCalendarWheel}
         tabIndex={0}
       >
         <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">

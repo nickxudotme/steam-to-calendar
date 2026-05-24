@@ -436,7 +436,6 @@ code {
   min-height: 520px;
   overflow-x: hidden;
   overflow-y: auto;
-  scroll-behavior: smooth;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   overscroll-behavior: contain;
@@ -472,6 +471,7 @@ code {
   min-height: 103px;
   padding: 11px 12px;
   position: relative;
+  transition: background-color 240ms ease;
 }
 
 .dayCell:hover {
@@ -492,6 +492,7 @@ code {
   right: 12px;
   text-align: center;
   top: 11px;
+  transition: color 260ms ease, opacity 260ms ease;
   z-index: 3;
 }
 
@@ -510,7 +511,8 @@ code {
 }
 
 .outsideMonth .dayNumber {
-  color: color-mix(in srgb, var(--muted) 58%, transparent);
+  color: #84909b;
+  opacity: 0.72;
 }
 
 .calendarSegment {
