@@ -18,7 +18,7 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   const previewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/preview') && response.request().method() === 'POST',
   );
-  await page.getByLabel('Add your Steam wishlist').fill('76561198115468824');
+  await page.getByLabel('Add your Steam wishlist').fill('https://steamcommunity.com/id/nickxudotme/');
   await page.getByRole('button', { name: 'Add to your Calendar' }).click();
   await expect((await previewResponse).ok()).toBe(true);
 

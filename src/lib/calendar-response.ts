@@ -5,19 +5,19 @@ import { SteamWishlistError } from '@/lib/steam/client';
 import { fetchSteamMajorEvents } from '@/lib/steam/events';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
 
-export async function buildCalendarResponse(steamId64: string): Promise<Response> {
+export async function buildCalendarResponse(steamInput: string): Promise<Response> {
   try {
-    if (steamId64 === STEAM_EVENTS_CALENDAR_ID) {
+    if (steamInput === STEAM_EVENTS_CALENDAR_ID) {
       const events = await fetchSteamMajorEvents();
       const calendar = generateCalendar(events);
 
       return new Response(calendar, {
         status: 200,
-        headers: calendarHeaders(steamId64),
+        headers: calendarHeaders(steamInput),
       });
     }
 
-    const data = await fetchWishlistCalendarData(steamId64);
+    const data = await fetchWishlistCalendarData(steamInput);
     const steamEvents = await fetchSteamMajorEvents();
     const events = [
       ...mapWishlistReleaseEvents(data.appDetails),
@@ -27,7 +27,7 @@ export async function buildCalendarResponse(steamId64: string): Promise<Response
 
     return new Response(calendar, {
       status: 200,
-      headers: calendarHeaders(steamId64),
+      headers: calendarHeaders(data.steamId64),
     });
   } catch (error) {
     const message = error instanceof SteamWishlistError

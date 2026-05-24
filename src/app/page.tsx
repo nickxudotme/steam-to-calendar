@@ -60,6 +60,7 @@ const WEEK_EXTENSION_SIZE = 16;
 const WEEK_EXTENSION_THRESHOLD = 4;
 const MONTH_WHEEL_THRESHOLD = 20;
 const MONTH_SCROLL_COOLDOWN_MS = 620;
+const CALENDAR_SNAP_IDLE_MS = 120;
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -178,6 +179,11 @@ export default function Home() {
             <span>Wishlist in Calendar</span>
             <span className="betaBadge">Beta</span>
           </a>
+          <nav className="storeNav" aria-label="Wishlist in Calendar sections">
+            <a aria-current="page" href="/">Store</a>
+            <a href="#steam-connect">Wishlist</a>
+            <a href="#calendar-preview">Calendar</a>
+          </nav>
         </header>
 
         <section className="heroStage" aria-label="Wishlist in Calendar preview">
@@ -189,7 +195,12 @@ export default function Home() {
               Enter a public Steam profile to preview upcoming wishlist releases and subscribe from your calendar app.
             </p>
 
-            <form className="steamConnectForm" onSubmit={handleSubmit} aria-label="Add Steam wishlist releases to the calendar">
+            <form
+              className="steamConnectForm"
+              id="steam-connect"
+              onSubmit={handleSubmit}
+              aria-label="Add Steam wishlist releases to the calendar"
+            >
               <label className="srOnly" htmlFor="steam-id">Add your Steam wishlist</label>
               <div className="steamInputWrap">
                 <CalendarListIcon />
@@ -211,7 +222,7 @@ export default function Home() {
             {error ? <div className="notice error">{error}</div> : null}
           </div>
 
-          <div className="calendarExperience">
+          <div className="calendarExperience" id="calendar-preview">
             <CalendarPreview
               events={sortedEvents}
               initialMonth={initialMonth}
@@ -242,6 +253,7 @@ function CalendarPreview({
   const hasUserScrollIntent = useRef(false);
   const isMonthScrollLocked = useRef(false);
   const monthScrollUnlockTimer = useRef<number | null>(null);
+  const calendarSnapTimer = useRef<number | null>(null);
   const pendingMonthScroll = useRef<string | null>(null);
   const pendingPrepend = useRef<null | {
     previousFirstWeek: string;
@@ -343,7 +355,10 @@ function CalendarPreview({
           startIso: range.startIso,
           endIso: addDays(range.endIso, WEEK_EXTENSION_SIZE * 7),
         }));
+        return;
       }
+
+      scheduleCalendarSnap(scrollElement);
     };
 
     const handleScroll = () => {
@@ -362,6 +377,9 @@ function CalendarPreview({
       if (frameId) {
         cancelAnimationFrame(frameId);
       }
+      if (calendarSnapTimer.current !== null) {
+        window.clearTimeout(calendarSnapTimer.current);
+      }
     };
   }, [initialMonth, initialWeekStart, weekRange, weeks]);
 
@@ -370,8 +388,51 @@ function CalendarPreview({
       if (monthScrollUnlockTimer.current !== null) {
         window.clearTimeout(monthScrollUnlockTimer.current);
       }
+      if (calendarSnapTimer.current !== null) {
+        window.clearTimeout(calendarSnapTimer.current);
+      }
     };
   }, []);
+
+  function scheduleCalendarSnap(scrollElement: HTMLElement) {
+    if (calendarSnapTimer.current !== null) {
+      window.clearTimeout(calendarSnapTimer.current);
+    }
+
+    calendarSnapTimer.current = window.setTimeout(() => {
+      calendarSnapTimer.current = null;
+      snapCalendarToNearestWeek(scrollElement);
+    }, CALENDAR_SNAP_IDLE_MS);
+  }
+
+  function snapCalendarToNearestWeek(scrollElement: HTMLElement) {
+    if (shouldAlignInitialWeek.current || weekRefs.current.size === 0) {
+      return;
+    }
+
+    const scrollTop = scrollElement.scrollTop;
+    let targetTop = scrollTop;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    weekRefs.current.forEach((node) => {
+      const candidateTop = node.offsetTop - scrollElement.offsetTop;
+      const distance = Math.abs(candidateTop - scrollTop);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        targetTop = candidateTop;
+      }
+    });
+
+    if (Math.abs(targetTop - scrollTop) < 1) {
+      return;
+    }
+
+    scrollElement.scrollTo({
+      top: targetTop,
+      behavior: 'smooth',
+    });
+  }
 
   function markCalendarScrollIntent() {
     hasUserScrollIntent.current = true;

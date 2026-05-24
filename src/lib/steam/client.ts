@@ -40,10 +40,15 @@ export class SteamWishlistError extends Error {
 }
 
 const STEAM_ID_64_PATTERN = /^7656\d{13}$/;
+const STEAM_CUSTOM_URL_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export function isSteamId64(value: string): boolean {
   return STEAM_ID_64_PATTERN.test(value.trim());
+}
+
+export function isSteamCustomUrlName(value: string): boolean {
+  return STEAM_CUSTOM_URL_PATTERN.test(value.trim());
 }
 
 export function normalizeSteamId64(input: string): string {
@@ -53,17 +58,156 @@ export function normalizeSteamId64(input: string): string {
     return value;
   }
 
-  const profileMatch = value.match(/^https?:\/\/(?:www\.)?steamcommunity\.com\/profiles\/(7656\d{13})(?:\/.*)?$/i);
-  if (profileMatch) {
-    return profileMatch[1];
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new SteamWishlistError('invalid_steam_id', 'Enter a SteamID64 or a supported Steam profile URL.');
   }
 
-  const wishlistMatch = value.match(/^https?:\/\/store\.steampowered\.com\/wishlist\/profiles\/(7656\d{13})(?:\/.*)?$/i);
-  if (wishlistMatch) {
-    return wishlistMatch[1];
+  const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+  const segments = url.pathname.split('/').filter(Boolean);
+
+  if (
+    hostname === 'steamcommunity.com'
+    && segments.length === 2
+    && segments[0].toLowerCase() === 'profiles'
+    && isSteamId64(segments[1])
+  ) {
+    return segments[1];
+  }
+
+  if (
+    hostname === 'store.steampowered.com'
+    && segments.length === 3
+    && segments[0].toLowerCase() === 'wishlist'
+    && segments[1].toLowerCase() === 'profiles'
+    && isSteamId64(segments[2])
+  ) {
+    return segments[2];
   }
 
   throw new SteamWishlistError('invalid_steam_id', 'Enter a SteamID64 or a supported Steam profile URL.');
+}
+
+export function normalizeSteamProfileInput(input: string): string {
+  const value = input.trim();
+
+  if (isSteamId64(value)) {
+    return value;
+  }
+
+  const steamInput = extractSupportedSteamProfileUrl(value);
+  if (steamInput) {
+    return steamInput;
+  }
+
+  throw new SteamWishlistError(
+    'invalid_steam_id',
+    'Enter a SteamID64, custom Steam profile URL, or supported Steam wishlist URL.',
+  );
+}
+
+function extractSupportedSteamProfileUrl(value: string): string | null {
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    return null;
+  }
+
+  const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+  const segments = url.pathname.split('/').filter(Boolean);
+
+  if (
+    hostname === 'steamcommunity.com'
+    && segments.length === 2
+    && segments[0].toLowerCase() === 'profiles'
+    && isSteamId64(segments[1])
+  ) {
+    return `https://steamcommunity.com/profiles/${segments[1]}/`;
+  }
+
+  if (
+    hostname === 'steamcommunity.com'
+    && segments.length === 2
+    && segments[0].toLowerCase() === 'id'
+    && isSteamCustomUrlName(segments[1])
+  ) {
+    return `https://steamcommunity.com/id/${segments[1]}/`;
+  }
+
+  if (
+    hostname === 'store.steampowered.com'
+    && segments.length === 3
+    && segments[0].toLowerCase() === 'wishlist'
+    && segments[1].toLowerCase() === 'profiles'
+    && isSteamId64(segments[2])
+  ) {
+    return segments[2];
+  }
+
+  if (
+    hostname === 'store.steampowered.com'
+    && segments.length === 3
+    && segments[0].toLowerCase() === 'wishlist'
+    && segments[1].toLowerCase() === 'id'
+    && isSteamCustomUrlName(segments[2])
+  ) {
+    return segments[2];
+  }
+
+  return null;
+}
+
+export async function resolveSteamId64(
+  input: string,
+  options: { fetcher?: FetchLike; timeoutMs?: number } = {},
+): Promise<string> {
+  try {
+    return normalizeSteamId64(input);
+  } catch {
+    // Custom profile URLs need a Steam Community profile lookup.
+  }
+
+  const steamInput = normalizeSteamProfileInput(input);
+
+  if (isSteamId64(steamInput)) {
+    return steamInput;
+  }
+
+  const profileUrl = buildProfileXmlUrl(steamInput);
+  const xml = await fetchText(profileUrl, options);
+  const match = xml.match(/<steamID64>(7656\d{13})<\/steamID64>/);
+
+  if (!match) {
+    throw new SteamWishlistError('invalid_steam_id', 'Could not resolve this custom Steam profile URL.');
+  }
+
+  return match[1];
+}
+
+function buildProfileXmlUrl(steamInput: string): string {
+  let url: URL;
+
+  try {
+    url = new URL(steamInput);
+  } catch {
+    return `https://steamcommunity.com/id/${encodeURIComponent(steamInput)}/?xml=1`;
+  }
+
+  if (url.hostname.toLowerCase().replace(/^www\./, '') !== 'steamcommunity.com') {
+    return `https://steamcommunity.com/id/${encodeURIComponent(steamInput)}/?xml=1`;
+  }
+
+  url.search = 'xml=1';
+  url.hash = '';
+  return url.toString();
 }
 
 export function buildWishlistUrl(steamId64: string): string {
@@ -132,7 +276,7 @@ export async function fetchSteamWishlist(
   input: string,
   options: { fetcher?: FetchLike; timeoutMs?: number } = {},
 ): Promise<SteamWishlistResult> {
-  const steamId64 = normalizeSteamId64(input);
+  const steamId64 = await resolveSteamId64(input, options);
   const wishlistUrl = buildWishlistUrl(steamId64);
   const json = await fetchText(wishlistUrl, options);
   const games = parseWishlistApiJson(json);

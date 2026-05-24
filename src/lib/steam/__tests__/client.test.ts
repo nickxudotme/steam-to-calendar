@@ -4,10 +4,13 @@ import {
   fetchSteamAppDetails,
   fetchSteamWishlist,
   isExactSteamReleaseDate,
+  isSteamCustomUrlName,
   isSteamId64,
+  normalizeSteamProfileInput,
   normalizeSteamId64,
   parseWishlistApiJson,
   parseWishlistHtml,
+  resolveSteamId64,
   SteamWishlistError,
 } from '../client';
 
@@ -20,14 +23,38 @@ describe('steam client', () => {
     expect(isSteamId64('https://example.com')).toBe(false);
   });
 
+  it('validates Steam custom URL names', () => {
+    expect(isSteamCustomUrlName('nickxudotme')).toBe(true);
+    expect(isSteamCustomUrlName('nick-xu_dotme')).toBe(true);
+    expect(isSteamCustomUrlName('nick/xu')).toBe(false);
+    expect(isSteamCustomUrlName('')).toBe(false);
+  });
+
   it('normalizes supported Steam profile URLs', () => {
     expect(normalizeSteamId64(steamId64)).toBe(steamId64);
     expect(normalizeSteamId64(`https://steamcommunity.com/profiles/${steamId64}/`)).toBe(steamId64);
     expect(normalizeSteamId64(`https://store.steampowered.com/wishlist/profiles/${steamId64}/`)).toBe(steamId64);
+    expect(normalizeSteamId64(`https://steamcommunity.com/profiles/${steamId64}?utm_source=copy`)).toBe(steamId64);
+    expect(normalizeSteamId64(`https://store.steampowered.com/wishlist/profiles/${steamId64}/#sort=order`)).toBe(steamId64);
   });
 
-  it('rejects vanity and arbitrary URLs', () => {
-    expect(() => normalizeSteamId64('https://steamcommunity.com/id/someone')).toThrow(SteamWishlistError);
+  it('normalizes supported Steam profile input for the CLI adapter', () => {
+    expect(normalizeSteamProfileInput(steamId64)).toBe(steamId64);
+    expect(normalizeSteamProfileInput(`https://steamcommunity.com/profiles/${steamId64}/?utm_source=copy`)).toBe(
+      `https://steamcommunity.com/profiles/${steamId64}/`,
+    );
+    expect(normalizeSteamProfileInput('https://steamcommunity.com/id/nickxudotme/')).toBe(
+      'https://steamcommunity.com/id/nickxudotme/',
+    );
+    expect(normalizeSteamProfileInput('https://store.steampowered.com/wishlist/id/nickxudotme/#sort=order')).toBe(
+      'nickxudotme',
+    );
+  });
+
+  it('rejects unsupported Steam and arbitrary URLs', () => {
+    expect(() => normalizeSteamId64(`https://steamcommunity.com/profiles/${steamId64}/wishlist`)).toThrow(SteamWishlistError);
+    expect(() => normalizeSteamProfileInput(`https://steamcommunity.com/profiles/${steamId64}/wishlist`)).toThrow(SteamWishlistError);
+    expect(() => normalizeSteamProfileInput('https://steamcommunity.com/id/nick/xu')).toThrow(SteamWishlistError);
     expect(() => normalizeSteamId64('https://example.com/profiles/76561198115468824')).toThrow(SteamWishlistError);
   });
 
@@ -179,5 +206,39 @@ describe('steam client', () => {
 
     expect(calls).toEqual(['https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=76561198115468824']);
     expect(result.games).toHaveLength(1);
+  });
+
+  it('resolves custom Steam profile URLs before using the wishlist API fallback', async () => {
+    const calls: string[] = [];
+
+    const result = await fetchSteamWishlist('https://steamcommunity.com/id/nickxudotme/', {
+      fetcher: async (url) => {
+        calls.push(url);
+
+        if (url.includes('steamcommunity.com/id/nickxudotme/')) {
+          return new Response(`<profile><steamID64>${steamId64}</steamID64></profile>`, { status: 200 });
+        }
+
+        return new Response(JSON.stringify({ response: { items: [{ appid: 123 }] } }), { status: 200 });
+      },
+    });
+
+    expect(calls).toEqual([
+      'https://steamcommunity.com/id/nickxudotme/?xml=1',
+      'https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=76561198115468824',
+    ]);
+    expect(result.steamId64).toBe(steamId64);
+    expect(result.games).toHaveLength(1);
+  });
+
+  it('resolves custom Steam profile names', async () => {
+    const result = await resolveSteamId64('https://store.steampowered.com/wishlist/id/nickxudotme/', {
+      fetcher: async (url) => {
+        expect(url).toBe('https://steamcommunity.com/id/nickxudotme/?xml=1');
+        return new Response(`<profile><steamID64>${steamId64}</steamID64></profile>`, { status: 200 });
+      },
+    });
+
+    expect(result).toBe(steamId64);
   });
 });

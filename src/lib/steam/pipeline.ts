@@ -2,7 +2,7 @@ import {
   fetchSteamAppDetails,
   fetchSteamWishlist,
   isExactSteamReleaseDate,
-  normalizeSteamId64,
+  normalizeSteamProfileInput,
   type SteamAppDetails,
   type SteamWishlistGame,
 } from '@/lib/steam/client';
@@ -79,10 +79,10 @@ async function fetchWishlistCalendarDataFromCli(
   input: string,
   options: { appLimit?: number; timeoutMs?: number },
 ): Promise<WishlistCalendarData | null> {
-  const steamId64 = normalizeSteamId64(input);
+  const steamInput = normalizeSteamProfileInput(input);
   const appLimit = options.appLimit ?? DEFAULT_APP_LIMIT;
   const data = await runSteamCliJson<SteamCliWishlist>(
-    ['wishlist', steamId64, '--count', String(appLimit)],
+    ['wishlist', steamInput, '--count', String(appLimit)],
     { processTimeoutMs: options.timeoutMs },
   );
 

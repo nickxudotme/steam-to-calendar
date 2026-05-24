@@ -1,12 +1,12 @@
 # Current Status
 
-Last updated: 2026-05-23
+Last updated: 2026-05-24
 
 ## Product
 
 Wishlist in Calendar now proves the core loop:
 
-1. Enter a SteamID64.
+1. Enter a SteamID64, numeric Steam profile URL, custom Steam profile URL, or supported wishlist URL.
 2. Import the user's public Steam wishlist.
 3. Preview subscribed moments in a simulated monthly calendar.
 4. Generate a dynamic calendar feed.
@@ -20,14 +20,14 @@ The app is a Next.js App Router project deployed to Vercel.
 
 Key routes:
 
-- `/` — SteamID64 input, subscription controls, simulated calendar preview.
+- `/` — SteamID64/profile URL input, subscription controls, simulated calendar preview.
 - `/api/preview` — validates input, fetches Steam data, returns preview JSON.
 - `/feed/[steamId64].ics` — returns `text/calendar` ICS feed.
 - `/cal/[steamId64]` — extensionless calendar route for `webcal://` subscription links.
 
 Key modules:
 
-- `src/lib/steam/client.ts` — SteamID validation, wishlist service fetch, app details fetch, timeout/cache helpers.
+- `src/lib/steam/client.ts` — SteamID validation, numeric/custom Steam URL parsing, wishlist service fetch, app details fetch, timeout/cache helpers.
 - `src/lib/steam/cli.ts` — optional `steam-cli --json` adapter controlled by `STEAM_CLI_PATH`.
 - `src/lib/steam/events.ts` — official Steam event loading through `steam-cli events --json`, with static fallback.
 - `src/lib/steam/pipeline.ts` — wishlist appID import plus app detail hydration.
@@ -45,7 +45,7 @@ steam-cli wishlist {steamId64} --count {limit} --json --cc US --lang english --u
 steam-cli events --past-days 0 --future-days 365 --json --cc US --lang english --ui-lang en
 ```
 
-The adapter maps the CLI JSON envelope into the app's existing `WishlistCalendarData` and `CalendarEvent` shapes. It deliberately defaults to English Steam data so exact dates continue to match the current parser.
+The adapter maps the CLI JSON envelope into the app's existing `WishlistCalendarData` and `CalendarEvent` shapes. It deliberately defaults to English Steam data so exact dates continue to match the current parser. For Steam Community profile URLs, the app passes the supported profile URL through to `steam-cli`; the fallback API path resolves custom URLs to SteamID64 through Steam Community profile XML first.
 
 When no configured or bundled `steam-cli` binary is available, wishlist import falls back to:
 
@@ -72,7 +72,7 @@ npm run test:e2e
 
 Coverage includes:
 
-- SteamID validation and wishlist service parsing.
+- SteamID validation, numeric/custom Steam URL parsing, and wishlist service parsing.
 - Steam app detail pipeline behavior.
 - Event mapping for exact dates, excluded ambiguous dates, and Steam major events.
 - ICS output shape, all-day date handling, and escaping.
@@ -85,11 +85,11 @@ Coverage includes:
 - Tuned ICS response shape for Apple Calendar compatibility.
 - Added request logging around calendar feed requests.
 - Rebuilt the front end around a simulated calendar app preview.
+- Added numeric and custom Steam profile/wishlist URL parsing.
 - Pushed the project to GitHub and deployed it on Vercel.
 
 ## Next useful work
 
-- Add Steam profile URL parsing for the exact numeric profile form.
 - Add a manual Steam appID/store URL add flow for private wishlists.
 - Add persisted private feed tokens before supporting settings.
 - Add bilingual zh/en routing and copy.

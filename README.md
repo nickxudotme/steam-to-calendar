@@ -12,7 +12,7 @@ https://wishlist-in-calender.vercel.app/
 
 ## What works now
 
-- SteamID64 input.
+- SteamID64 input, plus numeric and custom Steam profile/wishlist URL parsing.
 - Optional `steam-cli --json` integration for wishlist import, app details, and official Steam events.
 - Public wishlist import through Steam's wishlist service endpoint as a fallback.
 - Steam app detail lookup for wishlist appIDs.
@@ -65,10 +65,13 @@ Open:
 http://localhost:3000
 ```
 
-Sample SteamID64:
+Sample SteamID64 or supported profile URL:
 
 ```text
 76561198115468824
+https://steamcommunity.com/profiles/76561198115468824/
+https://steamcommunity.com/id/nickxudotme/
+https://store.steampowered.com/wishlist/profiles/76561198115468824/
 ```
 
 ## Calendar routes
@@ -106,7 +109,7 @@ Apple Calendar may reject local `webcal://localhost:3000` subscriptions. For loc
 
 In scope for the current prototype:
 
-- SteamID64 only.
+- SteamID64 or numeric/custom Steam profile/wishlist URL input.
 - Public wishlist only.
 - Future exact release dates only.
 - Major Steam events seed.
@@ -117,7 +120,6 @@ In scope for the current prototype:
 Intentionally out of scope for now:
 
 - Steam login.
-- Vanity profile URLs.
 - Accounts or saved user settings.
 - Share pages.
 - Donation flow.

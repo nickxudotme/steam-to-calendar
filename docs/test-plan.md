@@ -5,13 +5,14 @@ Repo: wishlist-in-calender
 
 ## Affected Pages/Routes
 
-- `/` — landing page with SteamID64 input, preview action, and generated feed URL.
-- `/api/preview` or equivalent — validates SteamID64, fetches public wishlist, returns preview events/errors.
+- `/` — landing page with SteamID64/profile URL input, including custom Steam profile URLs, preview action, and generated feed URL.
+- `/api/preview` or equivalent — validates SteamID64/profile URL input, fetches public wishlist, returns preview events/errors.
 - `/feed/{steamId64}.ics` — returns `text/calendar` feed for Apple Calendar.
 
 ## Key Interactions to Verify
 
 - Enter a valid SteamID64 on `/` and see exact-dated wishlist release events.
+- Enter a numeric or custom Steam profile/wishlist URL and see it normalize into the same feed.
 - Enter malformed input and see a clear validation error without arbitrary URL fetch.
 - Enter a private/hidden/unavailable wishlist and see fallback copy.
 - Generate a feed URL from preview.
@@ -21,7 +22,8 @@ Repo: wishlist-in-calender
 
 ## Edge Cases
 
-- Vanity URL rejected with clear message.
+- Unsupported profile URL rejected with clear message.
+- Steam profile URLs with unsupported extra path segments are rejected with a clear message.
 - Non-Steam URL rejected before fetch.
 - Steam timeout returns clear error state.
 - Steam returns HTML/403/bot-block response.
