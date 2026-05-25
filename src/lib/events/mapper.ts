@@ -1,3 +1,4 @@
+import type { SteamEventCategory } from '@/lib/calendar-config';
 import type { SteamAppDetails } from '@/lib/steam/client';
 
 export type CalendarEvent = {
@@ -10,6 +11,7 @@ export type CalendarEvent = {
   type: 'wishlist_release' | 'steam_major_event' | 'steam_deal' | 'steam_preorder';
   appId?: string;
   imageUrl?: string;
+  eventCategory?: SteamEventCategory;
   discount?: string;
   originalPrice?: string;
   finalPrice?: string;

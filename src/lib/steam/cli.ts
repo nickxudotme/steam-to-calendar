@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { SteamWishlistError } from '@/lib/steam/client';
+import { getCachedSteamCliValue } from '@/lib/steam/cache';
 
 type SteamCliEnvelope<T> = {
   ok: boolean;
@@ -16,6 +17,7 @@ type SteamCliEnvelope<T> = {
 };
 
 export type SteamCliOptions = {
+  cacheTtlMs?: number;
   cc?: string;
   lang?: string;
   processTimeoutMs?: number;
@@ -47,18 +49,28 @@ export async function runSteamCliJson<T>(
     process.env.STEAM_CLI_REQUEST_TIMEOUT_SECONDS?.trim() || '12',
   ];
 
-  const stdout = await execSteamCli(binaryPath, args, options);
-  const envelope = parseEnvelope<T>(stdout);
+  return getCachedSteamCliValue(
+    steamCliCacheKey(binaryPath, args),
+    options.cacheTtlMs,
+    async () => {
+      const stdout = await execSteamCli(binaryPath, args, options);
+      const envelope = parseEnvelope<T>(stdout);
 
-  if (!envelope.ok) {
-    throw steamCliError(envelope);
-  }
+      if (!envelope.ok) {
+        throw steamCliError(envelope);
+      }
 
-  if (envelope.data === undefined) {
-    throw new SteamWishlistError('wishlist_parse_failed', 'steam-cli JSON response did not include data.');
-  }
+      if (envelope.data === undefined) {
+        throw new SteamWishlistError('wishlist_parse_failed', 'steam-cli JSON response did not include data.');
+      }
 
-  return envelope.data;
+      return envelope.data;
+    },
+  );
+}
+
+function steamCliCacheKey(binaryPath: string, args: string[]): string {
+  return JSON.stringify([binaryPath, args]);
 }
 
 function resolveSteamCliPath(): string | null {

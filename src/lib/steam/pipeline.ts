@@ -6,6 +6,7 @@ import {
   type SteamAppDetails,
   type SteamWishlistGame,
 } from '@/lib/steam/client';
+import { STEAM_CLI_CACHE_TTL } from '@/lib/steam/cache-policy';
 import { runSteamCliJson } from '@/lib/steam/cli';
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -83,7 +84,10 @@ async function fetchWishlistCalendarDataFromCli(
   const appLimit = options.appLimit ?? DEFAULT_APP_LIMIT;
   const data = await runSteamCliJson<SteamCliWishlist>(
     ['wishlist', steamInput, '--count', String(appLimit)],
-    { processTimeoutMs: options.timeoutMs },
+    {
+      cacheTtlMs: STEAM_CLI_CACHE_TTL.wishlist,
+      processTimeoutMs: options.timeoutMs,
+    },
   );
 
   if (!data) {

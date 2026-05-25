@@ -1,15 +1,19 @@
 import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
+import { calendarConfigFromRecord } from '@/lib/calendar-config';
 import { SteamWishlistError } from '@/lib/steam/client';
+import { fetchSteamDealEvents } from '@/lib/steam/deals';
 import { fetchSteamMajorEvents } from '@/lib/steam/events';
 import { normalizeCc, steamLocaleFromRequest } from '@/lib/steam/locale';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
+import { fetchWatchedGameEvents } from '@/lib/steam/watched-games';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
+    const config = calendarConfigFromRecord(body);
     const requestLocale = steamLocaleFromRequest(request);
     const locale = {
       ...requestLocale,
@@ -17,8 +21,20 @@ export async function POST(request: Request) {
     };
     const data = await fetchWishlistCalendarData(String(body.steamId64 ?? ''), { appLimit: 100 });
     const { steamId64 } = data;
-    const wishlistEvents = mapWishlistReleaseEvents(data.appDetails);
-    const steamEvents = await fetchSteamMajorEvents(locale);
+    const shouldUseWishlist = config.includeWishlist;
+    const [dealEvents, steamEvents, watchedGameEvents] = await Promise.all([
+      config.includeDeals ? fetchSteamDealEvents({ ...locale, count: config.dealCount }) : Promise.resolve([]),
+      config.includeSteamEvents
+        ? fetchSteamMajorEvents({
+          ...locale,
+          categories: config.steamEventCategories,
+          futureDays: config.eventFutureDays,
+          pastDays: config.eventPastDays,
+        })
+        : Promise.resolve([]),
+      !shouldUseWishlist && config.watchedAppIds.length ? fetchWatchedGameEvents(config.watchedAppIds, locale) : Promise.resolve([]),
+    ]);
+    const wishlistEvents = shouldUseWishlist ? mapWishlistReleaseEvents(data.appDetails) : [];
     const feedPath = `/feed/${steamId64}.ics`;
     const calendarPath = `/cal/${steamId64}`;
 
@@ -35,7 +51,7 @@ export async function POST(request: Request) {
         wishlistReleaseEvents: wishlistEvents.length,
         steamMajorEvents: steamEvents.length,
       },
-      events: [...wishlistEvents, ...steamEvents].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      events: [...dealEvents, ...wishlistEvents, ...watchedGameEvents, ...steamEvents].sort((a, b) => a.startDate.localeCompare(b.startDate)),
     });
   } catch (error) {
     const status = error instanceof SteamWishlistError && error.code === 'invalid_steam_id' ? 400 : 502;

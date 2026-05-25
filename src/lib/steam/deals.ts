@@ -1,4 +1,5 @@
 import { mapSteamDealEvents, type CalendarEvent, type SteamDealItem } from '@/lib/events/mapper';
+import { STEAM_CLI_CACHE_TTL } from '@/lib/steam/cache-policy';
 import { runSteamCliJson } from '@/lib/steam/cli';
 
 export type SteamMediaAsset = {
@@ -36,7 +37,12 @@ export async function fetchSteamDealEvents(
     'discounted,preorder',
     '--count',
     String(count),
-  ], { cc: options.cc, lang: options.lang, uiLang: options.uiLang });
+  ], {
+    cacheTtlMs: STEAM_CLI_CACHE_TTL.deals,
+    cc: options.cc,
+    lang: options.lang,
+    uiLang: options.uiLang,
+  });
 
   if (!data) {
     return [];
@@ -66,6 +72,7 @@ async function fetchSteamMedia(
       'media',
       String(appId),
     ], {
+      cacheTtlMs: STEAM_CLI_CACHE_TTL.media,
       cc: options.cc,
       lang: options.lang,
       processTimeoutMs: 20_000,

@@ -6,6 +6,8 @@ Repo: wishlist-in-calender
 Status: APPROVED
 Mode: Builder
 
+> 2026-05-25 note: this document records the original wishlist-first prototype thinking. The current direction is Steam Sale Calendar: account-free Steam sale/event/watched-game calendar subscription, with public wishlist import as one optional layer. See `docs/current-status.md` for the current state.
+
 ## Problem Statement
 
 Wishlist in Calendar turns a user's Steam wishlist into a system-level calendar subscription.

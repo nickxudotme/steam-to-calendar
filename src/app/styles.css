@@ -134,8 +134,15 @@ select {
   font-weight: 740;
   gap: 8px;
   grid-template-columns: auto 28px;
+  max-width: min(360px, 100%);
   min-height: 48px;
   padding: 0 10px 0 16px;
+}
+
+.regionSelect span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .regionSelect select {
@@ -354,6 +361,58 @@ select {
   grid-template-columns: 1fr 1fr;
 }
 
+.eventTypeGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.eventTypeOption {
+  align-items: start;
+  background: rgba(7, 13, 22, 0.48);
+  border: 1px solid rgba(117, 151, 184, 0.2);
+  border-radius: 5px;
+  cursor: pointer;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 16px 1fr;
+  padding: 9px;
+}
+
+.eventTypeOption:has(input:checked) {
+  background: rgba(32, 120, 201, 0.16);
+  border-color: rgba(102, 192, 244, 0.38);
+}
+
+.eventTypeOption:has(input:disabled) {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.eventTypeOption input {
+  accent-color: var(--accent);
+  height: 16px;
+  margin: 1px 0 0;
+  width: 16px;
+}
+
+.eventTypeOption span {
+  display: grid;
+  gap: 3px;
+}
+
+.eventTypeOption strong {
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 810;
+  line-height: 1.2;
+}
+
+.eventTypeOption small {
+  color: var(--muted);
+  font-size: 0.73rem;
+  line-height: 1.32;
+}
+
 .rangeGrid label {
   display: grid;
   gap: 6px;
@@ -392,8 +451,14 @@ select {
   align-items: center;
   display: grid;
   grid-template-columns: 20px 1fr;
-  margin-top: 12px;
   position: relative;
+}
+
+.gameSearchForm {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  margin-top: 12px;
 }
 
 .searchBox .miniIcon,
@@ -412,6 +477,174 @@ select {
   grid-row: 1;
   height: 40px;
   padding: 0 10px 0 34px;
+}
+
+.gameSearchForm button,
+.wishlistImport {
+  min-width: 0;
+}
+
+.gameSearchForm button,
+.gameSearchResult button,
+.selectedGameRow button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(117, 151, 184, 0.3);
+  border-radius: 5px;
+  color: #ecf5fb;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 820;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.gameSearchForm button:disabled,
+.gameSearchResult button:disabled,
+.selectedGameRow button:disabled {
+  cursor: default;
+  opacity: 0.56;
+}
+
+.wishlistNotice {
+  background: rgba(102, 192, 244, 0.08);
+  color: #b9d8ec;
+  font-size: 0.78rem;
+  line-height: 1.38;
+  margin-top: 10px;
+}
+
+.loadingNotice {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.1);
+  color: #cce9fb;
+  display: flex;
+  font-size: 0.78rem;
+  gap: 8px;
+  line-height: 1.38;
+  margin-top: 10px;
+}
+
+.loadingNotice::before {
+  animation: spin 900ms linear infinite;
+  border: 2px solid rgba(204, 233, 251, 0.24);
+  border-radius: 999px;
+  border-top-color: #cce9fb;
+  content: "";
+  flex: 0 0 auto;
+  height: 14px;
+  width: 14px;
+}
+
+.gameSearchResults,
+.selectedGames,
+.trendingGames {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.miniSectionTitle {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.gameSearchResult,
+.selectedGameRow {
+  align-items: center;
+  background: rgba(7, 13, 22, 0.48);
+  border: 1px solid rgba(117, 151, 184, 0.2);
+  border-radius: 6px;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 52px minmax(0, 1fr) 58px;
+  padding: 7px;
+}
+
+.selectedGameRow {
+  grid-template-columns: 52px minmax(0, 1fr) 72px;
+}
+
+.selectedGameRow.isNewlyAdded {
+  animation: addedRowPulse 1200ms ease-out both;
+}
+
+.gameSearchResult img,
+.selectedGameRow img,
+.gameThumbFallback {
+  aspect-ratio: 231 / 87;
+  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
+  border-radius: 4px;
+  display: block;
+  object-fit: cover;
+  width: 52px;
+}
+
+.gameSearchResult strong,
+.selectedGameRow span:not(.gameThumbFallback) {
+  color: var(--fg);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 780;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameSearchResult small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.skeletonResult {
+  pointer-events: none;
+}
+
+.skeletonThumb,
+.skeletonLine,
+.skeletonButton {
+  animation: skeletonPulse 1100ms ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(117, 151, 184, 0.12), rgba(102, 192, 244, 0.22), rgba(117, 151, 184, 0.12));
+  background-size: 220% 100%;
+  border-radius: 5px;
+  display: block;
+}
+
+.skeletonThumb {
+  aspect-ratio: 231 / 87;
+  width: 52px;
+}
+
+.skeletonLine {
+  height: 10px;
+  margin: 4px 0;
+}
+
+.skeletonLine.wide {
+  width: min(100%, 140px);
+}
+
+.skeletonLine.narrow {
+  width: 72px;
+}
+
+.skeletonButton {
+  height: 32px;
+  width: 48px;
+}
+
+.wishlistHint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.42;
+  margin: 8px 0 0;
 }
 
 .wishlistImport {
@@ -586,6 +819,7 @@ select {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  position: relative;
   scroll-behavior: smooth;
   scroll-snap-type: y mandatory;
   scrollbar-color: rgba(102, 192, 244, 0.34) transparent;
@@ -684,6 +918,11 @@ select {
   z-index: 4;
 }
 
+.calendarSegment.isNewCalendarItem {
+  animation: calendarItemAdded 1400ms ease-out both;
+  z-index: 5;
+}
+
 .segmentTitle {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -752,6 +991,35 @@ select {
   gap: 9px;
 }
 
+.calendarLoadingOverlay {
+  align-items: center;
+  background: rgba(5, 10, 16, 0.72);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(102, 192, 244, 0.24);
+  border-radius: 7px;
+  color: #d7eefc;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 780;
+  gap: 9px;
+  left: 50%;
+  padding: 10px 13px;
+  pointer-events: none;
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.loadingSpinner {
+  animation: spin 900ms linear infinite;
+  border: 2px solid rgba(215, 238, 252, 0.24);
+  border-radius: 999px;
+  border-top-color: #d7eefc;
+  height: 16px;
+  width: 16px;
+}
+
 .legendDot {
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
@@ -808,17 +1076,27 @@ select {
 }
 
 .detailHero {
+  align-items: center;
   background:
-    linear-gradient(180deg, rgba(5, 9, 15, 0.02), rgba(5, 9, 15, 0.18)),
-    url("/assets/backgrounds/calendar-genre-panes.png") center / cover;
+    linear-gradient(135deg, rgba(22, 134, 223, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(10, 21, 34, 0.92), rgba(6, 12, 22, 0.98));
+  border: 1px solid rgba(117, 151, 184, 0.16);
+  color: rgba(190, 211, 225, 0.64);
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 780;
+  justify-content: center;
+  letter-spacing: 0.08em;
   margin: 0 16px;
   overflow: hidden;
+  text-transform: uppercase;
 }
 
-.detailHero.gameHero {
-  background:
-    linear-gradient(180deg, rgba(5, 9, 15, 0.02), rgba(5, 9, 15, 0.2)),
-    url("/assets/backgrounds/floating-game-capsules.png") center / cover;
+.detailHero.hasSteamCliImage {
+  background-position: center;
+  background-size: cover;
+  border-color: rgba(117, 151, 184, 0.22);
+  color: transparent;
 }
 
 .detailBody {
@@ -1042,6 +1320,68 @@ select {
   overflow: hidden;
   position: absolute;
   width: 1px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes addedRowPulse {
+  0% {
+    border-color: rgba(164, 208, 7, 0.85);
+    box-shadow: 0 0 0 0 rgba(164, 208, 7, 0.42);
+    transform: translateY(-2px);
+  }
+
+  55% {
+    box-shadow: 0 0 0 7px rgba(164, 208, 7, 0);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes calendarItemAdded {
+  0% {
+    box-shadow: 0 0 0 0 rgba(199, 242, 75, 0.65), 0 0 30px rgba(102, 192, 244, 0.52);
+    filter: saturate(1.35) brightness(1.22);
+    transform: scale(0.96);
+  }
+
+  58% {
+    box-shadow: 0 0 0 8px rgba(199, 242, 75, 0), 0 0 20px rgba(102, 192, 244, 0.22);
+    transform: scale(1.02);
+  }
+
+  100% {
+    filter: none;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendarSegment.isNewCalendarItem,
+  .loadingNotice::before,
+  .loadingSpinner,
+  .selectedGameRow.isNewlyAdded,
+  .skeletonButton,
+  .skeletonLine,
+  .skeletonThumb {
+    animation: none;
+  }
 }
 
 @media (max-width: 1260px) {

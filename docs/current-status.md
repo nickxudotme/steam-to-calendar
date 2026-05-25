@@ -1,18 +1,18 @@
 # Current Status
 
-Last updated: 2026-05-24
+Last updated: 2026-05-25
 
 ## Product
 
-Wishlist in Calendar now proves the core loop:
+The product direction has moved from "wishlist releases only" to **Steam Sale Calendar**:
 
-1. Enter a SteamID64, numeric Steam profile URL, custom Steam profile URL, or supported wishlist URL.
-2. Import the user's public Steam wishlist.
-3. Preview subscribed moments in a simulated monthly calendar.
-4. Generate a dynamic calendar feed.
-5. Subscribe through `webcal://` or copy the HTTPS `.ics` URL.
+1. Show an immediately useful calendar even when the user has not provided an account.
+2. Include Steam sale/festival events, current hot discounts, and preorders by default.
+3. Let users tune what appears in the calendar: deal count, official event types, date range, store region, manual watched games, and wishlist import.
+4. Generate a dynamic calendar feed whose settings are encoded in the URL query string.
+5. Make it clear that the feed can be subscribed to from the user's OS calendar apps.
 
-The product positioning remains calendar-first: this is not a Steam database, discount site, or game news site. It is a quiet timeline layer for releases and Steam seasons.
+The product positioning remains calendar-first. The app is not trying to become a full Steam database. Its job is to put timely Steam buying/release moments into the calendar the user already checks.
 
 ## Implementation
 
@@ -20,17 +20,26 @@ The app is a Next.js App Router project deployed to Vercel.
 
 Key routes:
 
-- `/` — SteamID64/profile URL input, subscription controls, simulated calendar preview.
-- `/api/preview` — validates input, fetches Steam data, returns preview JSON.
+- `/` — Steam-styled configuration UI, region selector, game search/watch controls, subscription controls, and vertical calendar preview.
+- `/api/public-preview` — loads account-free preview events from Steam CLI based on query settings.
+- `/api/preview` — validates wishlist input, fetches Steam data, returns preview JSON.
+- `/api/search-games` — searches Steam apps through Steam CLI.
 - `/feed/[steamId64].ics` — returns `text/calendar` ICS feed.
 - `/cal/[steamId64]` — extensionless calendar route for `webcal://` subscription links.
 
 Key modules:
 
 - `src/lib/steam/client.ts` — SteamID validation, numeric/custom Steam URL parsing, wishlist service fetch, app details fetch, timeout/cache helpers.
-- `src/lib/steam/cli.ts` — optional `steam-cli --json` adapter controlled by `STEAM_CLI_PATH`.
-- `src/lib/steam/events.ts` — official Steam event loading through `steam-cli events --json`, with static fallback.
+- `src/lib/steam/cli.ts` — `steam-cli --json` adapter with optional process-local TTL caching.
+- `src/lib/steam/cache.ts` — in-memory cache with in-flight request deduplication.
+- `src/lib/steam/cache-policy.ts` — TTL policy for deals, events, media, search, watched apps, and wishlist imports.
+- `src/lib/steam/deals.ts` — top discounted/preorder event loading and media enrichment.
+- `src/lib/steam/events.ts` — official Steam event loading through `steam-cli events --json`, category filtering, and static fallback.
+- `src/lib/steam/search.ts` — Steam game search through `steam-cli search --json`.
+- `src/lib/steam/watched-games.ts` — manual watched app events from `steam-cli app --json`.
+- `src/lib/steam/regions.ts` — Steam store regions and flag labels.
 - `src/lib/steam/pipeline.ts` — wishlist appID import plus app detail hydration.
+- `src/lib/calendar-config.ts` — query/body calendar setting parsing and serialization.
 - `src/lib/events/mapper.ts` — exact release dates and major Steam events to internal calendar events.
 - `src/lib/ics/generator.ts` — Apple Calendar-compatible ICS generation.
 - `src/lib/calendar-response.ts` — shared feed response assembly and request logging.
@@ -38,26 +47,53 @@ Key modules:
 
 ## Current data behavior
 
-Wishlist import now prefers the local `steam-cli` when `STEAM_CLI_PATH` is configured:
+Runtime data should prefer the bundled Steam CLI submodule:
 
 ```text
-steam-cli wishlist {steamId64} --count {limit} --json --cc US --lang english --ui-lang en
-steam-cli events --past-days 0 --future-days 365 --json --cc US --lang english --ui-lang en
+steam-cli deals --filter topsellers --any discounted,preorder --count {count} --json --cc {cc} --lang {lang} --ui-lang {uiLang}
+steam-cli events --past-days {pastDays} --future-days {futureDays} --json --cc {cc} --lang {lang} --ui-lang {uiLang}
+steam-cli search {query} --count 8 --json --cc {cc} --lang {lang} --ui-lang {uiLang}
+steam-cli app {appId} --json --cc {cc} --lang {lang} --ui-lang {uiLang}
+steam-cli media {appId} --json --cc {cc} --lang {lang} --ui-lang {uiLang}
+steam-cli wishlist {profileOrSteamId} --count {limit} --json
 ```
 
-The adapter maps the CLI JSON envelope into the app's existing `WishlistCalendarData` and `CalendarEvent` shapes. It deliberately defaults to English Steam data so exact dates continue to match the current parser. For Steam Community profile URLs, the app passes the supported profile URL through to `steam-cli`; the fallback API path resolves custom URLs to SteamID64 through Steam Community profile XML first.
+Steam store country/region (`cc`) and language are separate concepts. The app can infer defaults from request/browser context, but the user can explicitly choose a Steam store region. Browser language controls UI language preference; store country controls Steam prices and regional availability.
 
-When no configured or bundled `steam-cli` binary is available, wishlist import falls back to:
+Settings are encoded into URL query parameters in this first version:
 
 ```text
-https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid={steamId64}
+deals=1&events=1&eventTypes=seasonal,next_fest,fest,store_sale&wishlist=1&apps=264710&count=5&pastDays=0&futureDays=365&cc=US
 ```
 
-This keeps development and emergency deployments functional even if the CLI adapter is unavailable. The prototype still only supports public wishlists.
+Wishlist import still falls back to Steam's public wishlist service endpoint if the CLI is unavailable. The prototype only supports public wishlists.
 
 For Vercel, the repo now includes `steam-cli` as a public HTTPS Git submodule at `vendor/steam-cli`. The normal `npm run build` flow compiles that source into `bin/steam-cli`, and `next.config.ts` includes the binary in server function traces. At runtime the adapter uses `STEAM_CLI_PATH` if present, otherwise it falls back to `bin/steam-cli`.
 
-For SteamID64 `76561198115468824`, the current public wishlist import returns 11 wishlist appIDs. As of 2026-05-21, none of those games have future exact release dates, so the preview shows 0 wishlist release events and keeps the major Steam events visible.
+## Cache behavior
+
+Steam CLI calls have process-local TTL caching with in-flight deduplication:
+
+| Data | Default TTL |
+|---|---:|
+| top deals/preorders | 10 minutes |
+| official events | 6 hours |
+| media images | 24 hours |
+| game search | 15 minutes |
+| watched app details | 10 minutes |
+| wishlist import | 5 minutes |
+
+The cache can be tuned with `STEAM_CLI_*_CACHE_TTL_MS` environment variables and capped with `STEAM_CLI_CACHE_MAX_ENTRIES`. This is intentionally simple for the current Vercel deployment; it reduces duplicate warm-instance CLI work but is not a persistent cross-instance cache.
+
+## UI behavior
+
+- The first screen is the usable product, not a marketing landing page.
+- The default preview has account-free calendar items.
+- Calendar rows use a vertical, scroll-snapping layout.
+- Days with many events can grow taller instead of hiding all context.
+- Search, wishlist import, and preview refreshes show explicit loading states.
+- Adding a watched game animates both the selected-game row and the new calendar event.
+- Motion respects `prefers-reduced-motion`.
 
 ## Verification
 
@@ -65,7 +101,6 @@ Current checks pass:
 
 ```bash
 npm test
-npx tsc --noEmit
 npm run build
 npm run test:e2e
 ```
@@ -74,23 +109,27 @@ Coverage includes:
 
 - SteamID validation, numeric/custom Steam URL parsing, and wishlist service parsing.
 - Steam app detail pipeline behavior.
+- Steam CLI cache reuse and in-flight deduplication.
+- Calendar config query parsing and serialization.
 - Event mapping for exact dates, excluded ambiguous dates, and Steam major events.
+- Watched game discount/release event mapping.
 - ICS output shape, all-day date handling, and escaping.
-- Browser preview flow with feed URL and simulated calendar UI.
+- Browser preview flow with feed URL, query settings, manual watched-game add, and calendar UI animation hooks.
 
 ## Recent shipped changes
 
-- Switched wishlist import to Steam's wishlist service endpoint.
-- Added `/cal/[steamId64]` for extensionless `webcal://` subscriptions.
-- Tuned ICS response shape for Apple Calendar compatibility.
-- Added request logging around calendar feed requests.
-- Rebuilt the front end around a simulated calendar app preview.
-- Added numeric and custom Steam profile/wishlist URL parsing.
-- Pushed the project to GitHub and deployed it on Vercel.
+- Repositioned product around Steam sale/calendar value instead of wishlist-only releases.
+- Redesigned the UI around a Steam-flavored vertical calendar editor.
+- Added full Steam store region dropdown with flags.
+- Added URL query encoded feed settings.
+- Added official Steam event type filters.
+- Added top deals/preorders, search, manual watched games, media images, and public wishlist integration from Steam CLI.
+- Added loading states and add-to-calendar animations.
+- Added Steam CLI result caching.
 
 ## Next useful work
 
-- Add a manual Steam appID/store URL add flow for private wishlists.
-- Add persisted private feed tokens before supporting settings.
-- Add bilingual zh/en routing and copy.
-- Add richer Steam events maintenance once the core subscription flow is stable.
+- Add persisted short links/private feed tokens for long query configurations.
+- Add editable short-link settings.
+- Add bilingual zh/en routing and final copy.
+- Consider a shared persistent cache if Steam CLI pressure becomes visible in production.

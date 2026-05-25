@@ -1,4 +1,4 @@
-const SUPPORTED_CC = new Set(['US', 'CN', 'JP', 'GB', 'DE', 'FR', 'BR', 'CA', 'AU']);
+import { STEAM_STORE_REGION_CODES } from '@/lib/steam/regions';
 
 export type SteamLocaleOptions = {
   cc: string;
@@ -37,7 +37,7 @@ export function normalizeCc(value: string | null): string | null {
     return null;
   }
 
-  return SUPPORTED_CC.has(cc) ? cc : null;
+  return STEAM_STORE_REGION_CODES.has(cc) ? cc : null;
 }
 
 function steamLangFromAcceptLanguage(value: string): string {

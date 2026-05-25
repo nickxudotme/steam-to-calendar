@@ -2,7 +2,15 @@
 
 import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  calendarConfigToSearchParams,
+  DEFAULT_CALENDAR_CONFIG,
+  STEAM_EVENT_CATEGORIES,
+  type CalendarConfig,
+  type SteamEventCategory,
+} from '@/lib/calendar-config';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
+import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from '@/lib/steam/regions';
 
 type PreviewEvent = {
   id: string;
@@ -19,6 +27,7 @@ type PreviewEvent = {
   finalPrice?: string;
   releaseTime?: number;
   discountEnd?: number;
+  eventCategory?: SteamEventCategory;
 };
 
 type PreviewResponse = {
@@ -39,6 +48,25 @@ type PreviewResponse = {
     steamMajorEvents: number;
   };
   events: PreviewEvent[];
+};
+
+type GameSearchResult = {
+  appId: string;
+  name: string;
+  imageUrl?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+  storeUrl: string;
+};
+
+type SelectedGame = {
+  appId: string;
+  name: string;
+  imageUrl?: string;
+  storeUrl: string;
 };
 
 type CalendarCell = {
@@ -70,6 +98,24 @@ const INITIAL_WEEK_BUFFER = 8;
 const INITIAL_WEEK_SPAN = 34;
 const WEEK_EXTENSION_SIZE = 16;
 const WEEK_EXTENSION_THRESHOLD = 4;
+const STEAM_EVENT_CATEGORY_LABELS: Record<SteamEventCategory, { description: string; title: string }> = {
+  seasonal: {
+    title: 'Seasonal sales',
+    description: 'Summer, Autumn, Winter, and Spring sale windows.',
+  },
+  next_fest: {
+    title: 'Next Fest',
+    description: 'Official demo festivals for upcoming games.',
+  },
+  fest: {
+    title: 'Theme fests',
+    description: 'Genre and theme events such as bullet heaven or deckbuilders.',
+  },
+  store_sale: {
+    title: 'Store sale pages',
+    description: 'Publisher, franchise, and partner sale pages.',
+  },
+};
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -90,30 +136,87 @@ export default function Home() {
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showDeals, setShowDeals] = useState(true);
   const [showSteamEvents, setShowSteamEvents] = useState(true);
   const [showMyGames, setShowMyGames] = useState(true);
-  const [dealCount, setDealCount] = useState(5);
+  const [steamEventCategories, setSteamEventCategories] = useState<SteamEventCategory[]>(DEFAULT_CALENDAR_CONFIG.steamEventCategories);
+  const [dealCount, setDealCount] = useState(DEFAULT_CALENDAR_CONFIG.dealCount);
+  const [eventPastDays, setEventPastDays] = useState(DEFAULT_CALENDAR_CONFIG.eventPastDays);
+  const [eventFutureDays, setEventFutureDays] = useState(DEFAULT_CALENDAR_CONFIG.eventFutureDays);
   const [gameSearch, setGameSearch] = useState('');
-  const [storeRegion, setStoreRegion] = useState('US');
+  const [gameSearchResults, setGameSearchResults] = useState<GameSearchResult[]>([]);
+  const [gameSearchError, setGameSearchError] = useState<string | null>(null);
+  const [isSearchingGames, setIsSearchingGames] = useState(false);
+  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
+  const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
+  const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(() => new Set());
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [initialMonth, setInitialMonth] = useState(() => monthKeyFromIsoDate(localIsoDate()));
   const [origin, setOrigin] = useState('');
+  const userSelectedRegionRef = useRef(false);
   const demoEvents = useMemo(() => buildDemoEvents(todayIso), [todayIso]);
+  const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? 'US';
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} Store`;
+  const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
+  const watchedAppIds = useMemo(() => (
+    showMyGames && !hasConnectedWishlist ? selectedGames.map((game) => game.appId) : []
+  ), [hasConnectedWishlist, selectedGames, showMyGames]);
+  const calendarConfig = useMemo<CalendarConfig>(() => ({
+    includeDeals: showDeals,
+    includeSteamEvents: showSteamEvents,
+    includeWishlist: showMyGames,
+    watchedAppIds,
+    steamEventCategories,
+    dealCount,
+    eventPastDays,
+    eventFutureDays,
+  }), [dealCount, eventFutureDays, eventPastDays, showDeals, showMyGames, showSteamEvents, steamEventCategories, watchedAppIds]);
+
+  const publicPreviewQuery = useMemo(() => {
+    const params = calendarConfigToSearchParams(calendarConfig);
+
+    if (storeRegion) {
+      params.set('cc', storeRegion);
+    }
+
+    return params.toString();
+  }, [calendarConfig, storeRegion]);
+
+  const calendarQuery = useMemo(() => {
+    const params = calendarConfigToSearchParams(calendarConfig);
+
+    params.set('cc', effectiveStoreRegion);
+
+    return params.toString();
+  }, [calendarConfig, effectiveStoreRegion]);
 
   const webcalUrl = useMemo(() => {
-    const calendarUrl = origin ? `${origin}${preview.calendarPath}?cc=${storeRegion}` : `${preview.calendarPath}?cc=${storeRegion}`;
+    const calendarUrl = origin
+      ? `${origin}${preview.calendarPath}?${calendarQuery}`
+      : `${preview.calendarPath}?${calendarQuery}`;
 
     return calendarUrl.replace(/^https?:\/\//, 'webcal://');
-  }, [origin, preview, storeRegion]);
+  }, [calendarQuery, origin, preview]);
 
   const calendarEvents = preview.events.length ? preview.events : demoEvents;
 
   const sortedEvents = useMemo(() => {
     return [...calendarEvents].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [calendarEvents]);
+  const trendingGames = useMemo<SelectedGame[]>(() => (
+    sortedEvents
+      .filter((event) => (event.type === 'steam_deal' || event.type === 'steam_preorder') && event.appId)
+      .slice(0, 3)
+      .map((event) => ({
+        appId: event.appId as string,
+        name: detailTitle(event),
+        ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
+        storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
+      }))
+  ), [sortedEvents]);
 
   const visibleEvents = useMemo(() => {
     let seenDeals = 0;
@@ -129,12 +232,12 @@ export default function Home() {
       }
 
       if (event.type === 'steam_major_event') {
-        return showSteamEvents;
+        return showSteamEvents && (!event.eventCategory || steamEventCategories.includes(event.eventCategory));
       }
 
       return showMyGames;
     });
-  }, [dealCount, hiddenEventIds, showDeals, showMyGames, showSteamEvents, sortedEvents]);
+  }, [dealCount, hiddenEventIds, showDeals, showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
 
   const preferredEventId = visibleEvents.find((event) => event.type === 'steam_deal')?.id ?? visibleEvents[0]?.id ?? null;
   const selectedEvent = useMemo(() => (
@@ -155,8 +258,10 @@ export default function Home() {
     let isMounted = true;
 
     async function loadPublicPreview() {
+      setIsPreviewLoading(true);
+
       try {
-        const response = await fetch(`/api/public-preview?cc=${encodeURIComponent(storeRegion)}`);
+        const response = await fetch(`/api/public-preview?${publicPreviewQuery}`);
         const payload = await response.json();
 
         if (!response.ok) {
@@ -167,9 +272,17 @@ export default function Home() {
           setPreview((currentPreview) => (
             currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview
           ));
+
+          if (!userSelectedRegionRef.current && !storeRegion && payload.locale?.cc) {
+            setStoreRegion(payload.locale.cc);
+          }
         }
       } catch (caught) {
         console.error(caught);
+      } finally {
+        if (isMounted) {
+          setIsPreviewLoading(false);
+        }
       }
     }
 
@@ -178,7 +291,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [storeRegion]);
+  }, [publicPreviewQuery, storeRegion]);
 
   useEffect(() => {
     setInitialMonth(monthKeyFromIsoDate(todayIso));
@@ -189,6 +302,79 @@ export default function Home() {
       setSelectedEventId(preferredEventId);
     }
   }, [preferredEventId, selectedEventId, visibleEvents]);
+
+  useEffect(() => {
+    if (!recentlyAddedAppId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setRecentlyAddedAppId(null), 5200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [recentlyAddedAppId]);
+
+  async function handleGameSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = gameSearch.trim();
+
+    if (!query || hasConnectedWishlist) {
+      return;
+    }
+
+    setIsSearchingGames(true);
+    setGameSearchError(null);
+
+    try {
+      const params = new URLSearchParams({
+        cc: effectiveStoreRegion,
+        query,
+      });
+      const response = await fetch(`/api/search-games?${params.toString()}`);
+      const payload = await response.json() as { message?: string; results?: GameSearchResult[] };
+
+      if (!response.ok) {
+        throw new Error(payload.message ?? 'Could not search Steam games.');
+      }
+
+      setGameSearchResults(payload.results ?? []);
+    } catch (caught) {
+      setGameSearchError(caught instanceof Error ? caught.message : 'Could not search Steam games.');
+    } finally {
+      setIsSearchingGames(false);
+    }
+  }
+
+  function handleAddSelectedGame(game: GameSearchResult) {
+    handleAddManualGame({
+      appId: game.appId,
+      name: game.name,
+      ...(game.imageUrl ? { imageUrl: game.imageUrl } : {}),
+      storeUrl: game.storeUrl,
+    });
+  }
+
+  function handleAddManualGame(game: SelectedGame) {
+    if (hasConnectedWishlist) {
+      return;
+    }
+
+    setShowMyGames(true);
+    setRecentlyAddedAppId(game.appId);
+    setSelectedGames((games) => {
+      if (games.some((selectedGame) => selectedGame.appId === game.appId)) {
+        return games;
+      }
+
+      return [
+        ...games,
+        game,
+      ].slice(-10);
+    });
+  }
+
+  function handleRemoveSelectedGame(appId: string) {
+    setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -206,7 +392,18 @@ export default function Home() {
       const response = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ steamId64: trimmedSteamId64, cc: storeRegion }),
+        body: JSON.stringify({
+          steamId64: trimmedSteamId64,
+          cc: effectiveStoreRegion,
+          deals: calendarConfig.includeDeals,
+          events: calendarConfig.includeSteamEvents,
+          eventTypes: calendarConfig.steamEventCategories.join(','),
+          wishlist: true,
+          apps: '',
+          count: calendarConfig.dealCount,
+          pastDays: calendarConfig.eventPastDays,
+          futureDays: calendarConfig.eventFutureDays,
+        }),
       });
       const payload = await response.json();
 
@@ -215,11 +412,28 @@ export default function Home() {
       }
 
       setPreview(payload);
+      setShowMyGames(true);
+      setSelectedGames([]);
+      setGameSearchResults([]);
+      setGameSearchError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not preview this Steam wishlist.');
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleStoreRegionChange(value: string) {
+    userSelectedRegionRef.current = true;
+    setStoreRegion(value);
+  }
+
+  function handleSteamEventCategoryChange(category: SteamEventCategory, checked: boolean) {
+    setSteamEventCategories((categories) => (
+      checked
+        ? [...categories, category].sort(compareSteamEventCategories)
+        : categories.filter((currentCategory) => currentCategory !== category)
+    ));
   }
 
   return (
@@ -234,16 +448,17 @@ export default function Home() {
           </a>
           <div className="headerControls">
             <label className="regionSelect">
-              <span>{storeRegion} Store</span>
+              <span>{effectiveStoreRegionLabel}</span>
               <select
                 aria-label="Steam store region"
-                value={storeRegion}
-                onChange={(event) => setStoreRegion(event.target.value)}
+                value={effectiveStoreRegion}
+                onChange={(event) => handleStoreRegionChange(event.target.value)}
               >
-                <option value="US">US</option>
-                <option value="CN">CN</option>
-                <option value="JP">JP</option>
-                <option value="GB">GB</option>
+                {STEAM_STORE_REGIONS.map((region) => (
+                  <option key={region.code} value={region.code}>
+                    {countryFlag(region.code)} {region.name}
+                  </option>
+                ))}
               </select>
             </label>
             <a className="calendarCta" href={webcalUrl}>
@@ -284,14 +499,43 @@ export default function Home() {
               onChange={setShowSteamEvents}
             />
 
+            <div className="eventTypeGrid" aria-label="Steam event types">
+              {STEAM_EVENT_CATEGORIES.map((category) => (
+                <label className="eventTypeOption" key={category}>
+                  <input
+                    checked={steamEventCategories.includes(category)}
+                    disabled={!showSteamEvents}
+                    onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>
+                    <strong>{STEAM_EVENT_CATEGORY_LABELS[category].title}</strong>
+                    <small>{STEAM_EVENT_CATEGORY_LABELS[category].description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+
             <div className="rangeGrid" aria-label="Steam event range">
               <label>
                 <span>Past days</span>
-                <input type="number" min="0" defaultValue="0" />
+                <input
+                  type="number"
+                  min="0"
+                  max="730"
+                  value={eventPastDays}
+                  onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, 730, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
+                />
               </label>
               <label>
                 <span>Next days</span>
-                <input type="number" min="1" defaultValue="365" />
+                <input
+                  type="number"
+                  min="1"
+                  max="1095"
+                  value={eventFutureDays}
+                  onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, 1095, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
+                />
               </label>
             </div>
 
@@ -301,7 +545,7 @@ export default function Home() {
               <div className="sourceTitleRow">
                 <div>
                   <h3>My Games</h3>
-                  <p>Watch specific games or sync your public Steam wishlist.</p>
+                  <p>Watch specific games, then connect a public Steam wishlist when you want it to replace manual picks.</p>
                 </div>
                 <label className="switch">
                   <input
@@ -313,17 +557,116 @@ export default function Home() {
                 </label>
               </div>
 
-              <label className="searchBox" htmlFor="game-search">
-                <span className="srOnly">Search Steam games</span>
-                <SearchIcon />
-                <input
-                  id="game-search"
-                  placeholder="Search Steam games"
-                  type="search"
-                  value={gameSearch}
-                  onChange={(event) => setGameSearch(event.target.value)}
-                />
-              </label>
+              <form className="gameSearchForm" onSubmit={handleGameSearchSubmit}>
+                <label className="searchBox" htmlFor="game-search">
+                  <span className="srOnly">Search Steam games</span>
+                  <SearchIcon />
+                  <input
+                    disabled={!showMyGames || hasConnectedWishlist}
+                    id="game-search"
+                    placeholder="Search Steam games"
+                    type="search"
+                    value={gameSearch}
+                    onChange={(event) => setGameSearch(event.target.value)}
+                  />
+                </label>
+                <button disabled={!showMyGames || hasConnectedWishlist || isSearchingGames || !gameSearch.trim()} type="submit">
+                  {isSearchingGames ? 'Searching...' : 'Search'}
+                </button>
+              </form>
+
+              {hasConnectedWishlist ? (
+                <div className="notice wishlistNotice">
+                  Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.
+                </div>
+              ) : null}
+
+              {isPreviewLoading && !hasConnectedWishlist ? (
+                <div className="notice loadingNotice" role="status">
+                  Syncing your calendar preview with Steam data...
+                </div>
+              ) : null}
+
+              {trendingGames.length ? (
+                <div className="trendingGames" aria-label="Trending games">
+                  <span className="miniSectionTitle">Trending now</span>
+                  {trendingGames.map((game) => {
+                    const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
+
+                    return (
+                      <div className="selectedGameRow" key={game.appId}>
+                        {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                        <span>{game.name}</span>
+                        <button
+                          disabled={hasConnectedWishlist || isSelected}
+                          type="button"
+                          onClick={() => handleAddManualGame(game)}
+                        >
+                          {isSelected ? 'Added' : 'Add'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {selectedGames.length ? (
+                <div className="selectedGames" aria-label="Games added to calendar">
+                  <span className="miniSectionTitle">Added to calendar</span>
+                  {selectedGames.map((game) => (
+                    <div
+                      className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
+                      key={game.appId}
+                    >
+                      {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                      <span>{game.name}</span>
+                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {gameSearchError ? <div className="notice error">{gameSearchError}</div> : null}
+
+              {isSearchingGames ? (
+                <div className="gameSearchResults" aria-label="Steam game search loading results" role="status">
+                  {[0, 1, 2].map((index) => (
+                    <div className="gameSearchResult skeletonResult" key={index}>
+                      <span className="skeletonThumb" />
+                      <div>
+                        <span className="skeletonLine wide" />
+                        <span className="skeletonLine narrow" />
+                      </div>
+                      <span className="skeletonButton" />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {!isSearchingGames && gameSearchResults.length ? (
+                <div className="gameSearchResults" aria-label="Steam game search results">
+                  {gameSearchResults.map((game) => {
+                    const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
+
+                    return (
+                      <div className="gameSearchResult" key={game.appId}>
+                        {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                        <div>
+                          <strong>{game.name}</strong>
+                          <small>{gameSearchMeta(game)}</small>
+                        </div>
+                        <button
+                          disabled={hasConnectedWishlist || isSelected}
+                          type="button"
+                          onClick={() => handleAddSelectedGame(game)}
+                        >
+                          {isSelected ? 'Added' : 'Add'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
 
               <form
                 className="wishlistImport"
@@ -346,6 +689,12 @@ export default function Home() {
                   {isLoading ? 'Importing...' : 'Import Steam Wishlist'}
                 </button>
               </form>
+              {isLoading ? (
+                <div className="notice loadingNotice" role="status">
+                  Reading your public Steam wishlist and preparing calendar events. This can take a moment for larger wishlists.
+                </div>
+              ) : null}
+              <p className="wishlistHint">Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.</p>
 
               {error ? <div className="notice error">{error}</div> : null}
             </div>
@@ -355,7 +704,9 @@ export default function Home() {
             <CalendarPreview
               events={visibleEvents}
               initialMonth={initialMonth}
+              isLoading={isPreviewLoading}
               onSelectEvent={setSelectedEventId}
+              recentlyAddedAppId={recentlyAddedAppId}
               selectedEventId={selectedEvent?.id ?? null}
               todayIso={todayIso}
             />
@@ -385,13 +736,17 @@ export default function Home() {
 function CalendarPreview({
   events,
   initialMonth,
+  isLoading,
   onSelectEvent,
+  recentlyAddedAppId,
   selectedEventId,
   todayIso,
 }: {
   events: PreviewEvent[];
   initialMonth: string;
+  isLoading: boolean;
   onSelectEvent: (eventId: string) => void;
+  recentlyAddedAppId: string | null;
   selectedEventId: string | null;
   todayIso: string;
 }) {
@@ -595,6 +950,12 @@ function CalendarPreview({
         onTouchStart={markCalendarScrollIntent}
         tabIndex={0}
       >
+        {isLoading ? (
+          <div className="calendarLoadingOverlay" role="status">
+            <span className="loadingSpinner" />
+            <span>Syncing Steam calendar data...</span>
+          </div>
+        ) : null}
         <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
           {weeks.map((week) => {
             const weekLanes = Math.max(3, week.segments.reduce((highestLane, segment) => (
@@ -636,6 +997,7 @@ function CalendarPreview({
                       segment.event.type,
                       eventVisualClass(segment.event),
                       segment.event.id === selectedEventId ? 'isSelected' : '',
+                      segment.event.appId && segment.event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
                       segment.startsAtEvent ? 'startsAtEvent' : '',
                       segment.endsAtEvent ? 'endsAtEvent' : '',
                     ].filter(Boolean).join(' ')}
@@ -747,6 +1109,7 @@ function EventDetails({
   }
 
   const isGameEvent = event.type === 'steam_deal' || event.type === 'steam_preorder' || event.type === 'wishlist_release';
+  const hasSteamCliImage = Boolean(event.imageUrl);
   const heroStyle = event.imageUrl ? {
     backgroundImage: `linear-gradient(180deg, rgba(5, 9, 15, 0.02), rgba(5, 9, 15, 0.18)), url("${event.imageUrl}")`,
   } as CSSProperties : undefined;
@@ -758,7 +1121,16 @@ function EventDetails({
         <span>{detailKind(event)}</span>
         <h2>{detailTitle(event)}</h2>
       </div>
-      <div className={isGameEvent ? 'detailHero gameHero' : 'detailHero steamHero'} style={heroStyle} />
+      <div
+        className={[
+          'detailHero',
+          isGameEvent ? 'gameHero' : 'steamHero',
+          hasSteamCliImage ? 'hasSteamCliImage' : 'noSteamCliImage',
+        ].join(' ')}
+        style={heroStyle}
+      >
+        {!hasSteamCliImage ? <span>Steam CLI event data</span> : null}
+      </div>
 
       <div className="detailBody">
         <div className="detailMeta">
@@ -869,7 +1241,6 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       sourceUrl: 'https://store.steampowered.com/app/264710/Subnautica/',
       type: 'steam_deal',
       appId: '264710',
-      imageUrl: '/assets/backgrounds/floating-game-capsules.png',
       discount: '-75%',
       originalPrice: '$29.99',
       finalPrice: '$7.49',
@@ -881,7 +1252,6 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       startDate: addDays(monthStart, 6),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_preorder',
-      imageUrl: '/assets/backgrounds/calendar-genre-panes.png',
     },
     {
       id: 'demo-elden-ring',
@@ -891,7 +1261,6 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 15),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_deal',
-      imageUrl: '/assets/backgrounds/steam-wishlist-hero.png',
       discount: '-50%',
       originalPrice: '$59.99',
       finalPrice: '$29.99',
@@ -913,7 +1282,6 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 24),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_deal',
-      imageUrl: '/assets/backgrounds/game-library-universe.png',
       discount: '-70%',
       originalPrice: '$59.99',
       finalPrice: '$17.99',
@@ -935,7 +1303,6 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 33),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_deal',
-      imageUrl: '/assets/backgrounds/calendar-genre-panes.png',
       discount: '-35%',
       originalPrice: '$59.99',
       finalPrice: '$38.99',
@@ -1212,6 +1579,20 @@ function localIsoDate(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function clampInteger(value: string, min: number, max: number, fallback: number): number {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function compareSteamEventCategories(first: SteamEventCategory, second: SteamEventCategory): number {
+  return STEAM_EVENT_CATEGORIES.indexOf(first) - STEAM_EVENT_CATEGORIES.indexOf(second);
+}
+
 function shiftMonth(monthKey: string, delta: number): string {
   const [year, month] = monthKey.split('-').map(Number);
   const value = new Date(Date.UTC(year, month - 1 + delta, 1));
@@ -1292,4 +1673,17 @@ function detailTitle(event: PreviewEvent): string {
 
 function detailDescription(event: PreviewEvent): string {
   return event.description.split('\n')[0] || event.title;
+}
+
+function gameSearchMeta(game: GameSearchResult): string {
+  if (!game.price) {
+    return `Steam app ${game.appId}`;
+  }
+
+  if (game.price.discountPercent > 0) {
+    const price = game.price.finalFormatted || 'discounted';
+    return `-${game.price.discountPercent}% ${price}`;
+  }
+
+  return game.price.finalFormatted || `Steam app ${game.appId}`;
 }

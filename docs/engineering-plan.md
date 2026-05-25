@@ -6,6 +6,8 @@ Repo: wishlist-in-calender
 Status: APPROVED FOR IMPLEMENTATION
 Source design: `/Users/nx/.gstack/projects/wishlist-in-calender/nx-main-design-20260520-213215.md`
 
+> 2026-05-25 note: this document is now historical. The current product direction is Steam Sale Calendar: account-free Steam sale/event/watched-game calendar subscription, with public wishlist import as one optional layer. See `docs/current-status.md` for the current implementation snapshot.
+
 ## Goal
 
 Build the smallest prototype that validates:
