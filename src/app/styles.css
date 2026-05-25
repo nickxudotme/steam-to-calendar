@@ -104,10 +104,9 @@ select {
 
 .brandIcon {
   align-items: center;
-  background: linear-gradient(180deg, rgba(12, 29, 45, 0.95), rgba(6, 14, 24, 0.94));
-  border: 1px solid rgba(102, 192, 244, 0.7);
-  border-radius: 5px;
-  box-shadow: 0 0 0 1px rgba(0, 121, 255, 0.3), 0 16px 42px rgba(0, 0, 0, 0.34);
+  background: rgba(4, 10, 17, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
   display: inline-flex;
   height: 48px;
   justify-content: center;
@@ -179,33 +178,20 @@ select {
   line-height: 1;
 }
 
-.languageIcon {
-  align-items: center;
-  border: 1px solid rgba(184, 201, 216, 0.3);
-  border-radius: 5px;
-  color: #d9e8f3;
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: 0.72rem;
-  font-weight: 850;
-  height: 22px;
-  justify-content: center;
-  line-height: 1;
-  padding: 0 5px;
-}
-
 .languageIconOnly {
   align-items: center;
   color: #d9e8f3;
   display: inline-flex;
-  font-size: 0.9rem;
-  font-weight: 850;
   grid-column: 1;
   grid-row: 1;
   justify-content: center;
-  letter-spacing: 0;
   pointer-events: none;
   z-index: 1;
+}
+
+.languageIconOnly .miniIcon {
+  height: 21px;
+  width: 21px;
 }
 
 .regionSelect select,
@@ -1731,12 +1717,29 @@ select {
   }
 
   .headerControls {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0;
+  }
+
+  .headerControls > :not(.languageSelect) {
+    display: none;
+  }
+
+  .languageSelect {
+    grid-template-columns: 1fr;
+    max-width: 58px;
+    min-height: 42px;
+    min-width: 58px;
+  }
+
+  .languageSelect::after {
     display: none;
   }
 
   .calendarWorkbench {
     display: block;
-    height: calc(100svh - 72px - 82px - env(safe-area-inset-bottom));
+    height: calc(100svh - 72px - 124px - env(safe-area-inset-bottom));
     overflow: hidden;
   }
 
@@ -1905,29 +1908,29 @@ select {
 
   .mobileBottomBar {
     align-items: center;
-    background: rgba(5, 12, 20, 0.76);
-    backdrop-filter: blur(18px);
-    border: 1px solid rgba(117, 151, 184, 0.2);
-    border-radius: 16px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
-    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.46);
+    background: rgba(5, 12, 20, 0.62);
+    backdrop-filter: blur(22px) saturate(1.16);
+    border: 1px solid rgba(158, 187, 212, 0.16);
+    border-radius: 20px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.54), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
     display: grid;
     gap: 10px;
-    grid-template-columns: minmax(0, 1fr) 56px;
-    left: 10px;
-    padding: 8px;
+    grid-template-columns: minmax(0, 1fr) 54px;
+    left: 16px;
+    padding: 7px;
     position: fixed;
-    right: 10px;
+    right: 16px;
     z-index: 24;
   }
 
   .mobileAddCalendar,
   .mobileSettingsButton {
     align-items: center;
-    border-radius: 11px;
+    border-radius: 14px;
     display: inline-flex;
     justify-content: center;
-    min-height: 54px;
+    min-height: 56px;
     text-decoration: none;
   }
 
@@ -1951,8 +1954,8 @@ select {
   }
 
   .mobileSettingsButton {
-    background: rgba(13, 24, 36, 0.94);
-    border: 1px solid rgba(117, 151, 184, 0.28);
+    background: rgba(13, 24, 36, 0.82);
+    border: 1px solid rgba(158, 187, 212, 0.2);
     color: #d7e5ee;
     cursor: pointer;
     padding: 0;

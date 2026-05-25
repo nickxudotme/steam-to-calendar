@@ -722,7 +722,7 @@ export default function Home() {
             </label>
             <label className="languageSelect">
               <span className="languageIconOnly" aria-hidden="true">
-                A/文
+                <LanguageIcon />
               </span>
               <select
                 aria-label="Language"
@@ -774,21 +774,6 @@ export default function Home() {
                   {STEAM_STORE_REGIONS.map((region) => (
                     <option key={region.code} value={region.code}>
                       {countryFlag(region.code)} {region.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="sheetSelect">
-                <span>{copy.languageLabel}</span>
-                <select
-                  aria-label="Language"
-                  value={selectedLanguage.code}
-                  onChange={(event) => handleLanguageChange(event.target.value)}
-                >
-                  {LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language.code} value={language.code}>
-                      {language.label}
                     </option>
                   ))}
                 </select>
@@ -1641,6 +1626,19 @@ function SettingsIcon() {
     <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
       <path d="M8.9 3.2h2.2l.5 1.8 1.3.5 1.6-.9 1.6 1.6-.9 1.6.5 1.3 1.8.5v2.2l-1.8.5-.5 1.3.9 1.6-1.6 1.6-1.6-.9-1.3.5-.5 1.8H8.9l-.5-1.8-1.3-.5-1.6.9-1.6-1.6.9-1.6-.5-1.3-1.8-.5V9.6l1.8-.5.5-1.3-.9-1.6 1.6-1.6 1.6.9 1.3-.5.5-1.8Z" />
       <circle cx="10" cy="10.7" r="2.2" />
+    </svg>
+  );
+}
+
+function LanguageIcon() {
+  return (
+    <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
+      <path d="M3 4.5h8.2" />
+      <path d="M7.1 3v1.5" />
+      <path d="M5 7.1c.8 2.1 2.5 3.8 5.1 5" />
+      <path d="M10.5 4.5c-.5 3.6-2.5 6.1-6.2 7.8" />
+      <path d="M12.7 16.8 16 7.6l3.2 9.2" />
+      <path d="M13.7 14h4.5" />
     </svg>
   );
 }
