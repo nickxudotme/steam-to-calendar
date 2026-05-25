@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, FormEvent } from 'react';
+import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   calendarConfigToSearchParams,
@@ -108,6 +108,7 @@ const WEEKDAY_LABELS = {
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   zh: ['日', '一', '二', '三', '四', '五', '六'],
 } satisfies Record<UiLanguage, string[]>;
+const AUTO_TRACKED_GAME_COUNT = 3;
 const MAX_EVENT_LANES = 12;
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
@@ -173,11 +174,13 @@ const UI_COPY = {
     copyFeed: 'Copy feed URL',
     copied: 'Copied',
     calendarSources: 'Calendar sources',
-    hotDealsTitle: 'Hot Deals & Preorders',
+    hotDealsTitle: 'Tracked Game Deals',
     hotDealsDescription: 'Top sellers that are currently discounted or available to preorder.',
     itemsLabel: 'Items',
     steamEventsTitle: 'Steam Sales & Fests',
     steamEventsDescription: 'Official Steam sale events, Next Fest, themed fests, and public sale pages.',
+    eventTypesTitle: 'Event types',
+    eventTypesNone: 'No event types selected',
     pastDays: 'Past days',
     nextDays: 'Next days',
     myGamesTitle: 'My Games',
@@ -237,11 +240,13 @@ const UI_COPY = {
     copyFeed: '复制订阅链接',
     copied: '已复制',
     calendarSources: '日历来源',
-    hotDealsTitle: '热门折扣与预购',
+    hotDealsTitle: '关注游戏折扣',
     hotDealsDescription: '当前正在打折或可预购的热门 Steam 游戏。',
     itemsLabel: '数量',
     steamEventsTitle: 'Steam 促销与活动',
     steamEventsDescription: 'Steam 官方促销、新品节、主题游戏节和公开促销页面。',
+    eventTypesTitle: '活动类型',
+    eventTypesNone: '未选择活动类型',
     pastDays: '过去天数',
     nextDays: '未来天数',
     myGamesTitle: '我的游戏',
@@ -250,7 +255,7 @@ const UI_COPY = {
     settingsLabel: '设置',
     storeRegionLabel: '商店地区',
     storeNote: '商店地区影响价格，不影响界面语言。',
-    searchPlaceholder: '搜索游戏、AppID 或 Steam 商店链接',
+    searchPlaceholder: '搜索游戏或粘贴链接',
     searchButton: '搜索',
     searchingButton: '搜索中...',
     searchResultsTitle: 'Steam 搜索结果',
@@ -305,11 +310,10 @@ export default function Home() {
   const [publicPreviewError, setPublicPreviewError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [showDeals, setShowDeals] = useState(true);
   const [showSteamEvents, setShowSteamEvents] = useState(true);
   const [showMyGames, setShowMyGames] = useState(true);
   const [steamEventCategories, setSteamEventCategories] = useState<SteamEventCategory[]>(DEFAULT_CALENDAR_CONFIG.steamEventCategories);
-  const [dealCount, setDealCount] = useState(DEFAULT_CALENDAR_CONFIG.dealCount);
+  const [isSteamEventOptionsOpen, setIsSteamEventOptionsOpen] = useState(false);
   const [eventPastDays, setEventPastDays] = useState(DEFAULT_CALENDAR_CONFIG.eventPastDays);
   const [eventFutureDays, setEventFutureDays] = useState(DEFAULT_CALENDAR_CONFIG.eventFutureDays);
   const [gameSearch, setGameSearch] = useState('');
@@ -333,6 +337,7 @@ export default function Home() {
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [origin, setOrigin] = useState('');
   const userSelectedRegionRef = useRef(false);
+  const hasSeededDefaultGamesRef = useRef(false);
   const demoEvents = useMemo(() => buildDemoEvents(todayIso), [todayIso]);
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
@@ -345,16 +350,17 @@ export default function Home() {
   const watchedAppIds = useMemo(() => (
     showMyGames && !hasConnectedWishlist ? selectedGames.map((game) => game.appId) : []
   ), [hasConnectedWishlist, selectedGames, showMyGames]);
+  const shouldLoadDefaultDeals = showMyGames && !hasConnectedWishlist && !selectedGames.length && !hasSeededDefaultGamesRef.current;
   const calendarConfig = useMemo<CalendarConfig>(() => ({
-    includeDeals: showDeals,
+    includeDeals: shouldLoadDefaultDeals,
     includeSteamEvents: showSteamEvents,
     includeWishlist: showMyGames,
     watchedAppIds,
     steamEventCategories,
-    dealCount,
+    dealCount: AUTO_TRACKED_GAME_COUNT,
     eventPastDays,
     eventFutureDays,
-  }), [dealCount, eventFutureDays, eventPastDays, showDeals, showMyGames, showSteamEvents, steamEventCategories, watchedAppIds]);
+  }), [eventFutureDays, eventPastDays, shouldLoadDefaultDeals, showMyGames, showSteamEvents, steamEventCategories, watchedAppIds]);
 
   const publicPreviewQuery = useMemo(() => {
     const params = calendarConfigToSearchParams(calendarConfig);
@@ -397,29 +403,24 @@ export default function Home() {
   const sortedEvents = useMemo(() => {
     return [...calendarEvents].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [calendarEvents]);
-  const trendingGames = useMemo<SelectedGame[]>(() => (
-    sortedEvents
-      .filter((event) => (event.type === 'steam_deal' || event.type === 'steam_preorder') && event.appId)
-      .slice(0, 3)
-      .map((event) => ({
-        appId: event.appId as string,
-        name: detailTitle(event),
-        ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
-        storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
-      }))
-  ), [sortedEvents]);
+  const steamEventTypeSummary = useMemo(() => {
+    if (!steamEventCategories.length) {
+      return copy.eventTypesNone;
+    }
+
+    return steamEventCategories
+      .map((category) => STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title)
+      .join(' / ');
+  }, [copy.eventTypesNone, steamEventCategories, uiLanguage]);
 
   const visibleEvents = useMemo(() => {
-    let seenDeals = 0;
-
     return sortedEvents.filter((event) => {
       if (hiddenEventIds.has(event.id)) {
         return false;
       }
 
       if (event.type === 'steam_deal' || event.type === 'steam_preorder') {
-        seenDeals += 1;
-        return showDeals && seenDeals <= dealCount;
+        return showMyGames;
       }
 
       if (event.type === 'steam_major_event') {
@@ -428,7 +429,7 @@ export default function Home() {
 
       return showMyGames;
     });
-  }, [dealCount, hiddenEventIds, showDeals, showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
+  }, [hiddenEventIds, showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
 
   const initialFocusDate = useMemo(() => (
     chooseCalendarFocusDate(visibleEvents, todayIso)
@@ -467,6 +468,36 @@ export default function Home() {
 
     return () => window.clearTimeout(timeoutId);
   }, [copyStatus]);
+
+  useEffect(() => {
+    if (
+      hasSeededDefaultGamesRef.current ||
+      hasConnectedWishlist ||
+      !showMyGames ||
+      selectedGames.length ||
+      preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID ||
+      !preview.events.length
+    ) {
+      return;
+    }
+
+    const defaultGames = preview.events
+      .filter((event) => (event.type === 'steam_deal' || event.type === 'steam_preorder') && event.appId)
+      .slice(0, AUTO_TRACKED_GAME_COUNT)
+      .map((event) => ({
+        appId: event.appId as string,
+        name: detailTitle(event),
+        ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
+        storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
+      }));
+
+    if (!defaultGames.length) {
+      return;
+    }
+
+    hasSeededDefaultGamesRef.current = true;
+    setSelectedGames(defaultGames);
+  }, [hasConnectedWishlist, preview, selectedGames.length, showMyGames]);
 
   useEffect(() => {
     let isMounted = true;
@@ -701,31 +732,33 @@ export default function Home() {
             <span>Steam Sale Calendar</span>
           </a>
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
-            <label className="regionSelect">
-              <span className="selectDisplay">
-                <span className="selectIcon" aria-hidden="true">🛒</span>
-                <span className="selectDisplayText">
-                  {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : '...'}
+            <div className="storeRegionControl" data-tooltip={copy.storeNote}>
+              <span className="storeRegionIcon" aria-hidden="true">🛒</span>
+              <label className="regionSelect">
+                <span className="selectDisplay">
+                  <span className="selectDisplayText">
+                    {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : '...'}
+                  </span>
                 </span>
-              </span>
-              <select
-                aria-label="Steam store region"
-                value={effectiveStoreRegion}
-                onChange={(event) => handleStoreRegionChange(event.target.value)}
-              >
-                {STEAM_STORE_REGIONS.map((region) => (
-                  <option key={region.code} value={region.code}>
-                    {countryFlag(region.code)} {region.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="languageSelect">
+                <select
+                  aria-label="Steam store region"
+                  value={effectiveStoreRegion}
+                  onChange={(event) => handleStoreRegionChange(event.target.value)}
+                >
+                  {STEAM_STORE_REGIONS.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {countryFlag(region.code)} {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="languageSelect" title={selectedLanguage.label}>
               <span className="languageIconOnly" aria-hidden="true">
                 <LanguageIcon />
               </span>
               <select
-                aria-label="Language"
+                aria-label={copy.languageLabel}
                 value={selectedLanguage.code}
                 onChange={(event) => handleLanguageChange(event.target.value)}
               >
@@ -736,7 +769,6 @@ export default function Home() {
                 ))}
               </select>
             </label>
-            <span className="regionHint">{copy.storeNote}</span>
             <a className="calendarCta" href={webcalUrl}>
               <CalendarListIcon />
               {copy.addToCalendar}
@@ -793,44 +825,45 @@ export default function Home() {
             ) : null}
 
             <SourceToggle
-              checked={showDeals}
-              title={copy.hotDealsTitle}
-              description={copy.hotDealsDescription}
-              onChange={setShowDeals}
-            />
-
-            <div className="controlRow">
-              <span>{copy.itemsLabel}</span>
-              <div className="stepper" aria-label="Hot deals count">
-                <button type="button" onClick={() => setDealCount((count) => Math.max(3, count - 1))}>-</button>
-                <output>{dealCount}</output>
-                <button type="button" onClick={() => setDealCount((count) => Math.min(10, count + 1))}>+</button>
-              </div>
-            </div>
-
-            <SourceToggle
               checked={showSteamEvents}
               title={copy.steamEventsTitle}
               description={copy.steamEventsDescription}
               onChange={setShowSteamEvents}
-            />
+            >
+              <button
+                aria-controls="steam-event-type-options"
+                aria-expanded={isSteamEventOptionsOpen}
+                className="eventOptionsDisclosure"
+                disabled={!showSteamEvents}
+                type="button"
+                onClick={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
+              >
+                <span>
+                  <strong>{copy.eventTypesTitle}</strong>
+                  <small>{steamEventTypeSummary}</small>
+                </span>
+                <i aria-hidden="true" className="disclosureArrow" />
+              </button>
 
-            <div className="eventTypeGrid" aria-label="Steam event types">
-              {STEAM_EVENT_CATEGORIES.map((category) => (
-                <label className="eventTypeOption" key={category}>
-                  <input
-                    checked={steamEventCategories.includes(category)}
-                    disabled={!showSteamEvents}
-                    onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
-                    type="checkbox"
-                  />
-                  <span>
-                    <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
-                    <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
-                  </span>
-                </label>
-              ))}
-            </div>
+              {isSteamEventOptionsOpen ? (
+                <div className="eventTypeGrid" id="steam-event-type-options" aria-label="Steam event types">
+                  {STEAM_EVENT_CATEGORIES.map((category) => (
+                    <label className="eventTypeOption" key={category}>
+                      <input
+                        checked={steamEventCategories.includes(category)}
+                        disabled={!showSteamEvents}
+                        onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>
+                        <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
+                        <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </SourceToggle>
 
             <div className="rangeGrid" aria-label="Steam event range">
               <label>
@@ -911,45 +944,6 @@ export default function Home() {
                 </div>
               ) : null}
 
-              {trendingGames.length ? (
-                <div className="trendingGames" aria-label="Trending games">
-                  <span className="miniSectionTitle">{copy.trendingNow}</span>
-                  {trendingGames.map((game) => {
-                    const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
-
-                    return (
-                      <div className="selectedGameRow" key={game.appId}>
-                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                        <span>{game.name}</span>
-                        <button
-                          disabled={hasConnectedWishlist || isSelected}
-                          type="button"
-                          onClick={() => handleAddManualGame(game)}
-                        >
-                          {isSelected ? copy.added : copy.add}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {selectedGames.length ? (
-                <div className="selectedGames" aria-label="Games added to calendar">
-                  <span className="miniSectionTitle">{copy.addedToCalendar}</span>
-                  {selectedGames.map((game) => (
-                    <div
-                      className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
-                      key={game.appId}
-                    >
-                      <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                      <span>{game.name}</span>
-                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>{copy.remove}</button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
               {gameSearchError ? <div className="notice error">{gameSearchError}</div> : null}
 
               {isSearchingGames ? (
@@ -979,9 +973,10 @@ export default function Home() {
                     return (
                       <div className="gameSearchResult" key={game.appId}>
                         <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                        <div>
+                        <div className="gameSearchResultInfo">
                           <strong>{game.name}</strong>
                           <small>{gameSearchMeta(game, copy)}</small>
+                          <SearchResultPrice game={game} copy={copy} />
                         </div>
                         <button
                           disabled={hasConnectedWishlist || isSelected}
@@ -1000,6 +995,22 @@ export default function Home() {
                 <div className="notice gameSearchEmpty" role="status">
                   <strong>{copy.noSearchResults}</strong>
                   <span>{lastGameSearchQuery}</span>
+                </div>
+              ) : null}
+
+              {selectedGames.length ? (
+                <div className="selectedGames" aria-label="Games added to calendar">
+                  <span className="miniSectionTitle">{copy.addedToCalendar}</span>
+                  {selectedGames.map((game) => (
+                    <div
+                      className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
+                      key={game.appId}
+                    >
+                      <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
+                      <span>{game.name}</span>
+                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>{copy.remove}</button>
+                    </div>
+                  ))}
                 </div>
               ) : null}
 
@@ -1137,6 +1148,12 @@ function CalendarPreview({
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
   const canScrollToToday = todayWeekStart >= weekRange.startIso && todayWeekStart < weekRange.endIso;
+
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 700px)').matches) {
+      setCalendarView('list');
+    }
+  }, []);
 
   useLayoutEffect(() => {
     if (lastAlignedFocusDate.current !== initialFocusDate) {
@@ -1390,37 +1407,44 @@ function CalendarPreview({
           ) : null}
           {listEvents.length ? (
             <div className="eventList">
-              {listEvents.map((event) => (
-                <button
-                  className={[
-                    'eventListItem',
-                    eventVisualClass(event),
-                    event.id === selectedEventId ? 'isSelected' : '',
-                    event.appId && event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
-                  ].filter(Boolean).join(' ')}
-                  data-testid="calendar-event-list-item"
-                  key={event.id}
-                  onClick={() => onSelectEvent(event.id)}
-                  type="button"
-                >
-                  <span className="eventListMarker" aria-hidden="true" />
-                  <SteamCliImage fallbackClassName="eventListThumbFallback" src={event.imageUrl} />
-                  <span className="eventListContent">
-                    <span className="eventListMeta">
-                      <span>{formatEventDateRange(event, uiLanguage)}</span>
-                      <span>{detailKind(event, uiCopy)}</span>
+              {listEvents.map((event) => {
+                const shouldShowEventImage = hasGameEventImage(event);
+
+                return (
+                  <button
+                    className={[
+                      'eventListItem',
+                      eventVisualClass(event),
+                      shouldShowEventImage ? '' : 'noEventImage',
+                      event.id === selectedEventId ? 'isSelected' : '',
+                      event.appId && event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
+                    ].filter(Boolean).join(' ')}
+                    data-testid="calendar-event-list-item"
+                    key={event.id}
+                    onClick={() => onSelectEvent(event.id)}
+                    type="button"
+                  >
+                    <span className="eventListMarker" aria-hidden="true" />
+                    {shouldShowEventImage ? (
+                      <SteamCliImage fallbackClassName="eventListThumbFallback" src={event.imageUrl} />
+                    ) : null}
+                    <span className="eventListContent">
+                      <span className="eventListMeta">
+                        <span>{formatEventDateRange(event, uiLanguage)}</span>
+                        <span>{detailKind(event, uiCopy)}</span>
+                      </span>
+                      <strong>{detailTitle(event)}</strong>
+                      <span className="eventListDescription">{detailDescription(event)}</span>
                     </span>
-                    <strong>{detailTitle(event)}</strong>
-                    <span className="eventListDescription">{detailDescription(event)}</span>
-                  </span>
-                  {event.discount || event.finalPrice ? (
-                    <span className="eventListPrice">
-                      {event.discount ? <strong>{event.discount}</strong> : null}
-                      {event.finalPrice ? <span>{event.finalPrice}</span> : null}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
+                    {event.discount || event.finalPrice ? (
+                      <span className="eventListPrice">
+                        {event.discount ? <strong>{event.discount}</strong> : null}
+                        {event.finalPrice ? <span>{event.finalPrice}</span> : null}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="emptyEventList">
@@ -1451,6 +1475,14 @@ function SteamCliImage({
   return <img src={src} alt="" onError={() => setFailedSrc(src ?? null)} />;
 }
 
+function isGameCalendarEvent(event: PreviewEvent) {
+  return event.type === 'steam_deal' || event.type === 'steam_preorder' || event.type === 'wishlist_release';
+}
+
+function hasGameEventImage(event: PreviewEvent) {
+  return Boolean(isGameCalendarEvent(event) && event.imageUrl);
+}
+
 function ChevronLeftIcon() {
   return (
     <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
@@ -1477,11 +1509,13 @@ function CalendarListIcon() {
 }
 
 function SourceToggle({
+  children,
   checked,
   description,
   onChange,
   title,
 }: {
+  children?: ReactNode;
   checked: boolean;
   description: string;
   onChange: (checked: boolean) => void;
@@ -1503,6 +1537,7 @@ function SourceToggle({
           <span />
         </label>
       </div>
+      {children}
     </div>
   );
 }
@@ -1537,14 +1572,20 @@ function EventDetails({
     );
   }
 
-  const isGameEvent = event.type === 'steam_deal' || event.type === 'steam_preorder' || event.type === 'wishlist_release';
-  const hasSteamCliImage = Boolean(event.imageUrl);
-  const heroStyle = event.imageUrl ? {
+  const shouldShowDetailHero = hasGameEventImage(event);
+  const heroStyle = shouldShowDetailHero ? {
     backgroundImage: `linear-gradient(180deg, rgba(5, 9, 15, 0.02), rgba(5, 9, 15, 0.18)), url("${event.imageUrl}")`,
   } as CSSProperties : undefined;
 
   return (
-    <aside className={isMobileOpen ? 'detailPanel isMobileOpen' : 'detailPanel'} aria-label="Selected event details">
+    <aside
+      className={[
+        'detailPanel',
+        shouldShowDetailHero ? '' : 'noDetailHero',
+        isMobileOpen ? 'isMobileOpen' : '',
+      ].filter(Boolean).join(' ')}
+      aria-label="Selected event details"
+    >
       <div className="mobileDetailHeader">
         <h2>{copy.steamEventsTitle}</h2>
         <button aria-label="Close details" type="button" onClick={onCloseMobile}>×</button>
@@ -1553,21 +1594,13 @@ function EventDetails({
         <span>{detailKind(event, copy)}</span>
         <h2>{detailTitle(event)}</h2>
       </div>
-      <div
-        className={[
-          'detailHero',
-          isGameEvent ? 'gameHero' : 'steamHero',
-          hasSteamCliImage ? 'hasSteamCliImage' : 'noSteamCliImage',
-        ].join(' ')}
-        style={heroStyle}
-      >
-        {!hasSteamCliImage ? <span>{copy.steamCliEventData}</span> : null}
-      </div>
+      {shouldShowDetailHero ? (
+        <div className="detailHero gameHero hasSteamCliImage" style={heroStyle} />
+      ) : null}
 
       <div className="detailBody">
         <div className="detailMeta">
-          <span>{formatDate(event.startDate, uiLanguage)}</span>
-          {event.endDate ? <span>{copy.until} {formatDate(event.endDate, uiLanguage)}</span> : null}
+          <span>{formatDetailDateSentence(event, copy, uiLanguage)}</span>
         </div>
 
         {event.discount || event.finalPrice ? (
@@ -2260,6 +2293,20 @@ function formatEventDateRange(event: PreviewEvent, uiLanguage: UiLanguage): stri
   return `${formatDate(event.startDate, uiLanguage)} - ${formatDate(event.endDate, uiLanguage)}`;
 }
 
+function formatDetailDateSentence(
+  event: PreviewEvent,
+  copy: typeof UI_COPY[UiLanguage],
+  uiLanguage: UiLanguage,
+): string {
+  const startDate = formatDate(event.startDate, uiLanguage);
+
+  if (!event.endDate || event.endDate === event.startDate) {
+    return startDate;
+  }
+
+  return `${startDate} ${copy.until} ${formatDate(event.endDate, uiLanguage)}`;
+}
+
 function compareEventsForList(firstEvent: PreviewEvent, secondEvent: PreviewEvent): number {
   const dateComparison = firstEvent.startDate.localeCompare(secondEvent.startDate);
 
@@ -2342,17 +2389,26 @@ function detailDescription(event: PreviewEvent): string {
   return event.description.split('\n')[0] || event.title;
 }
 
-function gameSearchMeta(game: GameSearchResult, copy: Record<string, string>): string {
-  const appLabel = `${copy.steamAppLabel} ${game.appId}`;
-
+function SearchResultPrice({
+  copy,
+  game,
+}: {
+  copy: Record<string, string>;
+  game: GameSearchResult;
+}) {
   if (!game.price) {
-    return appLabel;
+    return <span className="searchResultPrice mutedPrice">{copy.priceUnavailable}</span>;
   }
 
-  if (game.price.discountPercent > 0) {
-    const price = game.price.finalFormatted || copy.priceUnavailable;
-    return `${appLabel} · -${game.price.discountPercent}% ${price}`;
-  }
+  return (
+    <span className="searchResultPrice">
+      {game.price.discountPercent > 0 ? <strong>-{game.price.discountPercent}%</strong> : null}
+      <span>{game.price.finalFormatted || copy.priceUnavailable}</span>
+      {game.price.initialFormatted && game.price.discountPercent > 0 ? <del>{game.price.initialFormatted}</del> : null}
+    </span>
+  );
+}
 
-  return `${appLabel} · ${game.price.finalFormatted || copy.priceUnavailable}`;
+function gameSearchMeta(game: GameSearchResult, copy: Record<string, string>): string {
+  return `${copy.steamAppLabel} ${game.appId}`;
 }

@@ -26,7 +26,7 @@ describe('calendar config query parameters', () => {
       includeSteamEvents: true,
       includeWishlist: false,
       watchedAppIds: [],
-      steamEventCategories: ['seasonal', 'next_fest', 'fest', 'store_sale'],
+      steamEventCategories: ['seasonal'],
       dealCount: 9,
       eventPastDays: 14,
       eventFutureDays: 90,

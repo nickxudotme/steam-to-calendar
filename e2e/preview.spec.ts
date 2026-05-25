@@ -6,20 +6,24 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await expect(page.getByText('Steam Sale Calendar').first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
   const headerControls = page.locator('.headerControls');
-  await expect(page.getByText('🇺🇸 United States Store')).toBeVisible();
+  await expect(headerControls.locator('.regionSelect .selectDisplayText')).toHaveText(/United States|China/);
   await expect(headerControls.getByLabel('Steam store region')).toContainText('🇦🇪 United Arab Emirates');
-  await expect(headerControls.getByLabel('Language')).toContainText('简体中文');
+  const languageSelect = headerControls.locator('.languageSelect select');
+  await expect(languageSelect).toBeVisible();
   const addCalendarLink = page.locator('.calendarCta').first();
   await expect(addCalendarLink).toBeVisible();
+  await expect(page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' })).toHaveCount(0);
+  await expect(page.getByLabel('Games added to calendar')).toBeVisible();
+  await expect(page.locator('.selectedGameRow')).toHaveCount(3);
   await expect(addCalendarLink).toHaveAttribute(
     'href',
-    /webcal:\/\/.+\/cal\/steam-events\?deals=1&events=1&eventTypes=seasonal%2Cnext_fest%2Cfest%2Cstore_sale&wishlist=1&count=5&pastDays=0&futureDays=365&cc=/,
+    /webcal:\/\/.+\/cal\/steam-events\?.*deals=0.*apps=\d.*count=3.*cc=/,
   );
-  await headerControls.getByLabel('Language').selectOption('zh-CN');
+  await languageSelect.selectOption('zh-CN');
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]lang=schinese&uiLang=zh-CN/);
   await expect(page.getByText('日历来源')).toBeVisible();
   await expect(page.getByRole('button', { name: '今天', exact: true })).toBeVisible();
-  await headerControls.getByLabel('Language').selectOption('en');
+  await languageSelect.selectOption('en');
   await expect(page.getByRole('button', { name: 'Previous month' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Next month' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveCount(0);
@@ -30,7 +34,7 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await page.getByRole('button', { name: 'Today', exact: true }).click();
   await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
 
-  await page.getByLabel('Search Steam games').fill('subnautica');
+  await page.getByLabel('Search Steam games').fill('367520');
   await page.getByRole('button', { name: 'Search' }).click();
   await expect(page.locator('.gameSearchResult').first()).toBeVisible();
   await page.locator('.gameSearchResult').first().getByRole('button', { name: 'Add' }).click();
@@ -38,11 +42,9 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await expect(page.locator('.selectedGameRow.isNewlyAdded')).toBeVisible();
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]apps=\d/);
 
-  await page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' }).locator('.switch').click();
-  await expect(addCalendarLink).toHaveAttribute('href', /[?&]deals=0/);
-  await page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' }).locator('.switch').click();
+  await page.locator('.eventOptionsDisclosure').click();
   await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
-  await expect(addCalendarLink).toHaveAttribute('href', /eventTypes=seasonal%2Cnext_fest%2Cstore_sale/);
+  await expect(addCalendarLink).toHaveAttribute('href', /eventTypes=seasonal%2Cfest/);
   await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
 
   const publicFeedResponse = await request.get('/feed/steam-events.ics?deals=0&events=1&wishlist=0');
@@ -55,7 +57,6 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   expect(emptyPublicPreviewResponse.ok()).toBe(true);
   expect((await emptyPublicPreviewResponse.json()).events).toEqual([]);
 
-  await page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' }).locator('.switch').click();
   await page.locator('.sourceCard').filter({ hasText: 'Steam Sales & Fests' }).locator('.switch').click();
 
   const previewResponse = page.waitForResponse((response) =>

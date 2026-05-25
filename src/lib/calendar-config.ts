@@ -18,7 +18,7 @@ export const DEFAULT_CALENDAR_CONFIG: CalendarConfig = {
   includeSteamEvents: true,
   includeWishlist: true,
   watchedAppIds: [],
-  steamEventCategories: [...STEAM_EVENT_CATEGORIES],
+  steamEventCategories: ['seasonal'],
   dealCount: 5,
   eventPastDays: 0,
   eventFutureDays: 365,
