@@ -106,10 +106,6 @@ type CalendarWeek = {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_EVENT_LANES = 12;
-const INITIAL_WEEK_BUFFER = 8;
-const INITIAL_WEEK_SPAN = 34;
-const WEEK_EXTENSION_SIZE = 16;
-const WEEK_EXTENSION_THRESHOLD = 4;
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
   { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
@@ -957,26 +953,22 @@ function CalendarPreview({
   const weekRefs = useRef(new Map<string, HTMLElement>());
   const initialMonth = monthKeyFromIsoDate(initialFocusDate);
   const initialWeekStart = useMemo(() => weekStartForDate(initialFocusDate), [initialFocusDate]);
-  const [weekRange, setWeekRange] = useState(() => buildInitialWeekRange(initialWeekStart));
+  const todayWeekStart = useMemo(() => weekStartForDate(todayIso), [todayIso]);
+  const weekRange = useMemo(() => buildEventWeekRange(events, todayIso), [events, todayIso]);
   const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
   const listEvents = useMemo(() => [...events].sort(compareEventsForList), [events]);
   const shouldAlignInitialWeek = useRef(true);
-  const hasUserScrollIntent = useRef(false);
-  const pendingMonthScroll = useRef<string | null>(null);
+  const pendingWeekScroll = useRef<string | null>(null);
   const lastAlignedFocusDate = useRef<string | null>(null);
-  const pendingPrepend = useRef<null | {
-    previousFirstWeek: string;
-    previousScrollTop: number;
-  }>(null);
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
+  const canScrollToToday = todayWeekStart >= weekRange.startIso && todayWeekStart < weekRange.endIso;
 
   useLayoutEffect(() => {
     if (lastAlignedFocusDate.current !== initialFocusDate) {
       shouldAlignInitialWeek.current = true;
       lastAlignedFocusDate.current = initialFocusDate;
     }
-    setWeekRange(buildInitialWeekRange(initialWeekStart));
   }, [initialFocusDate, initialWeekStart]);
 
   useLayoutEffect(() => {
@@ -986,35 +978,31 @@ function CalendarPreview({
       return;
     }
 
-    if (pendingPrepend.current) {
-      const preservedWeek = weekRefs.current.get(pendingPrepend.current.previousFirstWeek);
-
-      if (preservedWeek) {
-        scrollElement.scrollTop = pendingPrepend.current.previousScrollTop + preservedWeek.offsetTop - scrollElement.offsetTop;
-      }
-
-      pendingPrepend.current = null;
+    if (!shouldAlignInitialWeek.current && !pendingWeekScroll.current) {
       return;
     }
 
-    if (!shouldAlignInitialWeek.current) {
-      if (pendingMonthScroll.current) {
-        const targetMonth = pendingMonthScroll.current;
-        pendingMonthScroll.current = null;
-        scrollToCalendarMonth(targetMonth, 'auto');
-      }
-
-      return;
-    }
-
-    const targetWeek = weekRefs.current.get(initialWeekStart);
+    const targetWeekIso = pendingWeekScroll.current ?? initialWeekStart;
+    const targetWeek = weekRefs.current.get(targetWeekIso);
 
     if (scrollElement && targetWeek) {
       scrollElement.scrollTop = targetWeek.offsetTop - scrollElement.offsetTop;
-      setVisibleMonth(initialMonth);
+      setVisibleMonth(inferVisibleMonthFromWeek(targetWeekIso));
       shouldAlignInitialWeek.current = false;
+      pendingWeekScroll.current = null;
+      return;
     }
-  }, [initialMonth, initialWeekStart, weeks]);
+
+    const fallbackWeek = weeks[0]?.weekStartIso;
+    const fallbackWeekNode = fallbackWeek ? weekRefs.current.get(fallbackWeek) : null;
+
+    if (scrollElement && fallbackWeek && fallbackWeekNode) {
+      scrollElement.scrollTop = fallbackWeekNode.offsetTop - scrollElement.offsetTop;
+      setVisibleMonth(inferVisibleMonthFromWeek(fallbackWeek));
+      shouldAlignInitialWeek.current = false;
+      pendingWeekScroll.current = null;
+    }
+  }, [calendarView, initialWeekStart, weeks]);
 
   useEffect(() => {
     const scrollElement = scrollRef.current;
@@ -1044,31 +1032,6 @@ function CalendarPreview({
       });
 
       setVisibleMonth(inferVisibleMonthFromWeek(nearestWeek));
-
-      if (!hasUserScrollIntent.current) {
-        return;
-      }
-
-      const rowHeight = getCalendarWeekStep(scrollElement);
-
-      if (scrollTop < rowHeight * WEEK_EXTENSION_THRESHOLD) {
-        pendingPrepend.current = {
-          previousFirstWeek: weekRange.startIso,
-          previousScrollTop: scrollTop,
-        };
-        setWeekRange((range) => ({
-          startIso: addDays(range.startIso, -WEEK_EXTENSION_SIZE * 7),
-          endIso: range.endIso,
-        }));
-        return;
-      }
-
-      if (scrollElement.scrollHeight - scrollElement.clientHeight - scrollTop < rowHeight * WEEK_EXTENSION_THRESHOLD) {
-        setWeekRange((range) => ({
-          startIso: range.startIso,
-          endIso: addDays(range.endIso, WEEK_EXTENSION_SIZE * 7),
-        }));
-      }
     };
 
     const handleScroll = () => {
@@ -1088,42 +1051,14 @@ function CalendarPreview({
         cancelAnimationFrame(frameId);
       }
     };
-  }, [initialMonth, initialWeekStart, weekRange, weeks]);
-
-  function markCalendarScrollIntent() {
-    hasUserScrollIntent.current = true;
-  }
-
-  function scrollToCalendarMonth(monthKey: string, behavior: ScrollBehavior = 'smooth') {
-    const scrollElement = scrollRef.current;
-    const targetWeekIso = calendarGridStartForMonth(monthKey);
-    const targetWeek = weekRefs.current.get(targetWeekIso);
-
-    if (!scrollElement || !targetWeek) {
-      pendingMonthScroll.current = monthKey;
-      setWeekRange((range) => ({
-        startIso: targetWeekIso < range.startIso ? addDays(targetWeekIso, -WEEK_EXTENSION_SIZE * 7) : range.startIso,
-        endIso: targetWeekIso >= range.endIso ? addDays(targetWeekIso, (WEEK_EXTENSION_SIZE + 1) * 7) : range.endIso,
-      }));
-      return;
-    }
-
-    scrollElement.scrollTo({
-      top: targetWeek.offsetTop - scrollElement.offsetTop,
-      behavior,
-    });
-    setVisibleMonth(monthKey);
-  }
+  }, [initialWeekStart, weeks]);
 
   function scrollToCalendarWeek(weekStartIso: string, behavior: ScrollBehavior = 'smooth') {
     const scrollElement = scrollRef.current;
     const targetWeek = weekRefs.current.get(weekStartIso);
 
     if (!scrollElement || !targetWeek) {
-      setWeekRange((range) => ({
-        startIso: weekStartIso < range.startIso ? addDays(weekStartIso, -WEEK_EXTENSION_SIZE * 7) : range.startIso,
-        endIso: weekStartIso >= range.endIso ? addDays(weekStartIso, (WEEK_EXTENSION_SIZE + 1) * 7) : range.endIso,
-      }));
+      pendingWeekScroll.current = weekStartIso;
       return;
     }
 
@@ -1132,6 +1067,17 @@ function CalendarPreview({
       behavior,
     });
     setVisibleMonth(inferVisibleMonthFromWeek(weekStartIso));
+    pendingWeekScroll.current = null;
+  }
+
+  function handleTodayClick() {
+    if (!canScrollToToday) {
+      return;
+    }
+
+    pendingWeekScroll.current = todayWeekStart;
+    setCalendarView('month');
+    scrollToCalendarWeek(todayWeekStart);
   }
 
   return (
@@ -1140,6 +1086,7 @@ function CalendarPreview({
         <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
 
         <div className="calendarControls">
+          <button className="todayButton" disabled={!canScrollToToday} type="button" onClick={handleTodayClick}>Today</button>
           <div className="viewTabs" aria-label="Calendar view">
             <button
               aria-pressed={calendarView === 'month'}
@@ -1176,9 +1123,6 @@ function CalendarPreview({
             className="calendarScroll"
             ref={scrollRef}
             aria-label="Scrollable calendar weeks"
-            onKeyDown={markCalendarScrollIntent}
-            onPointerDown={markCalendarScrollIntent}
-            onTouchStart={markCalendarScrollIntent}
             tabIndex={0}
           >
             {isLoading ? (
@@ -1582,12 +1526,29 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
   ];
 }
 
-function buildInitialWeekRange(initialWeekStart: string): { startIso: string; endIso: string } {
-  const startIso = addDays(initialWeekStart, -INITIAL_WEEK_BUFFER * 7);
+function buildEventWeekRange(events: PreviewEvent[], todayIso: string): { startIso: string; endIso: string } {
+  if (!events.length) {
+    const todayWeekStart = weekStartForDate(todayIso);
+
+    return {
+      startIso: todayWeekStart,
+      endIso: addDays(todayWeekStart, 7),
+    };
+  }
+
+  const earliestDate = events.reduce((earliest, event) => (
+    event.startDate < earliest ? event.startDate : earliest
+  ), events[0].startDate);
+  const latestDate = events.reduce((latest, event) => {
+    const eventEndDate = event.endDate ?? event.startDate;
+    return eventEndDate > latest ? eventEndDate : latest;
+  }, events[0].endDate ?? events[0].startDate);
+  const startIso = weekStartForDate(earliestDate);
+  const finalWeekStart = weekStartForDate(latestDate);
 
   return {
     startIso,
-    endIso: addDays(startIso, INITIAL_WEEK_SPAN * 7),
+    endIso: addDays(finalWeekStart, 7),
   };
 }
 

@@ -758,14 +758,12 @@ select {
   font-size: 0.9rem;
 }
 
-.calendarNav,
 .calendarControls,
 .viewTabs {
   align-items: center;
   display: flex;
 }
 
-.calendarNav,
 .calendarControls {
   gap: 8px;
 }
@@ -774,8 +772,7 @@ select {
   justify-content: flex-end;
 }
 
-.calendarNav button,
-.settingsButton,
+.todayButton,
 .viewTabs button {
   align-items: center;
   background: rgba(12, 22, 34, 0.9);
@@ -789,15 +786,14 @@ select {
   justify-content: center;
 }
 
-.calendarNav button,
-.settingsButton {
+.todayButton {
   border-radius: 5px;
-  width: 42px;
+  padding: 0 14px;
 }
 
-.calendarNav .todayButton {
-  padding: 0 14px;
-  width: auto;
+.todayButton:disabled {
+  cursor: default;
+  opacity: 0.48;
 }
 
 .viewTabs {
