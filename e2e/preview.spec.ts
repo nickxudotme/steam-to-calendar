@@ -18,6 +18,13 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await headerControls.getByLabel('Language').selectOption('zh-CN');
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]lang=schinese&uiLang=zh-CN/);
   await headerControls.getByLabel('Language').selectOption('en');
+  await expect(page.getByRole('button', { name: 'Previous month' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Next month' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(page.locator('[data-testid="calendar-event-list-item"]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Month', exact: true }).click();
   await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
 
   await page.getByLabel('Search Steam games').fill('subnautica');

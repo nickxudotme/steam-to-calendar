@@ -69,6 +69,8 @@ type SelectedGame = {
   storeUrl: string;
 };
 
+type CalendarView = 'month' | 'list';
+
 type UiLanguage = 'en' | 'zh';
 
 type LanguageOption = {
@@ -957,6 +959,7 @@ function CalendarPreview({
   const initialWeekStart = useMemo(() => weekStartForDate(initialFocusDate), [initialFocusDate]);
   const [weekRange, setWeekRange] = useState(() => buildInitialWeekRange(initialWeekStart));
   const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
+  const listEvents = useMemo(() => [...events].sort(compareEventsForList), [events]);
   const shouldAlignInitialWeek = useRef(true);
   const hasUserScrollIntent = useRef(false);
   const pendingMonthScroll = useRef<string | null>(null);
@@ -966,6 +969,7 @@ function CalendarPreview({
     previousScrollTop: number;
   }>(null);
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
+  const [calendarView, setCalendarView] = useState<CalendarView>('month');
 
   useLayoutEffect(() => {
     if (lastAlignedFocusDate.current !== initialFocusDate) {
@@ -1131,128 +1135,181 @@ function CalendarPreview({
   }
 
   return (
-    <section className="calendarApp" aria-label="Calendar preview">
+    <section className={calendarView === 'list' ? 'calendarApp isListView' : 'calendarApp'} aria-label="Calendar preview">
       <div className="calendarHeader">
-        <div className="calendarNav">
-          <button type="button" aria-label="Previous month" onClick={() => scrollToCalendarMonth(shiftMonth(visibleMonth, -1))}>
-            <ChevronLeftIcon />
-          </button>
-          <button type="button" aria-label="Next month" onClick={() => scrollToCalendarMonth(shiftMonth(visibleMonth, 1))}>
-            <ChevronRightIcon />
-          </button>
-          <button className="todayButton" type="button" onClick={() => scrollToCalendarWeek(initialWeekStart)}>Today</button>
-        </div>
-
-        <h2>{formatCalendarMonthTitle(visibleMonth)} <span aria-hidden="true">⌄</span></h2>
+        <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
 
         <div className="calendarControls">
           <div className="viewTabs" aria-label="Calendar view">
-            <button className="isActive" type="button">Month</button>
-            <button type="button">Week</button>
-            <button type="button">List</button>
+            <button
+              aria-pressed={calendarView === 'month'}
+              className={calendarView === 'month' ? 'isActive' : ''}
+              type="button"
+              onClick={() => setCalendarView('month')}
+            >
+              Month
+            </button>
+            <button
+              aria-pressed={calendarView === 'list'}
+              className={calendarView === 'list' ? 'isActive' : ''}
+              type="button"
+              onClick={() => setCalendarView('list')}
+            >
+              List
+            </button>
           </div>
-          <button className="settingsButton" type="button" aria-label="Calendar settings">
-            <SettingsIcon />
-          </button>
         </div>
       </div>
 
-      <div
-        className="calendarWeekdays"
-        aria-hidden="true"
-      >
-        {WEEKDAYS.map((weekday) => (
-          <div className="weekday" key={weekday}>{weekday}</div>
-        ))}
-      </div>
-
-      <div
-        className="calendarScroll"
-        ref={scrollRef}
-        aria-label="Scrollable calendar weeks"
-        onKeyDown={markCalendarScrollIntent}
-        onPointerDown={markCalendarScrollIntent}
-        onTouchStart={markCalendarScrollIntent}
-        tabIndex={0}
-      >
-        {isLoading ? (
-          <div className="calendarLoadingOverlay" role="status">
-            <span className="loadingSpinner" />
-            <span>Syncing Steam calendar data...</span>
+      {calendarView === 'month' ? (
+        <>
+          <div
+            className="calendarWeekdays"
+            aria-hidden="true"
+          >
+            {WEEKDAYS.map((weekday) => (
+              <div className="weekday" key={weekday}>{weekday}</div>
+            ))}
           </div>
-        ) : null}
-        <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
-          {weeks.map((week) => {
-            const weekLanes = Math.max(3, week.segments.reduce((highestLane, segment) => (
-              Math.max(highestLane, segment.lane + 1)
-            ), 0));
 
-            return (
-              <div
-                aria-label={`Week of ${formatDate(week.weekStartIso)}`}
-                className="calendarWeek"
-                data-week-start={week.weekStartIso}
-                key={week.weekStartIso}
-                ref={(node) => {
-                  if (node) {
-                    weekRefs.current.set(week.weekStartIso, node);
-                  } else {
-                    weekRefs.current.delete(week.weekStartIso);
-                  }
-                }}
-                role="row"
-                style={{ '--week-lanes': weekLanes } as CSSProperties}
-              >
-                {week.cells.map((cell, index) => (
-                  <div
-                    className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
-                    key={cell.date}
-                    role="gridcell"
-                    aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
-                    style={{ gridColumn: index + 1 } as CSSProperties}
-                  >
-                    <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
-                  </div>
-                ))}
-                {week.segments.map((segment) => (
-                  <button
-                    aria-label={segment.event.title}
-                    className={[
-                      'calendarSegment',
-                      segment.event.type,
-                      eventVisualClass(segment.event),
-                      segment.event.id === selectedEventId ? 'isSelected' : '',
-                      segment.event.appId && segment.event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
-                      segment.startsAtEvent ? 'startsAtEvent' : '',
-                      segment.endsAtEvent ? 'endsAtEvent' : '',
-                    ].filter(Boolean).join(' ')}
-                    data-event-id={segment.event.id}
-                    data-testid="calendar-event-segment"
-                    key={`${week.weekStartIso}-${segment.event.id}`}
-                    style={{
-                      '--segment-lane': segment.lane,
-                      '--segment-start': segment.startColumn,
-                      '--segment-span': segment.endColumn - segment.startColumn + 1,
-                    } as CSSProperties}
-                    onClick={() => onSelectEvent(segment.event.id)}
-                    title={segment.event.title}
-                    type="button"
-                  >
-                    <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
-                  </button>
-                ))}
+          <div
+            className="calendarScroll"
+            ref={scrollRef}
+            aria-label="Scrollable calendar weeks"
+            onKeyDown={markCalendarScrollIntent}
+            onPointerDown={markCalendarScrollIntent}
+            onTouchStart={markCalendarScrollIntent}
+            tabIndex={0}
+          >
+            {isLoading ? (
+              <div className="calendarLoadingOverlay" role="status">
+                <span className="loadingSpinner" />
+                <span>Syncing Steam calendar data...</span>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            ) : null}
+            <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
+              {weeks.map((week) => {
+                const weekLanes = Math.max(3, week.segments.reduce((highestLane, segment) => (
+                  Math.max(highestLane, segment.lane + 1)
+                ), 0));
 
-      <div className="calendarLegend" aria-label="Calendar legend">
-        <span><i className="legendDot dealEvent" />Deals</span>
-        <span><i className="legendDot preorderEvent" />Preorders</span>
-        <span><i className="legendDot nextFestEvent" />Fests / Events</span>
-        <span><i className="legendDot saleEvent" />Sales</span>
-      </div>
+                return (
+                  <div
+                    aria-label={`Week of ${formatDate(week.weekStartIso)}`}
+                    className="calendarWeek"
+                    data-week-start={week.weekStartIso}
+                    key={week.weekStartIso}
+                    ref={(node) => {
+                      if (node) {
+                        weekRefs.current.set(week.weekStartIso, node);
+                      } else {
+                        weekRefs.current.delete(week.weekStartIso);
+                      }
+                    }}
+                    role="row"
+                    style={{ '--week-lanes': weekLanes } as CSSProperties}
+                  >
+                    {week.cells.map((cell, index) => (
+                      <div
+                        className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
+                        key={cell.date}
+                        role="gridcell"
+                        aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
+                        style={{ gridColumn: index + 1 } as CSSProperties}
+                      >
+                        <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
+                      </div>
+                    ))}
+                    {week.segments.map((segment) => (
+                      <button
+                        aria-label={segment.event.title}
+                        className={[
+                          'calendarSegment',
+                          segment.event.type,
+                          eventVisualClass(segment.event),
+                          segment.event.id === selectedEventId ? 'isSelected' : '',
+                          segment.event.appId && segment.event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
+                          segment.startsAtEvent ? 'startsAtEvent' : '',
+                          segment.endsAtEvent ? 'endsAtEvent' : '',
+                        ].filter(Boolean).join(' ')}
+                        data-event-id={segment.event.id}
+                        data-testid="calendar-event-segment"
+                        key={`${week.weekStartIso}-${segment.event.id}`}
+                        style={{
+                          '--segment-lane': segment.lane,
+                          '--segment-start': segment.startColumn,
+                          '--segment-span': segment.endColumn - segment.startColumn + 1,
+                        } as CSSProperties}
+                        onClick={() => onSelectEvent(segment.event.id)}
+                        title={segment.event.title}
+                        type="button"
+                      >
+                        <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="calendarLegend" aria-label="Calendar legend">
+            <span><i className="legendDot dealEvent" />Deals</span>
+            <span><i className="legendDot preorderEvent" />Preorders</span>
+            <span><i className="legendDot nextFestEvent" />Fests / Events</span>
+            <span><i className="legendDot saleEvent" />Sales</span>
+          </div>
+        </>
+      ) : (
+        <div className="eventListScroll" aria-label="Calendar event list">
+          {isLoading ? (
+            <div className="calendarLoadingOverlay" role="status">
+              <span className="loadingSpinner" />
+              <span>Syncing Steam calendar data...</span>
+            </div>
+          ) : null}
+          {listEvents.length ? (
+            <div className="eventList">
+              {listEvents.map((event) => (
+                <button
+                  className={[
+                    'eventListItem',
+                    eventVisualClass(event),
+                    event.id === selectedEventId ? 'isSelected' : '',
+                    event.appId && event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
+                  ].filter(Boolean).join(' ')}
+                  data-testid="calendar-event-list-item"
+                  key={event.id}
+                  onClick={() => onSelectEvent(event.id)}
+                  type="button"
+                >
+                  <span className="eventListMarker" aria-hidden="true" />
+                  {event.imageUrl ? <img src={event.imageUrl} alt="" /> : <span className="eventListThumbFallback" />}
+                  <span className="eventListContent">
+                    <span className="eventListMeta">
+                      <span>{formatEventDateRange(event)}</span>
+                      <span>{detailKind(event)}</span>
+                    </span>
+                    <strong>{detailTitle(event)}</strong>
+                    <span className="eventListDescription">{detailDescription(event)}</span>
+                  </span>
+                  {event.discount || event.finalPrice ? (
+                    <span className="eventListPrice">
+                      {event.discount ? <strong>{event.discount}</strong> : null}
+                      {event.finalPrice ? <span>{event.finalPrice}</span> : null}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyEventList">
+              <h3>No calendar events</h3>
+              <p>Enable Steam events, deals, or watched games to preview them here.</p>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -1871,6 +1928,24 @@ function formatDate(value: string): string {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function formatEventDateRange(event: PreviewEvent): string {
+  if (!event.endDate || event.endDate === event.startDate) {
+    return formatDate(event.startDate);
+  }
+
+  return `${formatDate(event.startDate)} - ${formatDate(event.endDate)}`;
+}
+
+function compareEventsForList(firstEvent: PreviewEvent, secondEvent: PreviewEvent): number {
+  const dateComparison = firstEvent.startDate.localeCompare(secondEvent.startDate);
+
+  if (dateComparison !== 0) {
+    return dateComparison;
+  }
+
+  return detailTitle(firstEvent).localeCompare(detailTitle(secondEvent));
 }
 
 function eventVisualClass(event: PreviewEvent): string {
