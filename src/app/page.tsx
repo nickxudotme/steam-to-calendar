@@ -893,7 +893,7 @@ export default function Home() {
 
                     return (
                       <div className="selectedGameRow" key={game.appId}>
-                        {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                         <span>{game.name}</span>
                         <button
                           disabled={hasConnectedWishlist || isSelected}
@@ -916,7 +916,7 @@ export default function Home() {
                       className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
                       key={game.appId}
                     >
-                      {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                      <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                       <span>{game.name}</span>
                       <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>{copy.remove}</button>
                     </div>
@@ -948,7 +948,7 @@ export default function Home() {
 
                     return (
                       <div className="gameSearchResult" key={game.appId}>
-                        {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
+                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                         <div>
                           <strong>{game.name}</strong>
                           <small>{gameSearchMeta(game)}</small>
@@ -1364,7 +1364,7 @@ function CalendarPreview({
                   type="button"
                 >
                   <span className="eventListMarker" aria-hidden="true" />
-                  {event.imageUrl ? <img src={event.imageUrl} alt="" /> : <span className="eventListThumbFallback" />}
+                  <SteamCliImage fallbackClassName="eventListThumbFallback" src={event.imageUrl} />
                   <span className="eventListContent">
                     <span className="eventListMeta">
                       <span>{formatEventDateRange(event, uiLanguage)}</span>
@@ -1392,6 +1392,23 @@ function CalendarPreview({
       )}
     </section>
   );
+}
+
+function SteamCliImage({
+  fallbackClassName,
+  src,
+}: {
+  fallbackClassName: string;
+  src?: string;
+}) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const shouldShowImage = Boolean(src && failedSrc !== src);
+
+  if (!shouldShowImage) {
+    return <span className={fallbackClassName} />;
+  }
+
+  return <img src={src} alt="" onError={() => setFailedSrc(src ?? null)} />;
 }
 
 function ChevronLeftIcon() {

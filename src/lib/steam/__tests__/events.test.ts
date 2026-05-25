@@ -27,6 +27,15 @@ describe('steam-cli event mapper', () => {
         background_image_url: 'https://cdn.example.test/skulls-background.jpg',
       },
       {
+        name: 'Steam Demo Fest',
+        start_date: '2026-07-01',
+        end_date: '2026-07-08',
+        category: 'fest',
+        images: {
+          hero: '//cdn.example.test/demo-fest-hero.jpg',
+        },
+      },
+      {
         name: 'bad event',
         start_date: 'June 2026',
         end_date: '2026-06-22',
@@ -64,6 +73,17 @@ describe('steam-cli event mapper', () => {
         type: 'steam_major_event',
         eventCategory: 'store_sale',
         imageUrl: 'https://cdn.example.test/skulls-background.jpg',
+      },
+      {
+        id: 'steam-event-2026-07-01-steam-demo-fest',
+        title: '🎮 Steam Demo Fest',
+        description: 'Steam Demo Fest',
+        startDate: '2026-07-01',
+        endDate: '2026-07-08',
+        sourceUrl: 'https://store.steampowered.com/',
+        type: 'steam_major_event',
+        eventCategory: 'fest',
+        imageUrl: 'https://cdn.example.test/demo-fest-hero.jpg',
       },
     ]);
   });

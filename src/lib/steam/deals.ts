@@ -3,8 +3,10 @@ import { STEAM_CLI_CACHE_TTL } from '@/lib/steam/cache-policy';
 import { runSteamCliJson } from '@/lib/steam/cli';
 
 export type SteamMediaAsset = {
+  available?: boolean;
   kind?: string;
   name: string;
+  status?: number;
   url: string;
 };
 
@@ -15,14 +17,22 @@ export type SteamMedia = {
 
 const MEDIA_CONCURRENCY = 3;
 const MEDIA_IMAGE_PRIORITY = [
-  'library_hero_2x',
   'library_hero',
-  'hero_capsule_2x',
+  'library_hero_2x',
   'hero_capsule',
-  'main_capsule_2x',
+  'hero_capsule_2x',
   'main_capsule',
-  'header_2x',
+  'main_capsule_2x',
+  'page_background',
+  'raw_page_background',
   'header',
+  'header_2x',
+  'capsule_616x353',
+  'capsule_231x87',
+  'capsule_231x87_2x',
+  'library_600x900',
+  'library_600x900_2x',
+  'logo',
 ];
 
 export async function fetchSteamDealEvents(
@@ -71,6 +81,7 @@ async function fetchSteamMedia(
     return await runSteamCliJson<SteamMedia>([
       'media',
       String(appId),
+      '--probe',
     ], {
       cacheTtlMs: STEAM_CLI_CACHE_TTL.media,
       cc: options.cc,
@@ -84,9 +95,12 @@ async function fetchSteamMedia(
 }
 
 export function selectSteamMediaImage(media: SteamMedia): string | undefined {
+  const eligibleAssets = (media.cdn_assets ?? [])
+    .filter((asset) => asset.url && isSteamMediaAssetAvailable(asset))
+    .map((asset) => ({ ...asset, url: normalizeSteamImageUrl(asset.url) }))
+    .filter((asset) => asset.url);
   const assetsByName = new Map(
-    (media.cdn_assets ?? [])
-      .filter((asset) => asset.url)
+    eligibleAssets
       .map((asset) => [asset.name, asset.url]),
   );
 
@@ -98,7 +112,33 @@ export function selectSteamMediaImage(media: SteamMedia): string | undefined {
     }
   }
 
-  return media.header_image;
+  const broadFallback = eligibleAssets.find((asset) => asset.kind === 'capsule' || asset.kind === 'header')
+    ?? eligibleAssets.find((asset) => asset.kind === 'library' || asset.kind === 'background')
+    ?? eligibleAssets[0];
+
+  return broadFallback?.url ?? normalizeSteamImageUrl(media.header_image);
+}
+
+function isSteamMediaAssetAvailable(asset: SteamMediaAsset): boolean {
+  if (asset.available === false) {
+    return false;
+  }
+
+  if (typeof asset.status === 'number' && (asset.status < 200 || asset.status >= 400)) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeSteamImageUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
 }
 
 async function mapWithConcurrency<T, R>(
