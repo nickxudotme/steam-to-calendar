@@ -190,6 +190,11 @@ const UI_COPY = {
     searchPlaceholder: 'Search Steam games, appID, or store URL',
     searchButton: 'Search',
     searchingButton: 'Searching...',
+    searchResultsTitle: 'Steam search results',
+    searchResultsCount: 'results',
+    noSearchResults: 'No Steam games found',
+    steamAppLabel: 'Steam app',
+    priceUnavailable: 'Price unavailable',
     wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep the Steam sale calendar without a wishlist.',
     wishlistGenericHint: 'Steam did not respond. You can keep the Steam sale calendar and add games manually.',
     wishlistConnected: 'Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.',
@@ -250,6 +255,11 @@ const UI_COPY = {
     searchPlaceholder: '搜索游戏、AppID 或 Steam 商店链接',
     searchButton: '搜索',
     searchingButton: '搜索中...',
+    searchResultsTitle: 'Steam 搜索结果',
+    searchResultsCount: '个结果',
+    noSearchResults: '没有找到 Steam 游戏',
+    steamAppLabel: 'Steam 应用',
+    priceUnavailable: '暂无价格',
     wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只订阅 Steam 促销日历。',
     wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 促销日历并手动添加游戏。',
     wishlistConnected: '愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。',
@@ -307,6 +317,7 @@ export default function Home() {
   const [gameSearch, setGameSearch] = useState('');
   const [gameSearchResults, setGameSearchResults] = useState<GameSearchResult[]>([]);
   const [gameSearchError, setGameSearchError] = useState<string | null>(null);
+  const [lastGameSearchQuery, setLastGameSearchQuery] = useState('');
   const [isSearchingGames, setIsSearchingGames] = useState(false);
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
@@ -532,8 +543,10 @@ export default function Home() {
         throw new Error(payload.message ?? 'Could not search Steam games.');
       }
 
+      setLastGameSearchQuery(query);
       setGameSearchResults(payload.results ?? []);
     } catch (caught) {
+      setLastGameSearchQuery(query);
       setGameSearchError(caught instanceof Error ? caught.message : 'Could not search Steam games.');
     } finally {
       setIsSearchingGames(false);
@@ -865,7 +878,15 @@ export default function Home() {
                     placeholder={copy.searchPlaceholder}
                     type="search"
                     value={gameSearch}
-                    onChange={(event) => setGameSearch(event.target.value)}
+                    onChange={(event) => {
+                      setGameSearch(event.target.value);
+
+                      if (!event.target.value.trim()) {
+                        setGameSearchResults([]);
+                        setGameSearchError(null);
+                        setLastGameSearchQuery('');
+                      }
+                    }}
                   />
                 </label>
                 <button disabled={!showMyGames || hasConnectedWishlist || isSearchingGames || !gameSearch.trim()} type="submit">
@@ -943,6 +964,10 @@ export default function Home() {
 
               {!isSearchingGames && gameSearchResults.length ? (
                 <div className="gameSearchResults" aria-label="Steam game search results">
+                  <div className="gameSearchResultsHeader">
+                    <span className="miniSectionTitle">{copy.searchResultsTitle}</span>
+                    <span>{gameSearchResults.length} {copy.searchResultsCount}</span>
+                  </div>
                   {gameSearchResults.map((game) => {
                     const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
 
@@ -951,7 +976,7 @@ export default function Home() {
                         <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                         <div>
                           <strong>{game.name}</strong>
-                          <small>{gameSearchMeta(game)}</small>
+                          <small>{gameSearchMeta(game, copy)}</small>
                         </div>
                         <button
                           disabled={hasConnectedWishlist || isSelected}
@@ -963,6 +988,13 @@ export default function Home() {
                       </div>
                     );
                   })}
+                </div>
+              ) : null}
+
+              {!isSearchingGames && lastGameSearchQuery && !gameSearchResults.length && !gameSearchError ? (
+                <div className="notice gameSearchEmpty" role="status">
+                  <strong>{copy.noSearchResults}</strong>
+                  <span>{lastGameSearchQuery}</span>
                 </div>
               ) : null}
 
@@ -2135,15 +2167,17 @@ function detailDescription(event: PreviewEvent): string {
   return event.description.split('\n')[0] || event.title;
 }
 
-function gameSearchMeta(game: GameSearchResult): string {
+function gameSearchMeta(game: GameSearchResult, copy: Record<string, string>): string {
+  const appLabel = `${copy.steamAppLabel} ${game.appId}`;
+
   if (!game.price) {
-    return `Steam app ${game.appId}`;
+    return appLabel;
   }
 
   if (game.price.discountPercent > 0) {
-    const price = game.price.finalFormatted || 'discounted';
-    return `-${game.price.discountPercent}% ${price}`;
+    const price = game.price.finalFormatted || copy.priceUnavailable;
+    return `${appLabel} · -${game.price.discountPercent}% ${price}`;
   }
 
-  return game.price.finalFormatted || `Steam app ${game.appId}`;
+  return `${appLabel} · ${game.price.finalFormatted || copy.priceUnavailable}`;
 }

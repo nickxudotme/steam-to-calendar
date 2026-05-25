@@ -19,8 +19,11 @@ type SteamCliSearchResult = {
   type?: string;
   tiny_image?: string;
   price?: {
+    currency?: string;
     discount_percent?: number;
+    final?: number;
     final_formatted?: string;
+    initial?: number;
     initial_formatted?: string;
   };
 };
@@ -81,6 +84,18 @@ export async function searchSteamGames(
     .filter((result) => result.type === 'app')
     .map((result) => {
       const appId = String(result.id);
+      const finalFormatted = searchPriceFormatted(
+        result.price?.final_formatted,
+        result.price?.final,
+        result.price?.currency,
+        options.uiLang,
+      );
+      const initialFormatted = searchPriceFormatted(
+        result.price?.initial_formatted,
+        result.price?.initial,
+        result.price?.currency,
+        options.uiLang,
+      );
 
       return {
         appId,
@@ -90,8 +105,8 @@ export async function searchSteamGames(
         ...(result.price ? {
           price: {
             discountPercent: result.price.discount_percent ?? 0,
-            ...(result.price.final_formatted ? { finalFormatted: result.price.final_formatted } : {}),
-            ...(result.price.initial_formatted ? { initialFormatted: result.price.initial_formatted } : {}),
+            ...(finalFormatted ? { finalFormatted } : {}),
+            ...(initialFormatted ? { initialFormatted } : {}),
           },
         } : {}),
       };
@@ -113,6 +128,32 @@ export function parseSteamAppInput(input: string): string | null {
     return isSteamHost && match ? match[1] : null;
   } catch {
     return null;
+  }
+}
+
+export function searchPriceFormatted(
+  formatted: string | undefined,
+  amountInMinorUnits: number | undefined,
+  currency: string | undefined,
+  locale = 'en',
+): string | undefined {
+  const trimmed = formatted?.trim();
+
+  if (trimmed) {
+    return trimmed;
+  }
+
+  if (!Number.isFinite(amountInMinorUnits) || !currency) {
+    return undefined;
+  }
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      currency,
+      style: 'currency',
+    }).format((amountInMinorUnits ?? 0) / 100);
+  } catch {
+    return `${currency} ${((amountInMinorUnits ?? 0) / 100).toFixed(2)}`;
   }
 }
 

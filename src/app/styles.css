@@ -588,6 +588,14 @@ select {
   text-transform: uppercase;
 }
 
+.gameSearchResultsHeader {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.72rem;
+  justify-content: space-between;
+}
+
 .gameSearchResult,
 .selectedGameRow {
   align-items: center;
@@ -637,6 +645,24 @@ select {
   font-size: 0.72rem;
   line-height: 1.25;
   margin-top: 2px;
+}
+
+.gameSearchEmpty {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.gameSearchEmpty strong {
+  color: var(--fg);
+}
+
+.gameSearchEmpty span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .skeletonResult {
