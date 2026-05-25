@@ -852,7 +852,9 @@ select {
 }
 
 .calendarScroll {
+  -webkit-overflow-scrolling: touch;
   min-height: 0;
+  overscroll-behavior: contain;
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -1028,7 +1030,9 @@ select {
 }
 
 .eventListScroll {
+  -webkit-overflow-scrolling: touch;
   min-height: 0;
+  overscroll-behavior: contain;
   overflow-x: hidden;
   overflow-y: auto;
   padding: 14px;
@@ -1659,6 +1663,7 @@ select {
   }
 
   .configPanel {
+    -webkit-overflow-scrolling: touch;
     border-bottom: 0;
     border-radius: 18px 18px 0 0;
     bottom: 0;
@@ -1668,6 +1673,7 @@ select {
     left: 0;
     max-height: min(82svh, 720px);
     overflow: auto;
+    overscroll-behavior: contain;
     padding: 10px 14px calc(22px + env(safe-area-inset-bottom));
     position: fixed;
     right: 0;
@@ -1877,6 +1883,7 @@ select {
   .calendarExperience {
     height: 100%;
     min-height: 0;
+    overflow: hidden;
   }
 
   .calendarApp {
@@ -1942,6 +1949,23 @@ select {
     padding: 0 4px;
     top: calc(28px + (var(--segment-lane) * 18px));
     white-space: nowrap;
+  }
+
+  .calendarScroll {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+    touch-action: pan-y;
+  }
+
+  .calendarWeek {
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+
+  .eventListScroll,
+  .configPanel .detailBody,
+  .detailBody {
+    touch-action: pan-y;
   }
 
   .segmentTitle {
