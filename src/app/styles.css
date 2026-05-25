@@ -1046,33 +1046,23 @@ select {
 
 .calendarSegment.dealEvent,
 .legendDot.dealEvent {
-  background: linear-gradient(90deg, rgba(53, 143, 58, 0.94), rgba(28, 92, 41, 0.96));
-  border-color: rgba(109, 214, 95, 0.45);
+  background: linear-gradient(90deg, rgba(39, 157, 73, 0.96), rgba(20, 98, 48, 0.96));
+  border-color: rgba(118, 226, 113, 0.48);
   color: #ffffff;
 }
 
 .calendarSegment.preorderEvent,
 .calendarSegment.wishlistEvent,
-.legendDot.preorderEvent {
-  background: linear-gradient(90deg, rgba(94, 60, 143, 0.96), rgba(67, 50, 100, 0.96));
-  border-color: rgba(177, 138, 230, 0.42);
+.legendDot.preorderEvent,
+.legendDot.wishlistEvent {
+  background: linear-gradient(90deg, rgba(214, 126, 30, 0.96), rgba(142, 72, 22, 0.96));
+  border-color: rgba(255, 190, 103, 0.5);
 }
 
 .calendarSegment.nextFestEvent,
 .legendDot.nextFestEvent {
-  background: linear-gradient(90deg, rgba(18, 102, 185, 0.94), rgba(15, 73, 132, 0.96));
-  border-color: rgba(102, 192, 244, 0.52);
-}
-
-.calendarSegment.saleEvent,
-.legendDot.saleEvent {
-  background: linear-gradient(90deg, rgba(197, 34, 92, 0.94), rgba(117, 30, 68, 0.96));
-  border-color: rgba(255, 103, 155, 0.42);
-}
-
-.calendarSegment.seasonalEvent {
-  background: linear-gradient(90deg, rgba(196, 120, 31, 0.92), rgba(112, 67, 26, 0.94));
-  border-color: rgba(241, 195, 107, 0.48);
+  background: linear-gradient(90deg, rgba(30, 116, 214, 0.96), rgba(16, 72, 156, 0.96));
+  border-color: rgba(111, 192, 255, 0.56);
 }
 
 .calendarLegend {
@@ -1148,11 +1138,11 @@ select {
 
 .eventListItem.preorderEvent .eventListMarker,
 .eventListItem.wishlistEvent .eventListMarker {
-  background: #8355bd;
+  background: #d67e1e;
 }
 
 .eventListItem.nextFestEvent .eventListMarker {
-  background: #1686df;
+  background: #1e74d6;
 }
 
 .eventListItem.saleEvent .eventListMarker {

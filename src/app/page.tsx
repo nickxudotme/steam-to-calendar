@@ -1130,6 +1130,7 @@ function CalendarPreview({
   const weekRange = useMemo(() => buildEventWeekRange(events, todayIso), [events, todayIso]);
   const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
   const listEvents = useMemo(() => [...events].sort(compareEventsForList), [events]);
+  const legendItems = useMemo(() => calendarLegendItems(events, uiCopy), [events, uiCopy]);
   const shouldAlignInitialWeek = useRef(true);
   const pendingWeekScroll = useRef<string | null>(null);
   const lastAlignedFocusDate = useRef<string | null>(null);
@@ -1371,10 +1372,12 @@ function CalendarPreview({
           </div>
 
           <div className="calendarLegend" aria-label="Calendar legend">
-            <span><i className="legendDot dealEvent" />{uiCopy.dealsLegend}</span>
-            <span><i className="legendDot preorderEvent" />{uiCopy.preordersLegend}</span>
-            <span><i className="legendDot nextFestEvent" />{uiCopy.eventsLegend}</span>
-            <span><i className="legendDot saleEvent" />{uiCopy.salesLegend}</span>
+            {legendItems.map((item) => (
+              <span key={item.className}>
+                <i className={`legendDot ${item.className}`} />
+                {item.label}
+              </span>
+            ))}
           </div>
         </>
       ) : (
@@ -1664,6 +1667,7 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 4),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_major_event',
+      eventCategory: 'next_fest',
     },
     {
       id: 'demo-subnautica',
@@ -1706,6 +1710,7 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 22),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_major_event',
+      eventCategory: 'seasonal',
     },
     {
       id: 'demo-red-dead',
@@ -1727,6 +1732,7 @@ function buildDemoEvents(todayIso: string): PreviewEvent[] {
       endDate: addDays(monthStart, 28),
       sourceUrl: 'https://store.steampowered.com/',
       type: 'steam_major_event',
+      eventCategory: 'fest',
     },
     {
       id: 'demo-no-mans-sky',
@@ -2274,18 +2280,35 @@ function eventVisualClass(event: PreviewEvent): string {
   }
 
   if (event.type === 'wishlist_release') {
-    return 'wishlistEvent';
+    return 'preorderEvent';
   }
 
-  if (event.id.includes('next-fest')) {
+  if (event.type === 'steam_major_event') {
     return 'nextFestEvent';
   }
 
-  if (event.id.includes('sale')) {
-    return 'saleEvent';
-  }
+  return 'nextFestEvent';
+}
 
-  return 'seasonalEvent';
+function calendarLegendItems(
+  events: PreviewEvent[],
+  copy: typeof UI_COPY[UiLanguage],
+): { className: string; label: string }[] {
+  const visibleClasses = new Set(events.map(eventVisualClass));
+  const hasPreorders = events.some((event) => event.type === 'steam_preorder');
+  const hasWishlist = events.some((event) => event.type === 'wishlist_release');
+  const preorderLabel = hasPreorders && hasWishlist
+    ? `${copy.preordersLegend} / ${copy.myGamesTitle}`
+    : hasWishlist
+      ? copy.myGamesTitle
+      : copy.preordersLegend;
+  const items = [
+    { className: 'dealEvent', label: copy.dealsLegend },
+    { className: 'preorderEvent', label: preorderLabel },
+    { className: 'nextFestEvent', label: copy.eventsLegend },
+  ];
+
+  return items.filter((item) => visibleClasses.has(item.className));
 }
 
 function compactEventTitle(title: string): string {
