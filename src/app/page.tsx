@@ -69,6 +69,16 @@ type SelectedGame = {
   storeUrl: string;
 };
 
+type UiLanguage = 'en' | 'zh';
+
+type LanguageOption = {
+  code: string;
+  label: string;
+  steamLang: string;
+  uiLang: string;
+  uiLanguage: UiLanguage;
+};
+
 type CalendarCell = {
   date: string;
   day: number;
@@ -98,6 +108,10 @@ const INITIAL_WEEK_BUFFER = 8;
 const INITIAL_WEEK_SPAN = 34;
 const WEEK_EXTENSION_SIZE = 16;
 const WEEK_EXTENSION_THRESHOLD = 4;
+const LANGUAGE_OPTIONS = [
+  { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
+  { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
+] as const satisfies readonly LanguageOption[];
 const STEAM_EVENT_CATEGORY_LABELS: Record<SteamEventCategory, { description: string; title: string }> = {
   seasonal: {
     title: 'Seasonal sales',
@@ -131,10 +145,49 @@ const PUBLIC_PREVIEW: PreviewResponse = {
   events: [],
 };
 
+const UI_COPY = {
+  en: {
+    addApple: 'Add to Apple Calendar',
+    addToCalendar: 'Add to your Calendar',
+    copyFeed: 'Copy feed URL',
+    copied: 'Copied',
+    languageLabel: 'Language',
+    settingsLabel: 'Settings',
+    storeRegionLabel: 'Store region',
+    storeNote: 'Store region affects prices, not language.',
+    searchPlaceholder: 'Search Steam games, appID, or store URL',
+    searchButton: 'Search',
+    searchingButton: 'Searching...',
+    wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep the Steam sale calendar without a wishlist.',
+    wishlistGenericHint: 'Steam did not respond. You can keep the Steam sale calendar and add games manually.',
+    hidePreview: 'Hide in preview',
+    subscribeFromTop: 'Subscribe from the top bar. Updates follow your calendar app refresh schedule.',
+  },
+  zh: {
+    addApple: '添加到 Apple 日历',
+    addToCalendar: '添加到系统日历',
+    copyFeed: '复制订阅链接',
+    copied: '已复制',
+    languageLabel: '语言',
+    settingsLabel: '设置',
+    storeRegionLabel: '商店地区',
+    storeNote: '商店地区影响价格，不影响界面语言。',
+    searchPlaceholder: '搜索游戏、AppID 或 Steam 商店链接',
+    searchButton: '搜索',
+    searchingButton: '搜索中...',
+    wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只订阅 Steam 促销日历。',
+    wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 促销日历并手动添加游戏。',
+    hidePreview: '在预览中隐藏',
+    subscribeFromTop: '从顶部栏订阅。更新频率由你的日历 App 决定。',
+  },
+} satisfies Record<UiLanguage, Record<string, string>>;
+
 export default function Home() {
   const [steamId64, setSteamId64] = useState('');
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [publicPreviewError, setPublicPreviewError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showDeals, setShowDeals] = useState(true);
@@ -153,13 +206,20 @@ export default function Home() {
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(() => new Set());
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
+  const [uiLanguage, setUiLanguage] = useState<UiLanguage>('en');
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState('en');
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
-  const [initialMonth, setInitialMonth] = useState(() => monthKeyFromIsoDate(localIsoDate()));
   const [origin, setOrigin] = useState('');
   const userSelectedRegionRef = useRef(false);
   const demoEvents = useMemo(() => buildDemoEvents(todayIso), [todayIso]);
+  const selectedLanguage = languageOptionByCode(selectedLanguageCode);
+  const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? 'US';
   const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} Store`;
+  const effectiveSteamLang = selectedLanguage.steamLang;
+  const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
   const watchedAppIds = useMemo(() => (
     showMyGames && !hasConnectedWishlist ? selectedGames.map((game) => game.appId) : []
@@ -181,17 +241,27 @@ export default function Home() {
     if (storeRegion) {
       params.set('cc', storeRegion);
     }
+    params.set('lang', effectiveSteamLang);
+    params.set('uiLang', effectiveUiLang);
 
     return params.toString();
-  }, [calendarConfig, storeRegion]);
+  }, [calendarConfig, effectiveSteamLang, effectiveUiLang, storeRegion]);
 
   const calendarQuery = useMemo(() => {
     const params = calendarConfigToSearchParams(calendarConfig);
 
     params.set('cc', effectiveStoreRegion);
+    params.set('lang', effectiveSteamLang);
+    params.set('uiLang', effectiveUiLang);
 
     return params.toString();
-  }, [calendarConfig, effectiveStoreRegion]);
+  }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang]);
+
+  const feedUrl = useMemo(() => {
+    return origin
+      ? `${origin}${preview.feedPath}?${calendarQuery}`
+      : `${preview.feedPath}?${calendarQuery}`;
+  }, [calendarQuery, origin, preview.feedPath]);
 
   const webcalUrl = useMemo(() => {
     const calendarUrl = origin
@@ -239,6 +309,10 @@ export default function Home() {
     });
   }, [dealCount, hiddenEventIds, showDeals, showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
 
+  const initialFocusDate = useMemo(() => (
+    chooseCalendarFocusDate(visibleEvents, todayIso)
+  ), [todayIso, visibleEvents]);
+
   const preferredEventId = visibleEvents.find((event) => event.type === 'steam_deal')?.id ?? visibleEvents[0]?.id ?? null;
   const selectedEvent = useMemo(() => (
     visibleEvents.find((event) => event.id === selectedEventId) ??
@@ -248,11 +322,23 @@ export default function Home() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    const browserLanguage = languageCodeFromBrowser(navigator.language);
+    setSelectedLanguageCode(browserLanguage.code);
+    setUiLanguage(browserLanguage.uiLanguage);
     const browserTodayIso = localIsoDate();
 
     setTodayIso(browserTodayIso);
-    setInitialMonth(monthKeyFromIsoDate(browserTodayIso));
   }, []);
+
+  useEffect(() => {
+    if (copyStatus === 'idle') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setCopyStatus('idle'), 2200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copyStatus]);
 
   useEffect(() => {
     let isMounted = true;
@@ -269,6 +355,7 @@ export default function Home() {
         }
 
         if (isMounted) {
+          setPublicPreviewError(null);
           setPreview((currentPreview) => (
             currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview
           ));
@@ -277,9 +364,12 @@ export default function Home() {
             setStoreRegion(payload.locale.cc);
           }
         }
-      } catch (caught) {
-        console.error(caught);
-      } finally {
+    } catch (caught) {
+      console.error(caught);
+      if (isMounted) {
+        setPublicPreviewError(caught instanceof Error ? caught.message : 'Could not load Steam events.');
+      }
+    } finally {
         if (isMounted) {
           setIsPreviewLoading(false);
         }
@@ -292,10 +382,6 @@ export default function Home() {
       isMounted = false;
     };
   }, [publicPreviewQuery, storeRegion]);
-
-  useEffect(() => {
-    setInitialMonth(monthKeyFromIsoDate(todayIso));
-  }, [todayIso, visibleEvents]);
 
   useEffect(() => {
     if (!selectedEventId || !visibleEvents.some((event) => event.id === selectedEventId)) {
@@ -327,7 +413,9 @@ export default function Home() {
     try {
       const params = new URLSearchParams({
         cc: effectiveStoreRegion,
+        lang: effectiveSteamLang,
         query,
+        uiLang: effectiveUiLang,
       });
       const response = await fetch(`/api/search-games?${params.toString()}`);
       const payload = await response.json() as { message?: string; results?: GameSearchResult[] };
@@ -387,9 +475,14 @@ export default function Home() {
 
     setIsLoading(true);
     setError(null);
+    setErrorCode(null);
 
     try {
-      const response = await fetch('/api/preview', {
+      const previewParams = new URLSearchParams({
+        lang: effectiveSteamLang,
+        uiLang: effectiveUiLang,
+      });
+      const response = await fetch(`/api/preview?${previewParams.toString()}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -408,6 +501,7 @@ export default function Home() {
       const payload = await response.json();
 
       if (!response.ok) {
+        setErrorCode(typeof payload.code === 'string' ? payload.code : null);
         throw new Error(payload.message ?? 'Could not preview this Steam wishlist.');
       }
 
@@ -423,9 +517,24 @@ export default function Home() {
     }
   }
 
+  async function handleCopyFeedUrl() {
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('idle');
+    }
+  }
+
   function handleStoreRegionChange(value: string) {
     userSelectedRegionRef.current = true;
     setStoreRegion(value);
+  }
+
+  function handleLanguageChange(value: string) {
+    const language = languageOptionByCode(value);
+    setSelectedLanguageCode(language.code);
+    setUiLanguage(language.uiLanguage);
   }
 
   function handleSteamEventCategoryChange(category: SteamEventCategory, checked: boolean) {
@@ -446,7 +555,7 @@ export default function Home() {
             </span>
             <span>Steam Sale Calendar</span>
           </a>
-          <div className="headerControls">
+          <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <label className="regionSelect">
               <span>{effectiveStoreRegionLabel}</span>
               <select
@@ -461,20 +570,90 @@ export default function Home() {
                 ))}
               </select>
             </label>
+            <label className="languageSelect">
+              <span><span className="selectPrefix">{copy.languageLabel}: </span>{selectedLanguage.label}</span>
+              <select
+                aria-label="Language"
+                value={selectedLanguage.code}
+                onChange={(event) => handleLanguageChange(event.target.value)}
+              >
+                {LANGUAGE_OPTIONS.map((language) => (
+                  <option key={language.code} value={language.code}>
+                    {language.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="regionHint">{copy.storeNote}</span>
             <a className="calendarCta" href={webcalUrl}>
               <CalendarListIcon />
-              Add to your Calendar
+              {copy.addToCalendar}
             </a>
+            <button className="copyFeedButton" type="button" onClick={handleCopyFeedUrl}>
+              {copyStatus === 'copied' ? copy.copied : copy.copyFeed}
+            </button>
           </div>
         </header>
 
         <h1 className="srOnly">Build your Steam Sale Calendar</h1>
 
+        <button
+          aria-label="Close settings"
+          className={isMobileSettingsOpen ? 'mobileSheetBackdrop isVisible' : 'mobileSheetBackdrop'}
+          onClick={() => setIsMobileSettingsOpen(false)}
+          type="button"
+        />
+
         <section className="calendarWorkbench" aria-label="Steam Sale Calendar workbench">
-          <aside className="configPanel" aria-label="Calendar configuration">
+          <aside className={isMobileSettingsOpen ? 'configPanel isMobileOpen' : 'configPanel'} aria-label="Calendar configuration">
+            <div className="mobileSheetHeader">
+              <h2>{copy.settingsLabel}</h2>
+              <button aria-label="Close settings" type="button" onClick={() => setIsMobileSettingsOpen(false)}>×</button>
+            </div>
+
+            <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
+              <label className="sheetSelect">
+                <span>{copy.storeRegionLabel}</span>
+                <select
+                  aria-label="Steam store region"
+                  value={effectiveStoreRegion}
+                  onChange={(event) => handleStoreRegionChange(event.target.value)}
+                >
+                  {STEAM_STORE_REGIONS.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {countryFlag(region.code)} {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="sheetSelect">
+                <span>{copy.languageLabel}</span>
+                <select
+                  aria-label="Language"
+                  value={selectedLanguage.code}
+                  onChange={(event) => handleLanguageChange(event.target.value)}
+                >
+                  {LANGUAGE_OPTIONS.map((language) => (
+                    <option key={language.code} value={language.code}>
+                      {language.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button className="mobileCopyFeedButton" type="button" onClick={handleCopyFeedUrl}>
+                {copyStatus === 'copied' ? copy.copied : copy.copyFeed}
+              </button>
+            </div>
+
             <div className="panelHeader">
               <h2>Calendar sources</h2>
             </div>
+
+            {publicPreviewError ? (
+              <div className="notice error">{copy.wishlistGenericHint}</div>
+            ) : null}
 
             <SourceToggle
               checked={showDeals}
@@ -564,14 +743,14 @@ export default function Home() {
                   <input
                     disabled={!showMyGames || hasConnectedWishlist}
                     id="game-search"
-                    placeholder="Search Steam games"
+                    placeholder={copy.searchPlaceholder}
                     type="search"
                     value={gameSearch}
                     onChange={(event) => setGameSearch(event.target.value)}
                   />
                 </label>
                 <button disabled={!showMyGames || hasConnectedWishlist || isSearchingGames || !gameSearch.trim()} type="submit">
-                  {isSearchingGames ? 'Searching...' : 'Search'}
+                  {isSearchingGames ? copy.searchingButton : copy.searchButton}
                 </button>
               </form>
 
@@ -697,13 +876,20 @@ export default function Home() {
               <p className="wishlistHint">Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.</p>
 
               {error ? <div className="notice error">{error}</div> : null}
+              {error ? (
+                <div className="notice fallbackNotice">
+                  {errorCode === 'wishlist_private_or_unavailable'
+                    ? copy.wishlistPrivateHint
+                    : copy.wishlistGenericHint}
+                </div>
+              ) : null}
             </div>
           </aside>
 
           <div className="calendarExperience" id="calendar-preview">
             <CalendarPreview
               events={visibleEvents}
-              initialMonth={initialMonth}
+              initialFocusDate={initialFocusDate}
               isLoading={isPreviewLoading}
               onSelectEvent={setSelectedEventId}
               recentlyAddedAppId={recentlyAddedAppId}
@@ -714,10 +900,25 @@ export default function Home() {
 
           <EventDetails
             event={selectedEvent}
+            copy={copy}
             onRemove={(eventId) => setHiddenEventIds((ids) => new Set(ids).add(eventId))}
-            webcalUrl={webcalUrl}
           />
         </section>
+
+        <nav className="mobileBottomBar" aria-label="Mobile calendar actions">
+          <a className="mobileAddCalendar" href={webcalUrl}>
+            <CalendarListIcon />
+            <span>{copy.addToCalendar}</span>
+          </a>
+          <button
+            aria-label="Open settings"
+            className="mobileSettingsButton"
+            type="button"
+            onClick={() => setIsMobileSettingsOpen(true)}
+          >
+            <SettingsIcon />
+          </button>
+        </nav>
 
         <footer className="siteFooter">
           <span>Steam Sale Calendar is not affiliated with Valve Corp.</span>
@@ -735,7 +936,7 @@ export default function Home() {
 
 function CalendarPreview({
   events,
-  initialMonth,
+  initialFocusDate,
   isLoading,
   onSelectEvent,
   recentlyAddedAppId,
@@ -743,7 +944,7 @@ function CalendarPreview({
   todayIso,
 }: {
   events: PreviewEvent[];
-  initialMonth: string;
+  initialFocusDate: string;
   isLoading: boolean;
   onSelectEvent: (eventId: string) => void;
   recentlyAddedAppId: string | null;
@@ -752,12 +953,14 @@ function CalendarPreview({
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const weekRefs = useRef(new Map<string, HTMLElement>());
-  const initialWeekStart = useMemo(() => calendarGridStartForMonth(initialMonth), [initialMonth]);
+  const initialMonth = monthKeyFromIsoDate(initialFocusDate);
+  const initialWeekStart = useMemo(() => weekStartForDate(initialFocusDate), [initialFocusDate]);
   const [weekRange, setWeekRange] = useState(() => buildInitialWeekRange(initialWeekStart));
   const weeks = useMemo(() => buildContinuousCalendarWeeks(events, weekRange.startIso, weekRange.endIso), [events, weekRange]);
   const shouldAlignInitialWeek = useRef(true);
   const hasUserScrollIntent = useRef(false);
   const pendingMonthScroll = useRef<string | null>(null);
+  const lastAlignedFocusDate = useRef<string | null>(null);
   const pendingPrepend = useRef<null | {
     previousFirstWeek: string;
     previousScrollTop: number;
@@ -765,9 +968,12 @@ function CalendarPreview({
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
 
   useLayoutEffect(() => {
-    shouldAlignInitialWeek.current = true;
+    if (lastAlignedFocusDate.current !== initialFocusDate) {
+      shouldAlignInitialWeek.current = true;
+      lastAlignedFocusDate.current = initialFocusDate;
+    }
     setWeekRange(buildInitialWeekRange(initialWeekStart));
-  }, [initialWeekStart]);
+  }, [initialFocusDate, initialWeekStart]);
 
   useLayoutEffect(() => {
     const scrollElement = scrollRef.current;
@@ -905,6 +1111,25 @@ function CalendarPreview({
     setVisibleMonth(monthKey);
   }
 
+  function scrollToCalendarWeek(weekStartIso: string, behavior: ScrollBehavior = 'smooth') {
+    const scrollElement = scrollRef.current;
+    const targetWeek = weekRefs.current.get(weekStartIso);
+
+    if (!scrollElement || !targetWeek) {
+      setWeekRange((range) => ({
+        startIso: weekStartIso < range.startIso ? addDays(weekStartIso, -WEEK_EXTENSION_SIZE * 7) : range.startIso,
+        endIso: weekStartIso >= range.endIso ? addDays(weekStartIso, (WEEK_EXTENSION_SIZE + 1) * 7) : range.endIso,
+      }));
+      return;
+    }
+
+    scrollElement.scrollTo({
+      top: targetWeek.offsetTop - scrollElement.offsetTop,
+      behavior,
+    });
+    setVisibleMonth(inferVisibleMonthFromWeek(weekStartIso));
+  }
+
   return (
     <section className="calendarApp" aria-label="Calendar preview">
       <div className="calendarHeader">
@@ -915,7 +1140,7 @@ function CalendarPreview({
           <button type="button" aria-label="Next month" onClick={() => scrollToCalendarMonth(shiftMonth(visibleMonth, 1))}>
             <ChevronRightIcon />
           </button>
-          <button className="todayButton" type="button" onClick={() => scrollToCalendarMonth(initialMonth)}>Today</button>
+          <button className="todayButton" type="button" onClick={() => scrollToCalendarWeek(initialWeekStart)}>Today</button>
         </div>
 
         <h2>{formatCalendarMonthTitle(visibleMonth)} <span aria-hidden="true">⌄</span></h2>
@@ -1089,13 +1314,13 @@ function SourceToggle({
 }
 
 function EventDetails({
+  copy,
   event,
   onRemove,
-  webcalUrl,
 }: {
+  copy: typeof UI_COPY[UiLanguage];
   event: PreviewEvent | null;
   onRemove: (eventId: string) => void;
-  webcalUrl: string;
 }) {
   if (!event) {
     return (
@@ -1116,7 +1341,6 @@ function EventDetails({
 
   return (
     <aside className="detailPanel" aria-label="Selected event details">
-      <button className="closeDetail" type="button" aria-label="Close details">×</button>
       <div className="detailTitleBlock">
         <span>{detailKind(event)}</span>
         <h2>{detailTitle(event)}</h2>
@@ -1164,19 +1388,10 @@ function EventDetails({
               View on Steam
             </a>
           ) : null}
-          <button className="ghostAction" onClick={() => onRemove(event.id)} type="button">Remove from calendar</button>
+          <button className="ghostAction" onClick={() => onRemove(event.id)} type="button">{copy.hidePreview}</button>
         </div>
 
-        <div className="subscribeBox">
-          <p>Works with</p>
-          <div className="calendarAppGrid" aria-label="Supported calendar apps">
-            <span><i className="appIcon appleIcon" />Apple Calendar</span>
-            <span><i className="appIcon googleIcon" />Google Calendar</span>
-            <span><i className="appIcon outlookIcon" />Outlook</span>
-            <span><i className="appIcon multiIcon" />Fantastical</span>
-          </div>
-          <div className="calendarApps">Subscribe once. See events in your calendar apps.</div>
-        </div>
+        <div className="subscribeHint">{copy.subscribeFromTop}</div>
       </div>
     </aside>
   );
@@ -1319,6 +1534,38 @@ function buildInitialWeekRange(initialWeekStart: string): { startIso: string; en
   };
 }
 
+function languageOptionByCode(code: string): LanguageOption {
+  return LANGUAGE_OPTIONS.find((language) => language.code === code) ?? LANGUAGE_OPTIONS[0];
+}
+
+function languageCodeFromBrowser(language: string): LanguageOption {
+  const lower = language.toLowerCase();
+
+  if (lower.startsWith('zh')) {
+    return languageOptionByCode('zh-CN');
+  }
+
+  return languageOptionByCode('en');
+}
+
+function chooseCalendarFocusDate(events: PreviewEvent[], todayIso: string): string {
+  const activeToday = events.find((event) => eventOccursOn(event, todayIso));
+
+  if (activeToday) {
+    return todayIso;
+  }
+
+  const upcoming = events
+    .filter((event) => event.startDate >= todayIso)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+
+  if (upcoming) {
+    return upcoming.startDate;
+  }
+
+  return todayIso;
+}
+
 function buildContinuousCalendarWeeks(events: PreviewEvent[], gridStartIso: string, gridEndIso: string): CalendarWeek[] {
   const weeks = [];
 
@@ -1350,6 +1597,12 @@ function calendarGridStartForMonth(monthKey: string): string {
   const firstOfMonth = new Date(Date.UTC(year, month - 1, 1));
   firstOfMonth.setUTCDate(firstOfMonth.getUTCDate() - firstOfMonth.getUTCDay());
   return firstOfMonth.toISOString().slice(0, 10);
+}
+
+function weekStartForDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay());
+  return date.toISOString().slice(0, 10);
 }
 
 function calendarGridEndForMonth(monthKey: string): string {

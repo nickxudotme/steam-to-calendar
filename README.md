@@ -14,18 +14,19 @@ https://wishlist-in-calender.vercel.app/
 
 - Calendar-first UI with a scroll-snapping vertical calendar preview.
 - Steam store country/region selection with flags, aligned to Steam price regions.
+- Language selection for UI copy and Steam CLI data language.
 - URL-encoded feed settings for the first version: deals, events, event categories, wishlist, watched app IDs, count, date range, and store region.
 - Official Steam event import from `steam-cli events --json`, including event category filtering.
 - Hot deals and preorders from `steam-cli deals --filter topsellers --any discounted,preorder --json`.
 - Steam game search through `steam-cli search --json`.
-- Manual game watching through `steam-cli app --json`.
+- Manual game watching through search, Steam appID, or Steam store URL, backed by `steam-cli app --json`.
 - Steam media-backed images through `steam-cli media --json`; runtime images should come from Steam CLI data, not local generated placeholders.
 - Public wishlist import through `steam-cli wishlist --json`, with Steam's wishlist service endpoint as a fallback.
 - Loading states for preview/search/wishlist import, plus add-to-calendar animations for newly watched games.
 - In-memory TTL caching around Steam CLI JSON calls, including in-flight request deduplication.
 - SteamID64 input, plus numeric and custom Steam profile/wishlist URL parsing for wishlist import.
 - Copyable `.ics` feed URL.
-- One-click `webcal://` subscription route.
+- One-click `webcal://` subscription route, plus an HTTPS feed URL for Google Calendar and Outlook.
 - Apple Calendar-compatible ICS response headers and event shape.
 - Unit tests for Steam ingestion, event mapping, and ICS generation.
 - Playwright coverage for preview and feed subscription UI.
@@ -60,6 +61,7 @@ Supported query parameters:
 - `count=5` — number of top deals/preorders to show.
 - `pastDays=0` and `futureDays=365` — event date window passed through to Steam CLI.
 - `cc=US` — Steam store country/region for pricing and store data.
+- `lang=english` and `uiLang=en` — Steam data/UI language fixed when the feed URL is generated. The language picker currently supports English and Simplified Chinese.
 
 Later versions can replace these long query strings with editable short links or private feed tokens.
 

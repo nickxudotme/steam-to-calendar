@@ -5,14 +5,19 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
 
   await expect(page.getByText('Steam Sale Calendar').first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
+  const headerControls = page.locator('.headerControls');
   await expect(page.getByText('🇺🇸 United States Store')).toBeVisible();
-  await expect(page.getByLabel('Steam store region')).toContainText('🇦🇪 United Arab Emirates');
-  const addCalendarLink = page.getByRole('link', { name: 'Add to your Calendar' }).first();
+  await expect(headerControls.getByLabel('Steam store region')).toContainText('🇦🇪 United Arab Emirates');
+  await expect(headerControls.getByLabel('Language')).toContainText('简体中文');
+  const addCalendarLink = page.locator('.calendarCta').first();
   await expect(addCalendarLink).toBeVisible();
   await expect(addCalendarLink).toHaveAttribute(
     'href',
     /webcal:\/\/.+\/cal\/steam-events\?deals=1&events=1&eventTypes=seasonal%2Cnext_fest%2Cfest%2Cstore_sale&wishlist=1&count=5&pastDays=0&futureDays=365&cc=/,
   );
+  await headerControls.getByLabel('Language').selectOption('zh-CN');
+  await expect(addCalendarLink).toHaveAttribute('href', /[?&]lang=schinese&uiLang=zh-CN/);
+  await headerControls.getByLabel('Language').selectOption('en');
   await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
 
   await page.getByLabel('Search Steam games').fill('subnautica');
@@ -26,9 +31,9 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' }).locator('.switch').click();
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]deals=0/);
   await page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' }).locator('.switch').click();
-  await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).locator('input[type="checkbox"]').setChecked(false, { force: true });
+  await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
   await expect(addCalendarLink).toHaveAttribute('href', /eventTypes=seasonal%2Cnext_fest%2Cstore_sale/);
-  await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).locator('input[type="checkbox"]').setChecked(true, { force: true });
+  await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
 
   const publicFeedResponse = await request.get('/feed/steam-events.ics?deals=0&events=1&wishlist=0');
   expect(publicFeedResponse.ok()).toBe(true);

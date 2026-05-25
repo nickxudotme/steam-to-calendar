@@ -9,6 +9,8 @@ export type SteamLocaleOptions = {
 export function steamLocaleFromRequest(request: Request): SteamLocaleOptions {
   const url = new URL(request.url);
   const explicitCc = normalizeCc(url.searchParams.get('cc'));
+  const explicitLang = normalizeSteamLang(url.searchParams.get('lang'));
+  const explicitUiLang = normalizeUiLang(url.searchParams.get('uiLang'));
   const headerCc = normalizeCc(
     request.headers.get('x-vercel-ip-country')
       || request.headers.get('cf-ipcountry')
@@ -18,8 +20,8 @@ export function steamLocaleFromRequest(request: Request): SteamLocaleOptions {
 
   return {
     cc: explicitCc || headerCc || 'US',
-    lang: steamLangFromAcceptLanguage(acceptLanguage),
-    uiLang: acceptLanguage.toLowerCase().includes('zh') ? 'zh-CN' : 'en',
+    lang: explicitLang || steamLangFromAcceptLanguage(acceptLanguage),
+    uiLang: explicitUiLang || (acceptLanguage.toLowerCase().includes('zh') ? 'zh-CN' : 'en'),
   };
 }
 
@@ -68,4 +70,63 @@ function steamLangFromAcceptLanguage(value: string): string {
   }
 
   return 'english';
+}
+
+function normalizeSteamLang(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const lang = value.trim().toLowerCase();
+  const allowed = new Set([
+    'arabic',
+    'brazilian',
+    'bulgarian',
+    'czech',
+    'danish',
+    'dutch',
+    'english',
+    'finnish',
+    'french',
+    'german',
+    'greek',
+    'hungarian',
+    'indonesian',
+    'italian',
+    'japanese',
+    'koreana',
+    'latam',
+    'norwegian',
+    'polish',
+    'portuguese',
+    'romanian',
+    'russian',
+    'schinese',
+    'spanish',
+    'swedish',
+    'tchinese',
+    'thai',
+    'turkish',
+    'ukrainian',
+    'vietnamese',
+  ]);
+
+  return allowed.has(lang) ? lang : null;
+}
+
+function normalizeUiLang(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const lang = value.trim();
+  if (/^zh(-CN)?$/i.test(lang)) {
+    return 'zh-CN';
+  }
+
+  if (/^en(-US)?$/i.test(lang)) {
+    return 'en';
+  }
+
+  return null;
 }

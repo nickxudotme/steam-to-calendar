@@ -8,9 +8,9 @@ The product direction has moved from "wishlist releases only" to **Steam Sale Ca
 
 1. Show an immediately useful calendar even when the user has not provided an account.
 2. Include Steam sale/festival events, current hot discounts, and preorders by default.
-3. Let users tune what appears in the calendar: deal count, official event types, date range, store region, manual watched games, and wishlist import.
-4. Generate a dynamic calendar feed whose settings are encoded in the URL query string.
-5. Make it clear that the feed can be subscribed to from the user's OS calendar apps.
+3. Let users tune what appears in the calendar: deal count, official event types, date range, store region, language, manual watched games, and wishlist import.
+4. Generate a dynamic calendar feed whose settings and Steam language are encoded in the URL query string.
+5. Make it clear that the feed can be subscribed to from the user's OS calendar apps through `webcal://` or copied HTTPS feed URLs.
 
 The product positioning remains calendar-first. The app is not trying to become a full Steam database. Its job is to put timely Steam buying/release moments into the calendar the user already checks.
 
@@ -36,6 +36,7 @@ Key modules:
 - `src/lib/steam/deals.ts` — top discounted/preorder event loading and media enrichment.
 - `src/lib/steam/events.ts` — official Steam event loading through `steam-cli events --json`, category filtering, and static fallback.
 - `src/lib/steam/search.ts` — Steam game search through `steam-cli search --json`.
+- `src/lib/steam/search.ts` also accepts direct Steam appIDs and Steam store app URLs, then resolves them through `steam-cli app --json`.
 - `src/lib/steam/watched-games.ts` — manual watched app events from `steam-cli app --json`.
 - `src/lib/steam/regions.ts` — Steam store regions and flag labels.
 - `src/lib/steam/pipeline.ts` — wishlist appID import plus app detail hydration.
@@ -58,12 +59,12 @@ steam-cli media {appId} --json --cc {cc} --lang {lang} --ui-lang {uiLang}
 steam-cli wishlist {profileOrSteamId} --count {limit} --json
 ```
 
-Steam store country/region (`cc`) and language are separate concepts. The app can infer defaults from request/browser context, but the user can explicitly choose a Steam store region. Browser language controls UI language preference; store country controls Steam prices and regional availability.
+Steam store country/region (`cc`) and language are separate concepts. The app can infer defaults from request/browser context, but the user can explicitly choose both from the top bar. Store country controls Steam prices and regional availability. Language currently supports English and Simplified Chinese, and controls both core UI copy and Steam CLI data language. Feed URLs include `lang` and `uiLang` so calendar refreshes keep the same Steam language assumptions.
 
 Settings are encoded into URL query parameters in this first version:
 
 ```text
-deals=1&events=1&eventTypes=seasonal,next_fest,fest,store_sale&wishlist=1&apps=264710&count=5&pastDays=0&futureDays=365&cc=US
+deals=1&events=1&eventTypes=seasonal,next_fest,fest,store_sale&wishlist=1&apps=264710&count=5&pastDays=0&futureDays=365&cc=US&lang=english&uiLang=en
 ```
 
 Wishlist import still falls back to Steam's public wishlist service endpoint if the CLI is unavailable. The prototype only supports public wishlists.
@@ -89,10 +90,14 @@ The cache can be tuned with `STEAM_CLI_*_CACHE_TTL_MS` environment variables and
 
 - The first screen is the usable product, not a marketing landing page.
 - The default preview has account-free calendar items.
+- The top bar separates Steam store region from language selection.
 - Calendar rows use a vertical, scroll-snapping layout.
 - Days with many events can grow taller instead of hiding all context.
 - Search, wishlist import, and preview refreshes show explicit loading states.
 - Adding a watched game animates both the selected-game row and the new calendar event.
+- Users can copy the HTTPS feed URL for Google Calendar/Outlook and use `webcal://` for Apple Calendar-style subscription.
+- Event removal in the detail panel is labeled as preview hiding, because it does not mutate the subscribed feed configuration.
+- Private/unavailable wishlist failures keep the user on useful paths: Steam events, search, appID, or store URL.
 - Motion respects `prefers-reduced-motion`.
 
 ## Verification
@@ -131,5 +136,5 @@ Coverage includes:
 
 - Add persisted short links/private feed tokens for long query configurations.
 - Add editable short-link settings.
-- Add bilingual zh/en routing and final copy.
+- Finish full Chinese/English coverage for all secondary copy.
 - Consider a shared persistent cache if Steam CLI pressure becomes visible in production.

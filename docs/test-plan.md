@@ -18,10 +18,12 @@ Updated on 2026-05-25 for the Steam Sale Calendar direction.
 
 - Load `/` without entering a Steam account and see useful default calendar items.
 - Change the Steam store country/region and confirm the generated subscription URL includes `cc`.
+- Change the language and confirm the generated subscription URL includes matching `lang` and `uiLang`.
 - Toggle deal/event/wishlist settings and confirm the generated URL query updates.
 - Filter official Steam event types and confirm `eventTypes` updates.
 - Change deal count and confirm `count` updates.
 - Search for a Steam game, add it, and see it added to the selected list and calendar preview.
+- Paste a Steam appID or Steam store app URL into the game search box and confirm it resolves to an addable game.
 - Confirm adding a game animates the selected row and calendar event.
 - Connect a public wishlist and confirm manual app IDs are ignored while wishlist mode is active.
 - Enter a valid SteamID64 on `/` and see exact-dated wishlist release events.
@@ -29,6 +31,7 @@ Updated on 2026-05-25 for the Steam Sale Calendar direction.
 - Enter malformed input and see a clear validation error without arbitrary URL fetch.
 - Enter a private/hidden/unavailable wishlist and see fallback copy.
 - Generate a feed URL from preview.
+- Copy the HTTPS feed URL and confirm it includes settings, store region, and language.
 - Open the feed URL and confirm `Content-Type: text/calendar; charset=utf-8`.
 - Confirm feed contains `VCALENDAR`, stable `UID`, all-day release events, and major Steam events.
 - Subscribe to deployed feed URL in Apple Calendar and confirm events appear.

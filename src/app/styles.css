@@ -80,21 +80,26 @@ select {
   border-bottom: 1px solid rgba(117, 151, 184, 0.17);
   display: flex;
   gap: 20px;
-  height: 78px;
+  min-height: 78px;
   justify-content: space-between;
   margin: 0 -12px 12px;
-  padding: 0 28px;
+  padding: 14px 28px;
 }
 
 .brandMark {
   align-items: center;
   color: #f5f8fa;
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 16px;
   font-size: 1.46rem;
   font-weight: 850;
   letter-spacing: 0;
   text-decoration: none;
+}
+
+.brandMark > span:last-child {
+  white-space: nowrap;
 }
 
 .brandIcon {
@@ -120,10 +125,15 @@ select {
 .headerControls {
   align-items: center;
   display: flex;
-  gap: 18px;
+  flex: 1 1 auto;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
-.regionSelect {
+.regionSelect,
+.languageSelect {
   align-items: center;
   background: rgba(13, 24, 36, 0.9);
   border: 1px solid rgba(117, 151, 184, 0.26);
@@ -139,13 +149,19 @@ select {
   padding: 0 10px 0 16px;
 }
 
-.regionSelect span {
+.languageSelect {
+  max-width: min(220px, 100%);
+}
+
+.regionSelect span,
+.languageSelect span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.regionSelect select {
+.regionSelect select,
+.languageSelect select {
   appearance: none;
   background: transparent;
   border: 0;
@@ -156,7 +172,8 @@ select {
   width: 28px;
 }
 
-.regionSelect::after {
+.regionSelect::after,
+.languageSelect::after {
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid #b7c8d5;
@@ -166,23 +183,41 @@ select {
   pointer-events: none;
 }
 
-.calendarCta {
+.regionHint {
+  color: var(--muted-2);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  max-width: 132px;
+}
+
+.calendarCta,
+.copyFeedButton {
   align-items: center;
-  background: linear-gradient(180deg, #168dff, #0867bf);
-  border: 1px solid rgba(102, 192, 244, 0.7);
   border-radius: 7px;
-  box-shadow: 0 14px 34px rgba(22, 134, 223, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  color: #ffffff;
   display: inline-flex;
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 850;
   gap: 10px;
   justify-content: center;
   min-height: 48px;
-  min-width: 238px;
-  padding: 0 20px;
+  padding: 0 16px;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.calendarCta {
+  background: linear-gradient(180deg, #168dff, #0867bf);
+  border: 1px solid rgba(102, 192, 244, 0.7);
+  box-shadow: 0 14px 34px rgba(22, 134, 223, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  min-width: 210px;
+}
+
+.copyFeedButton {
+  background: rgba(13, 24, 36, 0.9);
+  border: 1px solid rgba(117, 151, 184, 0.28);
+  color: #d7e5ee;
+  cursor: pointer;
 }
 
 .calendarWorkbench {
@@ -207,6 +242,7 @@ select {
 .configPanel,
 .detailPanel {
   align-self: stretch;
+  overflow: auto;
 }
 
 .configPanel {
@@ -234,7 +270,7 @@ select {
 .myGamesBlock p,
 .detailDescription,
 .detailNote,
-.subscribeBox p {
+.subscribeHint {
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.45;
@@ -1197,7 +1233,14 @@ select {
 .detailActions {
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.detailActions .secondaryAction,
+.detailActions .ghostAction {
+  font-size: 0.84rem;
+  min-height: 44px;
+  padding: 0 10px;
 }
 
 .secondaryAction,
@@ -1223,67 +1266,7 @@ select {
 .ghostAction {
   background: transparent;
   border: 1px solid rgba(117, 151, 184, 0.28);
-  color: #ff665e;
-}
-
-.subscribeBox {
-  display: grid;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.subscribeBox p {
-  margin: 0;
-}
-
-.calendarAppGrid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.calendarAppGrid span {
-  align-items: center;
-  color: #c9d8e2;
-  display: grid;
-  font-size: 0.68rem;
-  gap: 7px;
-  justify-items: center;
-  line-height: 1.25;
-  text-align: center;
-}
-
-.appIcon {
-  border-radius: 8px;
-  display: block;
-  height: 38px;
-  width: 38px;
-}
-
-.appleIcon {
-  background:
-    linear-gradient(#ff5b65 0 25%, #ffffff 25% 100%);
-}
-
-.googleIcon {
-  background:
-    linear-gradient(90deg, #4285f4 0 48%, #34a853 48% 100%);
-}
-
-.outlookIcon {
-  background:
-    linear-gradient(135deg, #0874c9, #4cc3ff);
-}
-
-.multiIcon {
-  background:
-    linear-gradient(90deg, #ff5b65 0 25%, #ffffff 25% 50%, #33a853 50% 75%, #4285f4 75%);
-}
-
-.calendarApps {
-  color: var(--muted-2);
-  font-size: 0.72rem;
-  line-height: 1.35;
+  color: #d7e5ee;
 }
 
 .emptyDetail {
@@ -1312,6 +1295,13 @@ select {
 .siteFooter a {
   color: var(--muted);
   text-decoration: none;
+}
+
+.mobileSheetBackdrop,
+.mobileSheetHeader,
+.mobileSheetControls,
+.mobileBottomBar {
+  display: none;
 }
 
 .srOnly {
@@ -1423,7 +1413,8 @@ select {
     gap: 8px;
   }
 
-  .calendarCta {
+  .calendarCta,
+  .copyFeedButton {
     min-width: 0;
   }
 
@@ -1466,42 +1457,202 @@ select {
 }
 
 @media (max-width: 700px) {
+  .shell {
+    padding: 0 10px calc(92px + env(safe-area-inset-bottom));
+  }
+
   .brandMark {
-    font-size: 0.95rem;
+    font-size: 1.02rem;
   }
 
   .brandIcon {
-    height: 38px;
-    width: 38px;
+    height: 40px;
+    width: 40px;
   }
 
   .siteHeader {
-    align-items: flex-start;
+    height: 64px;
+    margin: 0 -10px 8px;
+    padding: 0 14px;
+  }
+
+  .brandMark {
+    justify-self: start;
   }
 
   .headerControls {
-    flex-direction: column;
-    align-items: flex-end;
+    display: none;
   }
 
-  .regionSelect {
-    min-height: 40px;
+  .calendarWorkbench {
+    display: block;
   }
 
-  .calendarCta {
-    font-size: 0;
-    min-height: 40px;
-    min-width: 44px;
+  .configPanel {
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    bottom: 0;
+    box-shadow: 0 -26px 70px rgba(0, 0, 0, 0.58);
+    display: grid;
+    gap: 12px;
+    left: 0;
+    max-height: min(82svh, 720px);
+    overflow: auto;
+    padding: 10px 14px calc(22px + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    top: auto;
+    transform: translateY(106%);
+    transition: transform 190ms ease;
+    z-index: 32;
+  }
+
+  .configPanel.isMobileOpen {
+    transform: translateY(0);
+  }
+
+  .mobileSheetBackdrop.isVisible {
+    background: rgba(1, 6, 12, 0.64);
+    border: 0;
+    display: block;
+    inset: 0;
+    padding: 0;
+    position: fixed;
+    z-index: 28;
+  }
+
+  .mobileSheetHeader {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0 2px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .mobileSheetHeader h2 {
+    font-size: 1.08rem;
+    margin: 0;
+  }
+
+  .mobileSheetHeader button {
+    align-items: center;
+    background: rgba(12, 22, 34, 0.96);
+    border: 1px solid rgba(117, 151, 184, 0.28);
+    border-radius: 999px;
+    color: #d7e5ee;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 1.35rem;
+    height: 36px;
+    justify-content: center;
+    line-height: 1;
+    width: 36px;
+  }
+
+  .mobileSheetControls {
+    display: grid;
+    gap: 10px;
+  }
+
+  .sheetSelect {
+    display: grid;
+    gap: 6px;
+  }
+
+  .sheetSelect span {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 780;
+  }
+
+  .sheetSelect select {
+    appearance: none;
+    background:
+      linear-gradient(45deg, transparent 50%, #b7c8d5 50%) calc(100% - 18px) 18px / 6px 6px no-repeat,
+      linear-gradient(135deg, #b7c8d5 50%, transparent 50%) calc(100% - 12px) 18px / 6px 6px no-repeat,
+      rgba(7, 13, 22, 0.78);
+    border: 1px solid rgba(117, 151, 184, 0.25);
+    border-radius: 7px;
+    color: var(--fg);
+    height: 44px;
+    min-width: 0;
+    padding: 0 34px 0 12px;
+    width: 100%;
+  }
+
+  .mobileCopyFeedButton {
+    align-items: center;
+    background: rgba(13, 24, 36, 0.92);
+    border: 1px solid rgba(117, 151, 184, 0.28);
+    border-radius: 7px;
+    color: #d7e5ee;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.92rem;
+    font-weight: 820;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .mobileBottomBar {
+    align-items: center;
+    background: rgba(5, 12, 20, 0.76);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(117, 151, 184, 0.2);
+    border-radius: 16px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.46);
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 56px;
+    left: 10px;
+    padding: 8px;
+    position: fixed;
+    right: 10px;
+    z-index: 24;
+  }
+
+  .mobileAddCalendar,
+  .mobileSettingsButton {
+    align-items: center;
+    border-radius: 11px;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 54px;
+    text-decoration: none;
+  }
+
+  .mobileAddCalendar {
+    background: linear-gradient(180deg, #168dff, #0867bf);
+    border: 1px solid rgba(102, 192, 244, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 870;
+    gap: 10px;
+    min-width: 0;
+    padding: 0 14px;
+  }
+
+  .mobileAddCalendar span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileSettingsButton {
+    background: rgba(13, 24, 36, 0.94);
+    border: 1px solid rgba(117, 151, 184, 0.28);
+    color: #d7e5ee;
+    cursor: pointer;
     padding: 0;
   }
 
-  .calendarCta .toolbarSvg {
-    height: 20px;
-    width: 20px;
-  }
-
   .calendarExperience {
-    height: 520px;
+    height: calc(100svh - 150px - env(safe-area-inset-bottom));
     min-height: 0;
   }
 
@@ -1511,19 +1662,34 @@ select {
 
   .calendarHeader {
     gap: 10px;
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
     justify-items: stretch;
     padding: 12px;
   }
 
   .calendarHeader h2 {
+    align-self: center;
     grid-row: 1;
+    justify-self: end;
     text-align: left;
   }
 
   .calendarControls,
   .calendarNav {
     justify-content: space-between;
+  }
+
+  .calendarControls {
+    grid-column: 1 / -1;
+  }
+
+  .calendarNav {
+    gap: 8px;
+  }
+
+  .calendarNav button,
+  .calendarControls button {
+    min-height: 40px;
   }
 
   .viewTabs button {
@@ -1571,8 +1737,15 @@ select {
     padding: 10px 12px;
   }
 
-  .rangeGrid,
-  .calendarAppGrid {
+  .detailPanel {
+    margin-top: 12px;
+  }
+
+  .rangeGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .siteFooter {
+    display: none;
   }
 }

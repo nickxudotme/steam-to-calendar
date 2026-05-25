@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeCc } from '../locale';
+import { normalizeCc, steamLocaleFromRequest } from '../locale';
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from '../regions';
 
 describe('Steam store regions', () => {
@@ -19,5 +19,17 @@ describe('Steam store regions', () => {
     expect(countryFlag('US')).toBe('🇺🇸');
     expect(countryFlag('GB')).toBe('🇬🇧');
     expect(steamStoreRegionName('JP')).toBe('Japan');
+  });
+
+  it('keeps explicit store country and language settings in feed URLs', () => {
+    const request = new Request('https://example.test/feed/steam-events.ics?cc=JP&lang=japanese&uiLang=en', {
+      headers: { 'accept-language': 'zh-CN,zh;q=0.9' },
+    });
+
+    expect(steamLocaleFromRequest(request)).toEqual({
+      cc: 'JP',
+      lang: 'japanese',
+      uiLang: 'en',
+    });
   });
 });
