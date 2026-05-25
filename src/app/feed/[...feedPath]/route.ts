@@ -20,7 +20,7 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const { feedPath = [] } = await context.params;
     const steamId64 = parseFeedPath(feedPath);
-    const response = await buildCalendarResponse(steamId64);
+    const response = await buildCalendarResponse(steamId64, request);
     logCalendarRequest(request, response, { route: '/feed/[...feedPath]', steamId64 });
     return response;
   } catch (error) {

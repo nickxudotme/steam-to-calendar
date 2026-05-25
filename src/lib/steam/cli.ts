@@ -16,7 +16,10 @@ type SteamCliEnvelope<T> = {
 };
 
 export type SteamCliOptions = {
+  cc?: string;
+  lang?: string;
   processTimeoutMs?: number;
+  uiLang?: string;
 };
 
 const DEFAULT_PROCESS_TIMEOUT_MS = 45_000;
@@ -35,11 +38,11 @@ export async function runSteamCliJson<T>(
     ...commandArgs,
     '--json',
     '--cc',
-    process.env.STEAM_CLI_CC?.trim() || 'US',
+    options.cc?.trim() || process.env.STEAM_CLI_CC?.trim() || 'US',
     '--lang',
-    process.env.STEAM_CLI_LANG?.trim() || 'english',
+    options.lang?.trim() || process.env.STEAM_CLI_LANG?.trim() || 'english',
     '--ui-lang',
-    process.env.STEAM_CLI_UI_LANG?.trim() || 'en',
+    options.uiLang?.trim() || process.env.STEAM_CLI_UI_LANG?.trim() || 'en',
     '--timeout',
     process.env.STEAM_CLI_REQUEST_TIMEOUT_SECONDS?.trim() || '12',
   ];

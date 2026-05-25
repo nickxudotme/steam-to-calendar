@@ -2,13 +2,21 @@ import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
 import { calendarContentType, generateCalendar } from '@/lib/ics/generator';
 import { SteamWishlistError } from '@/lib/steam/client';
+import { fetchSteamDealEvents } from '@/lib/steam/deals';
 import { fetchSteamMajorEvents } from '@/lib/steam/events';
+import { steamLocaleFromRequest, type SteamLocaleOptions } from '@/lib/steam/locale';
 import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
 
-export async function buildCalendarResponse(steamInput: string): Promise<Response> {
+export async function buildCalendarResponse(steamInput: string, request?: Request): Promise<Response> {
   try {
+    const locale = request ? steamLocaleFromRequest(request) : defaultSteamLocale();
+
     if (steamInput === STEAM_EVENTS_CALENDAR_ID) {
-      const events = await fetchSteamMajorEvents();
+      const [dealEvents, steamEvents] = await Promise.all([
+        fetchSteamDealEvents({ ...locale, count: 5 }),
+        fetchSteamMajorEvents(locale),
+      ]);
+      const events = [...dealEvents, ...steamEvents];
       const calendar = generateCalendar(events);
 
       return new Response(calendar, {
@@ -18,8 +26,12 @@ export async function buildCalendarResponse(steamInput: string): Promise<Respons
     }
 
     const data = await fetchWishlistCalendarData(steamInput);
-    const steamEvents = await fetchSteamMajorEvents();
+    const [dealEvents, steamEvents] = await Promise.all([
+      fetchSteamDealEvents({ ...locale, count: 5 }),
+      fetchSteamMajorEvents(locale),
+    ]);
     const events = [
+      ...dealEvents,
       ...mapWishlistReleaseEvents(data.appDetails),
       ...steamEvents,
     ];
@@ -44,9 +56,17 @@ export async function buildCalendarResponse(steamInput: string): Promise<Respons
   }
 }
 
+function defaultSteamLocale(): SteamLocaleOptions {
+  return {
+    cc: 'US',
+    lang: 'english',
+    uiLang: 'en',
+  };
+}
+
 export function calendarHeaders(steamId64: string): HeadersInit {
   const filename = steamId64 === STEAM_EVENTS_CALENDAR_ID
-    ? 'steam-events.ics'
+    ? 'steam-sale-calendar.ics'
     : `steam-wishlist-${steamId64}.ics`;
 
   return {

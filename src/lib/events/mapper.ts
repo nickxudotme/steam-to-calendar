@@ -7,7 +7,27 @@ export type CalendarEvent = {
   startDate: string;
   endDate?: string;
   sourceUrl?: string;
-  type: 'wishlist_release' | 'steam_major_event';
+  type: 'wishlist_release' | 'steam_major_event' | 'steam_deal' | 'steam_preorder';
+  appId?: string;
+  imageUrl?: string;
+  discount?: string;
+  originalPrice?: string;
+  finalPrice?: string;
+  releaseTime?: number;
+  discountEnd?: number;
+};
+
+export type SteamDealItem = {
+  appid: number;
+  name: string;
+  release_time?: number;
+  review?: string;
+  discount?: string;
+  original?: string;
+  final?: string;
+  discount_end?: number;
+  image_url?: string;
+  url?: string;
 };
 
 export type SteamMajorEventSeed = {
@@ -94,6 +114,74 @@ export function mapSteamMajorEvents(
     }));
 }
 
+export function mapSteamDealEvents(
+  deals: SteamDealItem[],
+  options: EventMapperOptions = {},
+): CalendarEvent[] {
+  const today = options.today ?? todayIsoDate();
+
+  return deals.flatMap((deal): CalendarEvent[] => {
+    const appId = String(deal.appid);
+    const sourceUrl = deal.url || steamStoreUrl(appId);
+    const discount = cleanDealValue(deal.discount);
+    const finalPrice = cleanDealValue(deal.final);
+    const originalPrice = cleanDealValue(deal.original);
+    const imageUrl = cleanDealValue(deal.image_url);
+
+    if (discount && deal.discount_end) {
+      const endDate = unixSecondsToIsoDate(deal.discount_end);
+
+      return [{
+        id: `steam-app-${appId}-deal`,
+        title: `${discount} ${deal.name}`,
+        description: [
+          `${deal.name} is currently discounted on Steam.`,
+          finalPrice && originalPrice ? `Price: ${finalPrice} (was ${originalPrice})` : null,
+          `Deal shown from now until Steam reports it ends.`,
+          sourceUrl,
+        ].filter((part): part is string => Boolean(part)).join('\n'),
+        startDate: today,
+        endDate: endDate <= today ? addDays(today, 1) : endDate,
+        sourceUrl,
+        type: 'steam_deal' as const,
+        appId,
+        discount,
+        originalPrice,
+        finalPrice,
+        ...(imageUrl ? { imageUrl } : {}),
+        discountEnd: deal.discount_end,
+      }];
+    }
+
+    if (deal.release_time) {
+      const releaseDate = unixSecondsToIsoDate(deal.release_time);
+      if (releaseDate < today) {
+        return [];
+      }
+
+      return [{
+        id: `steam-app-${appId}-preorder`,
+        title: `${deal.name} preorder`,
+        description: [
+          `${deal.name} is available to preorder on Steam.`,
+          finalPrice ? `Price: ${finalPrice}` : null,
+          `Release date: ${releaseDate}`,
+          sourceUrl,
+        ].filter((part): part is string => Boolean(part)).join('\n'),
+        startDate: releaseDate,
+        sourceUrl,
+        type: 'steam_preorder' as const,
+        appId,
+        finalPrice,
+        ...(imageUrl ? { imageUrl } : {}),
+        releaseTime: deal.release_time,
+      }];
+    }
+
+    return [];
+  });
+}
+
 export function parseExactSteamReleaseDate(releaseDateText: string): string | null {
   const match = releaseDateText.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
   if (!match) {
@@ -132,4 +220,26 @@ function monthNumber(month: string): string | null {
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function cleanDealValue(value?: string): string | undefined {
+  if (!value || value.trim() === '-') {
+    return undefined;
+  }
+
+  return value.trim();
+}
+
+function steamStoreUrl(appId: string): string {
+  return `https://store.steampowered.com/app/${appId}/`;
+}
+
+function unixSecondsToIsoDate(value: number): string {
+  return new Date(value * 1000).toISOString().slice(0, 10);
 }

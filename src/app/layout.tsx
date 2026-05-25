@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import './styles.css';
 
 export const metadata: Metadata = {
-  title: 'Wishlist in Calendar',
-  description: 'Put your Steam wishlist into your real calendar.',
+  title: 'Steam Sale Calendar',
+  description: 'Track Steam deals, preorders, sales, fests, and watched games in your calendar app.',
   icons: {
     icon: [
       { url: '/favicon.ico', type: 'image/x-icon', sizes: 'any' },

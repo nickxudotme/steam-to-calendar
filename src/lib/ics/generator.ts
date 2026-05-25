@@ -68,8 +68,8 @@ function addCalendarMetadata(calendar: string): string {
       ].join('\r\n'),
       [
         'VERSION:2.0',
-        'PRODID:-//wishlist-in-calendar//weekend-prototype//EN',
-        'X-WR-CALNAME:Wishlist in Calendar',
+        'PRODID:-//steam-sale-calendar//sale-calendar//EN',
+        'X-WR-CALNAME:Steam Sale Calendar',
         'X-APPLE-CALENDAR-COLOR:#66C0F4',
         'CALSCALE:GREGORIAN',
         '',

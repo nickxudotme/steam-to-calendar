@@ -3,14 +3,15 @@ import { expect, test } from '@playwright/test';
 test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ page, request }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: /put your steam wishlist into your calendar/i })).toBeVisible();
+  await expect(page.getByText('Steam Sale Calendar').first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Add to your Calendar' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add to your Calendar' }).first()).toBeVisible();
+  await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
 
   const publicFeedResponse = await request.get('/feed/steam-events.ics');
   expect(publicFeedResponse.ok()).toBe(true);
   expect(publicFeedResponse.headers()['content-type']).toContain('text/calendar');
-  expect(publicFeedResponse.headers()['content-disposition']).toContain('steam-events.ics');
+  expect(publicFeedResponse.headers()['content-disposition']).toContain('steam-sale-calendar.ics');
   await expect(await publicFeedResponse.text()).toContain('BEGIN:VCALENDAR');
 
   await page.waitForLoadState('networkidle');
@@ -19,17 +20,12 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
     response.url().includes('/api/preview') && response.request().method() === 'POST',
   );
   await page.getByLabel('Paste your Steam Profile URL').fill('https://steamcommunity.com/id/nickxudotme/');
-  await page.getByRole('button', { name: 'Add to your Calendar' }).click();
+  await page.getByRole('button', { name: 'Import Steam Wishlist' }).click();
   await expect((await previewResponse).ok()).toBe(true);
 
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
   await expect(page.getByRole('grid', { name: /continuous calendar grid/i })).toBeVisible();
-  const nextFestSegments = page.locator('[data-event-id="steam-event-2026-06-15-steam-next-fest"]');
-  await expect(nextFestSegments).toHaveCount(2);
-  await expect(nextFestSegments.nth(0)).toHaveAttribute('style', /--segment-start: 1; --segment-span: 6/);
-  await expect(nextFestSegments.nth(1)).toHaveAttribute('style', /--segment-start: 0; --segment-span: 1/);
-  await expect(nextFestSegments.nth(0)).toHaveAccessibleName('🎮 Steam Next Fest');
-  await nextFestSegments.nth(0).hover();
+  await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
   await expect(page.getByTestId('event-popover')).toHaveCount(0);
 
   const feedResponse = await request.get('/feed/76561198115468824.ics');

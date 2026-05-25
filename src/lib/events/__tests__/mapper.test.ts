@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  mapSteamDealEvents,
   mapSteamMajorEvents,
   mapWishlistReleaseEvents,
   parseExactSteamReleaseDate,
@@ -133,5 +134,46 @@ describe('event mapper', () => {
         { today: '2026-05-20' },
       ),
     ).toEqual([]);
+  });
+
+  it('maps Steam deal media image URLs onto discount events', () => {
+    expect(
+      mapSteamDealEvents(
+        [
+          {
+            appid: 3472040,
+            name: 'NBA 2K26',
+            discount: '-86%',
+            original: '$69.99',
+            final: '$9.79',
+            discount_end: Math.floor(Date.parse('2026-06-01T00:00:00.000Z') / 1000),
+            image_url: 'https://cdn.example.test/library_hero.jpg',
+            url: 'https://store.steampowered.com/app/3472040/NBA_2K26/',
+          },
+        ],
+        { today: '2026-05-25' },
+      ),
+    ).toEqual([
+      {
+        id: 'steam-app-3472040-deal',
+        title: '-86% NBA 2K26',
+        description: [
+          'NBA 2K26 is currently discounted on Steam.',
+          'Price: $9.79 (was $69.99)',
+          'Deal shown from now until Steam reports it ends.',
+          'https://store.steampowered.com/app/3472040/NBA_2K26/',
+        ].join('\n'),
+        startDate: '2026-05-25',
+        endDate: '2026-06-01',
+        sourceUrl: 'https://store.steampowered.com/app/3472040/NBA_2K26/',
+        type: 'steam_deal',
+        appId: '3472040',
+        discount: '-86%',
+        originalPrice: '$69.99',
+        finalPrice: '$9.79',
+        imageUrl: 'https://cdn.example.test/library_hero.jpg',
+        discountEnd: Math.floor(Date.parse('2026-06-01T00:00:00.000Z') / 1000),
+      },
+    ]);
   });
 });

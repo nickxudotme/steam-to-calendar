@@ -15,14 +15,14 @@ type SteamCliEvent = {
   info_url?: string;
 };
 
-export async function fetchSteamMajorEvents(): Promise<CalendarEvent[]> {
+export async function fetchSteamMajorEvents(options: { cc?: string; lang?: string; uiLang?: string } = {}): Promise<CalendarEvent[]> {
   const data = await runSteamCliJson<SteamCliEvent[]>([
     'events',
     '--past-days',
     '0',
     '--future-days',
     '365',
-  ]);
+  ], { cc: options.cc, lang: options.lang, uiLang: options.uiLang });
 
   if (!data) {
     return mapSteamMajorEvents();
