@@ -24,6 +24,7 @@ describe('event mapper', () => {
       {
         appId: '1962700',
         name: 'Subnautica 2',
+        shortDescription: 'A survival adventure beneath an alien sea.',
         releaseDateText: 'May 14, 2026',
         hasExactReleaseDate: true,
         storeUrl: 'https://store.steampowered.com/app/1962700/',
@@ -34,10 +35,12 @@ describe('event mapper', () => {
       {
         id: 'steam-app-1962700-release',
         title: '🎮 Subnautica 2 releases',
-        description: 'Steam app 1962700\nhttps://store.steampowered.com/app/1962700/',
+        description: 'A survival adventure beneath an alien sea.\nhttps://store.steampowered.com/app/1962700/',
         startDate: '2026-05-14',
         sourceUrl: 'https://store.steampowered.com/app/1962700/',
         type: 'wishlist_release',
+        appId: '1962700',
+        releaseDateText: 'May 14, 2026',
       },
     ]);
   });
@@ -146,6 +149,7 @@ describe('event mapper', () => {
             discount: '-86%',
             original: '$69.99',
             final: '$9.79',
+            review: 'Build your own dynasty in MyCAREER and MyTEAM.',
             discount_end: Math.floor(Date.parse('2026-06-01T00:00:00.000Z') / 1000),
             image_url: 'https://cdn.example.test/library_hero.jpg',
             url: 'https://store.steampowered.com/app/3472040/NBA_2K26/',
@@ -158,9 +162,8 @@ describe('event mapper', () => {
         id: 'steam-app-3472040-deal',
         title: '-86% NBA 2K26',
         description: [
-          'NBA 2K26 is currently discounted on Steam.',
+          'Build your own dynasty in MyCAREER and MyTEAM.',
           'Price: $9.79 (was $69.99)',
-          'Deal shown from now until Steam reports it ends.',
           'https://store.steampowered.com/app/3472040/NBA_2K26/',
         ].join('\n'),
         startDate: '2026-05-25',

@@ -8,9 +8,13 @@ export type SteamWishlistGame = {
 export type SteamAppDetails = {
   appId: string;
   name: string;
+  shortDescription?: string;
   releaseDateText: string | null;
   hasExactReleaseDate: boolean;
   storeUrl: string;
+  genres?: string[];
+  developers?: string[];
+  publishers?: string[];
 };
 
 export type SteamWishlistResult = {
@@ -253,14 +257,22 @@ export async function fetchSteamAppDetails(
 
   const data = appRecord.data as Record<string, unknown>;
   const name = readString(data, 'name') ?? `Steam app ${appId}`;
+  const shortDescription = readString(data, 'short_description')?.trim();
   const releaseDateText = readReleaseDate(data);
+  const genres = readDescribedList(data, 'genres');
+  const developers = readStringList(data, 'developers');
+  const publishers = readStringList(data, 'publishers');
 
   return {
     appId,
     name,
+    ...(shortDescription ? { shortDescription } : {}),
     releaseDateText,
     hasExactReleaseDate: isExactSteamReleaseDate(releaseDateText),
     storeUrl: `https://store.steampowered.com/app/${appId}/`,
+    ...(genres.length ? { genres } : {}),
+    ...(developers.length ? { developers } : {}),
+    ...(publishers.length ? { publishers } : {}),
   };
 }
 
@@ -536,4 +548,34 @@ function readString(record: Record<string, unknown>, key: string): string | null
   }
 
   return null;
+}
+
+function readStringList(record: Record<string, unknown>, key: string): string[] {
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return uniqueStrings(value.flatMap((item) => (typeof item === 'string' ? [item] : [])));
+}
+
+function readDescribedList(record: Record<string, unknown>, key: string): string[] {
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return uniqueStrings(value.flatMap((item) => {
+    if (!item || typeof item !== 'object') {
+      return [];
+    }
+
+    const description = readString(item as Record<string, unknown>, 'description')
+      ?? readString(item as Record<string, unknown>, 'name');
+    return description ? [description] : [];
+  }));
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }

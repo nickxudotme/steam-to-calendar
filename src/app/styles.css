@@ -143,11 +143,35 @@ select {
   min-width: 0;
 }
 
+.localeControls {
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(16, 32, 48, 0.72), rgba(7, 15, 25, 0.7));
+  border: 1px solid rgba(117, 151, 184, 0.22);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 30px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.localeControls:focus-within {
+  border-color: rgba(102, 192, 244, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 2px rgba(102, 192, 244, 0.1),
+    0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
 .storeRegionControl {
   align-items: center;
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+  padding-left: 10px;
   position: relative;
 }
 
@@ -181,25 +205,25 @@ select {
 }
 
 .storeRegionIcon {
-  color: rgba(217, 232, 243, 0.78);
+  color: rgba(143, 176, 200, 0.72);
   flex: 0 0 auto;
-  font-size: 1.32rem;
+  font-size: 1.12rem;
   line-height: 1;
 }
 
 .regionSelect {
   align-items: center;
-  background: rgba(13, 24, 36, 0.9);
-  border: 1px solid rgba(117, 151, 184, 0.26);
-  border-radius: 7px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: #eff6fb;
   display: inline-grid;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 740;
-  grid-template-columns: minmax(0, 1fr) 22px;
-  max-width: 148px;
-  min-height: 48px;
-  min-width: 148px;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  height: 46px;
+  max-width: 128px;
+  min-width: 128px;
   position: relative;
 }
 
@@ -209,7 +233,7 @@ select {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
-  padding: 0 4px 0 12px;
+  padding: 0 2px 0 8px;
   pointer-events: none;
   z-index: 1;
 }
@@ -223,16 +247,17 @@ select {
 
 .languageSelect {
   align-items: center;
-  background: rgba(13, 24, 36, 0.9);
-  border: 1px solid rgba(117, 151, 184, 0.26);
-  border-radius: 7px;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(117, 151, 184, 0.18);
+  border-radius: 0;
   color: #d9e8f3;
   cursor: pointer;
   display: inline-grid;
   flex: 0 0 auto;
-  grid-template-columns: minmax(0, 1fr) 16px;
-  height: 48px;
-  min-width: 58px;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  height: 46px;
+  min-width: 52px;
   position: relative;
 }
 
@@ -247,8 +272,8 @@ select {
 }
 
 .languageIconOnly .miniIcon {
-  height: 24px;
-  width: 24px;
+  height: 21px;
+  width: 21px;
 }
 
 .regionSelect select,
@@ -268,9 +293,9 @@ select {
 .regionSelect::after,
 .languageSelect::after {
   align-self: center;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #b7c8d5;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(183, 200, 213, 0.78);
   content: "";
   grid-column: 2;
   grid-row: 1;
@@ -278,40 +303,32 @@ select {
   pointer-events: none;
 }
 
-.calendarCta,
-.copyFeedButton {
+.calendarFooterCta {
   align-items: center;
   border-radius: 7px;
   display: inline-flex;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 850;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 14px;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.calendarCta {
+.calendarFooterCta {
   background: linear-gradient(180deg, #168dff, #0867bf);
   border: 1px solid rgba(102, 192, 244, 0.7);
-  box-shadow: 0 14px 34px rgba(22, 134, 223, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(22, 134, 223, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   color: #ffffff;
-  min-width: 210px;
-}
-
-.copyFeedButton {
-  background: rgba(13, 24, 36, 0.9);
-  border: 1px solid rgba(117, 151, 184, 0.28);
-  color: #d7e5ee;
-  cursor: pointer;
+  min-width: 176px;
 }
 
 .calendarWorkbench {
   display: grid;
   gap: 16px;
-  grid-template-columns: 288px minmax(560px, 1fr) 370px;
+  grid-template-columns: clamp(220px, 20vw, 288px) minmax(420px, 1fr) clamp(260px, 26vw, 370px);
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -357,9 +374,7 @@ select {
 
 .sourceTitleRow p,
 .myGamesBlock p,
-.detailDescription,
-.detailNote,
-.subscribeHint {
+.detailDescription {
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.45;
@@ -375,8 +390,13 @@ select {
   padding: 14px;
 }
 
+.myGamesBlock {
+  display: grid;
+  gap: 10px;
+}
+
 .sourceTitleRow {
-  align-items: start;
+  align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -390,46 +410,23 @@ select {
   margin: 0;
 }
 
-.eventOptionsDisclosure {
+.sourceDisclosureButton {
   align-items: center;
-  background: rgba(7, 13, 22, 0.38);
-  border: 1px solid rgba(117, 151, 184, 0.18);
-  border-radius: 6px;
+  background: transparent;
+  border: 0;
   color: var(--fg);
   cursor: pointer;
   display: grid;
-  gap: 10px;
+  flex: 1 1 auto;
+  gap: 8px;
   grid-template-columns: minmax(0, 1fr) 18px;
-  margin-top: 12px;
-  min-height: 46px;
-  padding: 8px 10px;
-  text-align: left;
-  width: 100%;
-}
-
-.eventOptionsDisclosure:disabled {
-  cursor: default;
-  opacity: 0.48;
-}
-
-.eventOptionsDisclosure span {
-  display: grid;
-  gap: 2px;
   min-width: 0;
+  padding: 0;
+  text-align: left;
 }
 
-.eventOptionsDisclosure strong {
-  font-size: 0.82rem;
-  font-weight: 820;
-}
-
-.eventOptionsDisclosure small {
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 720;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sourceDisclosureButton h3 {
+  min-width: 0;
 }
 
 .disclosureArrow {
@@ -444,8 +441,16 @@ select {
   width: 8px;
 }
 
-.eventOptionsDisclosure[aria-expanded="true"] .disclosureArrow {
+.sourceDisclosureButton[aria-expanded="true"] .disclosureArrow {
   transform: rotate(225deg) translateY(-2px);
+}
+
+.eventOptionsPanel {
+  border-top: 1px solid rgba(117, 151, 184, 0.16);
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
 }
 
 .switch {
@@ -500,7 +505,7 @@ select {
 }
 
 .controlRow > span,
-.rangeGrid span {
+.rangeControlHeader > span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 760;
@@ -546,9 +551,7 @@ select {
 
 .eventTypeGrid {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 8px;
+  gap: 7px;
 }
 
 .eventTypeOption {
@@ -600,12 +603,64 @@ select {
   line-height: 1.32;
 }
 
-.rangeGrid label {
+.rangeControl {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
-.rangeGrid input,
+.rangeControlHeader {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.rangeControl output {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.1);
+  border: 1px solid rgba(102, 192, 244, 0.22);
+  border-radius: 999px;
+  color: #cce9fb;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 850;
+  height: 22px;
+  justify-content: center;
+  min-width: 42px;
+  padding: 0 8px;
+}
+
+.rangeControl input[type="range"] {
+  accent-color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  height: 24px;
+  padding: 0;
+  width: 100%;
+}
+
+.rangeControl input[type="range"]:focus-visible {
+  outline: 2px solid rgba(102, 192, 244, 0.4);
+  outline-offset: 3px;
+}
+
+.rangeControl input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, rgba(102, 192, 244, 0.52), rgba(32, 120, 201, 0.26));
+  border-radius: 999px;
+  height: 6px;
+}
+
+.rangeControl input[type="range"]::-webkit-slider-thumb {
+  margin-top: -6px;
+}
+
+.rangeControl input[type="range"]::-moz-range-track {
+  background: linear-gradient(90deg, rgba(102, 192, 244, 0.52), rgba(32, 120, 201, 0.26));
+  border-radius: 999px;
+  height: 6px;
+}
+
 .searchBox input,
 .steamInputWrap input {
   background: rgba(7, 13, 22, 0.74);
@@ -616,12 +671,6 @@ select {
   outline: none;
 }
 
-.rangeGrid input {
-  height: 36px;
-  padding: 0 9px;
-}
-
-.rangeGrid input:focus,
 .searchBox input:focus,
 .steamInputWrap input:focus {
   border-color: var(--line-strong);
@@ -711,8 +760,8 @@ select {
 }
 
 .gameSearchForm button,
-.gameSearchResult button,
-.selectedGameRow button {
+.selectedGameSelect,
+.selectedGameRemove {
   align-items: center;
   background: transparent;
   border: 1px solid rgba(117, 151, 184, 0.3);
@@ -742,7 +791,6 @@ select {
 }
 
 .gameSearchForm button:disabled,
-.gameSearchResult button:disabled,
 .selectedGameRow button:disabled {
   cursor: default;
   opacity: 0.56;
@@ -781,7 +829,7 @@ select {
 .gameSearchResults,
 .selectedGames {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin-top: 10px;
 }
 
@@ -800,6 +848,29 @@ select {
   justify-content: space-between;
 }
 
+.selectedGamesHeader {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.72rem;
+  justify-content: space-between;
+}
+
+.selectedGamesHeader > span:last-child {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.12);
+  border: 1px solid rgba(102, 192, 244, 0.24);
+  border-radius: 999px;
+  color: #cce9fb;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 850;
+  height: 20px;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px;
+}
+
 .gameSearchResult,
 .selectedGameRow {
   align-items: center;
@@ -813,12 +884,68 @@ select {
 
 .gameSearchResult {
   background: linear-gradient(180deg, rgba(16, 32, 48, 0.72), rgba(7, 13, 22, 0.58));
-  grid-template-columns: 68px minmax(0, 1fr) 60px;
+  color: inherit;
+  cursor: pointer;
+  grid-template-columns: 68px minmax(0, 1fr);
+  overflow: visible;
+  position: relative;
+  text-align: left;
   padding: 8px;
+  width: 100%;
+  z-index: 1;
 }
 
 .selectedGameRow {
-  grid-template-columns: 52px minmax(0, 1fr) 72px;
+  background: linear-gradient(180deg, rgba(16, 32, 48, 0.64), rgba(7, 13, 22, 0.54));
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 45px;
+  overflow: hidden;
+  padding: 6px;
+  position: relative;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.selectedGameRow::after {
+  background:
+    linear-gradient(90deg, rgba(11, 22, 34, 0), rgba(11, 22, 34, 0.76) 34%, rgba(11, 22, 34, 0.96));
+  content: "";
+  inset: 0 0 0 auto;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 120ms ease;
+  width: 96px;
+  z-index: 1;
+}
+
+.selectedGameRow:hover,
+.selectedGameRow:focus-within {
+  background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
+  border-color: rgba(102, 192, 244, 0.42);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.selectedGameRow:hover::after,
+.selectedGameRow:focus-within::after {
+  opacity: 1;
+}
+
+.gameSearchResult:not(:disabled):hover {
+  background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
+  border-color: rgba(102, 192, 244, 0.42);
+  z-index: 8;
+}
+
+.gameSearchResult:focus-visible {
+  border-color: rgba(102, 192, 244, 0.7);
+  box-shadow: 0 0 0 2px rgba(102, 192, 244, 0.16);
+  outline: none;
+  z-index: 8;
+}
+
+.gameSearchResult:disabled {
+  cursor: default;
+  opacity: 0.62;
 }
 
 .selectedGameRow.isNewlyAdded {
@@ -826,7 +953,9 @@ select {
 }
 
 .gameSearchResult img,
-.gameSearchResult .gameThumbFallback {
+.gameSearchResult .gameThumbFallback,
+.selectedGameSelect img,
+.selectedGameSelect .gameThumbFallback {
   aspect-ratio: 231 / 87;
   background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
   border-radius: 5px;
@@ -835,17 +964,35 @@ select {
   width: 68px;
 }
 
-.selectedGameRow img,
-.selectedGameRow .gameThumbFallback {
-  aspect-ratio: 231 / 87;
-  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
-  border-radius: 4px;
-  display: block;
-  object-fit: cover;
-  width: 52px;
+.selectedGameSelect {
+  background: transparent;
+  border-color: transparent;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  justify-content: stretch;
+  min-height: 36px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
-.selectedGameRow span:not(.gameThumbFallback) {
+.selectedGameSelect:hover {
+  border-color: transparent;
+}
+
+.selectedGameSelect:focus-visible {
+  border-color: rgba(102, 192, 244, 0.6);
+  box-shadow: 0 0 0 2px rgba(102, 192, 244, 0.14);
+  outline: none;
+}
+
+.selectedGameSelect img,
+.selectedGameSelect .gameThumbFallback {
+  width: 58px;
+}
+
+.selectedGameSelect span:not(.gameThumbFallback) {
   color: var(--fg);
   display: block;
   font-size: 0.78rem;
@@ -854,6 +1001,41 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.selectedGameRemove {
+  font-size: 0.72rem;
+  min-height: 32px;
+  opacity: 0;
+  padding: 0 9px;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translate(4px, -50%);
+  transition: opacity 120ms ease, transform 120ms ease, border-color 120ms ease, background 120ms ease;
+  z-index: 2;
+}
+
+.selectedGameRow:hover .selectedGameRemove,
+.selectedGameRow:focus-within .selectedGameRemove {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.selectedGameRemove:hover,
+.selectedGameRemove:focus-visible {
+  background: rgba(102, 192, 244, 0.1);
+  border-color: rgba(102, 192, 244, 0.46);
+  outline: none;
+}
+
+.selectedGameNotice {
+  border-left: 2px solid rgba(102, 192, 244, 0.48);
+  color: var(--muted);
+  font-size: 0.74rem;
+  grid-column: 1 / -1;
+  line-height: 1.42;
+  padding: 2px 0 2px 9px;
 }
 
 .gameSearchResultInfo {
@@ -873,12 +1055,75 @@ select {
   white-space: nowrap;
 }
 
-.gameSearchResult small {
-  color: var(--muted);
+.gameSearchPreview {
+  background: linear-gradient(180deg, rgba(18, 35, 52, 0.98), rgba(7, 13, 22, 0.98));
+  border: 1px solid rgba(102, 192, 244, 0.34);
+  border-radius: 7px;
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+  display: grid;
+  gap: 9px;
+  padding: 9px;
+  pointer-events: none;
+  position: fixed;
+  width: min(280px, calc(100vw - 32px));
+  z-index: 40;
+}
+
+.gameSearchPreviewMedia,
+.gameSearchPreviewMedia img,
+.gameSearchPreviewFallback {
+  aspect-ratio: 231 / 87;
+  border-radius: 5px;
   display: block;
-  font-size: 0.72rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.gameSearchPreviewMedia img,
+.gameSearchPreviewFallback {
+  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
+  object-fit: cover;
+}
+
+.gameSearchPreviewBody {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.gameSearchPreviewBody strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.gameSearchPreviewFacts {
+  display: grid;
+  gap: 6px;
+}
+
+.gameSearchPreviewFact {
+  background: rgba(7, 13, 22, 0.46);
+  border: 1px solid rgba(117, 151, 184, 0.16);
+  border-radius: 5px;
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+}
+
+.gameSearchPreviewFact > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.gameSearchPreviewFact > strong {
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 820;
   line-height: 1.25;
-  margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 
 .searchResultPrice {
@@ -971,10 +1216,60 @@ select {
   margin: 8px 0 0;
 }
 
+.wishlistImportDetails {
+  border-top: 1px solid rgba(117, 151, 184, 0.14);
+  margin-top: 10px;
+  padding-top: 8px;
+}
+
+.wishlistImportDetails summary {
+  align-items: center;
+  border-radius: 5px;
+  color: #b7c8d5;
+  cursor: pointer;
+  display: grid;
+  font-size: 0.8rem;
+  font-weight: 820;
+  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr) 12px;
+  list-style: none;
+  min-height: 32px;
+}
+
+.wishlistImportDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.wishlistImportDetails summary:hover {
+  color: #e6f2fa;
+}
+
+.wishlistImportDetails summary::after {
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  content: "";
+  height: 6px;
+  justify-self: end;
+  margin-right: 2px;
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+  width: 6px;
+}
+
+.wishlistImportDetails[open] summary::after {
+  transform: rotate(225deg);
+}
+
+.wishlistImportDetails .linkIcon {
+  color: #8fb0c8;
+  height: 16px;
+  width: 16px;
+}
+
 .wishlistImport {
   display: grid;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .wishlistImport button {
@@ -1020,7 +1315,7 @@ select {
 }
 
 .calendarApp.isListView {
-  grid-template-rows: 64px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr) 56px;
 }
 
 .calendarHeader {
@@ -1289,16 +1584,24 @@ select {
   border-color: rgba(111, 192, 255, 0.56);
 }
 
-.calendarLegend {
+.calendarFooter {
   align-items: center;
   background: rgba(8, 15, 24, 0.78);
   border-top: 1px solid rgba(117, 151, 184, 0.18);
   color: #bfccd6;
+  display: grid;
+  font-size: 0.78rem;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0 16px;
+}
+
+.calendarLegend {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.78rem;
   gap: 20px;
-  padding: 0 16px;
+  min-width: 0;
 }
 
 .calendarLegend span {
@@ -1458,6 +1761,10 @@ select {
   text-align: center;
 }
 
+.emptyCalendarState {
+  min-height: 100%;
+}
+
 .emptyEventList h3 {
   color: #ffffff;
   font-size: 1.1rem;
@@ -1581,8 +1888,10 @@ select {
 }
 
 .detailBody {
+  align-content: start;
   display: grid;
   gap: 14px;
+  grid-auto-rows: max-content;
   min-height: 0;
   overflow: auto;
   padding: 18px 16px 16px;
@@ -1598,6 +1907,12 @@ select {
 .detailMeta span {
   display: block;
   overflow-wrap: anywhere;
+}
+
+.detailMetaCallout {
+  border-left: 2px solid rgba(102, 192, 244, 0.55);
+  color: #d6e5ee;
+  padding: 2px 0 2px 12px;
 }
 
 .discountBadge {
@@ -1652,49 +1967,53 @@ select {
   font-size: 0.9rem;
 }
 
-.detailNote {
-  color: #d9e7ef;
-  padding-left: 30px;
-  position: relative;
+.detailFacts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
 }
 
-.detailNote::before {
-  border: 2px solid rgba(205, 221, 232, 0.8);
-  border-radius: 999px;
-  content: "";
-  height: 16px;
-  left: 0;
-  position: absolute;
-  top: 2px;
-  width: 16px;
+.detailFact {
+  background: rgba(10, 23, 36, 0.62);
+  border: 1px solid rgba(117, 151, 184, 0.18);
+  border-radius: 6px;
+  min-width: 0;
+  padding: 9px 10px;
 }
 
-.detailNote::after {
-  background: rgba(205, 221, 232, 0.8);
-  box-shadow: 5px 5px 0 rgba(205, 221, 232, 0.8);
-  content: "";
-  height: 6px;
-  left: 8px;
-  position: absolute;
-  top: 7px;
-  width: 2px;
+.detailFact dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 760;
+  line-height: 1.25;
+  margin: 0 0 4px;
+}
+
+.detailFact dd {
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 820;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .detailActions {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  width: 100%;
 }
 
-.detailActions .secondaryAction,
-.detailActions .ghostAction {
+.detailActions .secondaryAction {
   font-size: 0.84rem;
   min-height: 44px;
-  padding: 0 10px;
+  padding: 0 14px;
+  width: 100%;
 }
 
-.secondaryAction,
-.ghostAction {
+.secondaryAction {
   align-items: center;
   border-radius: 6px;
   cursor: pointer;
@@ -1711,12 +2030,6 @@ select {
   background: linear-gradient(180deg, #168dff, #0867bf);
   border: 1px solid rgba(102, 192, 244, 0.6);
   color: #ffffff;
-}
-
-.ghostAction {
-  background: transparent;
-  border: 1px solid rgba(117, 151, 184, 0.28);
-  color: #d7e5ee;
 }
 
 .emptyDetail {
@@ -1827,8 +2140,7 @@ select {
 
 @media (max-width: 1260px) {
   .calendarWorkbench {
-    grid-template-columns: 276px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(260px, 0.58fr);
+    grid-template-columns: 244px minmax(390px, 1fr) 300px;
     height: 100%;
     min-height: 0;
   }
@@ -1839,14 +2151,15 @@ select {
   }
 
   .detailPanel {
-    grid-column: 1 / -1;
-    grid-template-columns: 360px 1fr;
-    grid-template-rows: auto;
+    grid-column: auto;
+    grid-template-columns: none;
+    grid-template-rows: 86px 190px minmax(0, 1fr);
     min-height: 0;
   }
 
   .detailPanel.noDetailHero {
-    grid-template-columns: 1fr;
+    grid-template-columns: none;
+    grid-template-rows: 86px minmax(0, 1fr);
   }
 
   .detailHero {
@@ -1870,36 +2183,32 @@ select {
     gap: 8px;
   }
 
-  .calendarCta,
-  .copyFeedButton {
-    min-width: 0;
-  }
-
   .calendarWorkbench {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(420px, 56vh) auto auto;
-    overflow-y: auto;
+    grid-template-columns: 214px minmax(340px, 1fr) 248px;
+    overflow: hidden;
     padding-bottom: 16px;
   }
 
   .configPanel {
-    order: 2;
+    order: initial;
   }
 
   .calendarExperience {
     height: 100%;
     min-height: 0;
-    order: 1;
+    order: initial;
   }
 
   .detailPanel {
     grid-column: auto;
-    grid-template-columns: 1fr;
-    order: 3;
+    grid-template-columns: none;
+    grid-template-rows: 86px 190px minmax(0, 1fr);
+    order: initial;
   }
 
   .detailPanel.noDetailHero {
-    grid-template-columns: 1fr;
+    grid-template-columns: none;
+    grid-template-rows: 86px minmax(0, 1fr);
   }
 
   .detailHero {
@@ -1963,11 +2272,24 @@ select {
     gap: 0;
   }
 
-  .headerControls > :not(.languageSelect) {
+  .headerControls > :not(.localeControls) {
+    display: none;
+  }
+
+  .localeControls {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .storeRegionControl {
     display: none;
   }
 
   .languageSelect {
+    background: rgba(13, 24, 36, 0.9);
+    border: 1px solid rgba(117, 151, 184, 0.26);
+    border-radius: 7px;
     grid-template-columns: 1fr 12px;
     height: 42px;
     min-width: 54px;
@@ -2007,6 +2329,21 @@ select {
 
   .configPanel.isMobileOpen {
     transform: translateY(0);
+  }
+
+  .selectedGameRemove {
+    opacity: 1;
+    position: static;
+    transform: none;
+  }
+
+  .selectedGameRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    overflow: visible;
+  }
+
+  .selectedGameRow::after {
+    display: none;
   }
 
   .detailPanel {
@@ -2137,20 +2474,6 @@ select {
     width: 100%;
   }
 
-  .mobileCopyFeedButton {
-    align-items: center;
-    background: rgba(13, 24, 36, 0.92);
-    border: 1px solid rgba(117, 151, 184, 0.28);
-    border-radius: 7px;
-    color: #d7e5ee;
-    cursor: pointer;
-    display: inline-flex;
-    font-size: 0.92rem;
-    font-weight: 820;
-    justify-content: center;
-    min-height: 44px;
-  }
-
   .mobileBottomBar {
     align-items: center;
     background: rgba(5, 12, 20, 0.62);
@@ -2217,7 +2540,7 @@ select {
   }
 
   .calendarApp.isListView {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   .calendarHeader {
@@ -2298,9 +2621,17 @@ select {
     -webkit-line-clamp: 1;
   }
 
+  .calendarFooter {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
   .calendarLegend {
     gap: 10px;
-    padding: 10px 12px;
+  }
+
+  .calendarFooterCta {
+    display: none;
   }
 
   .eventListScroll {

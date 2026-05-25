@@ -17,6 +17,13 @@ export type CalendarEvent = {
   finalPrice?: string;
   releaseTime?: number;
   discountEnd?: number;
+  genres?: string[];
+  reviewSummary?: string;
+  reviewPercentage?: number;
+  reviewCount?: number;
+  developers?: string[];
+  publishers?: string[];
+  releaseDateText?: string | null;
 };
 
 export type SteamDealItem = {
@@ -88,10 +95,15 @@ export function mapWishlistReleaseEvents(
       {
         id: `steam-app-${app.appId}-release`,
         title: `🎮 ${app.name} releases`,
-        description: [`Steam app ${app.appId}`, app.storeUrl].join('\n'),
+        description: [app.shortDescription, app.storeUrl].filter((part): part is string => Boolean(part)).join('\n'),
         startDate,
         sourceUrl: app.storeUrl,
         type: 'wishlist_release' as const,
+        appId: app.appId,
+        ...(app.genres?.length ? { genres: app.genres } : {}),
+        ...(app.developers?.length ? { developers: app.developers } : {}),
+        ...(app.publishers?.length ? { publishers: app.publishers } : {}),
+        ...(app.releaseDateText ? { releaseDateText: app.releaseDateText } : {}),
       },
     ];
   });
@@ -137,9 +149,8 @@ export function mapSteamDealEvents(
         id: `steam-app-${appId}-deal`,
         title: `${discount} ${deal.name}`,
         description: [
-          `${deal.name} is currently discounted on Steam.`,
+          cleanDealValue(deal.review),
           finalPrice && originalPrice ? `Price: ${finalPrice} (was ${originalPrice})` : null,
-          `Deal shown from now until Steam reports it ends.`,
           sourceUrl,
         ].filter((part): part is string => Boolean(part)).join('\n'),
         startDate: today,
@@ -165,7 +176,7 @@ export function mapSteamDealEvents(
         id: `steam-app-${appId}-preorder`,
         title: `${deal.name} preorder`,
         description: [
-          `${deal.name} is available to preorder on Steam.`,
+          cleanDealValue(deal.review),
           finalPrice ? `Price: ${finalPrice}` : null,
           `Release date: ${releaseDate}`,
           sourceUrl,

@@ -1,4 +1,3 @@
-import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
 import { calendarConfigFromRequest, DEFAULT_CALENDAR_CONFIG } from '@/lib/calendar-config';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
 import { calendarContentType, generateCalendar } from '@/lib/ics/generator';
@@ -48,11 +47,15 @@ export async function buildCalendarResponse(steamInput: string, request?: Reques
           pastDays: config.eventPastDays,
         })
         : Promise.resolve([]),
-      !shouldUseWishlist && config.watchedAppIds.length ? fetchWatchedGameEvents(config.watchedAppIds, locale) : Promise.resolve([]),
+      shouldUseWishlist
+        ? fetchWatchedGameEvents(data.wishlistGames.map((game) => game.appId), locale)
+        : config.watchedAppIds.length
+          ? fetchWatchedGameEvents(config.watchedAppIds, locale)
+          : Promise.resolve([]),
     ]);
     const events = [
       ...dealEvents,
-      ...(shouldUseWishlist ? mapWishlistReleaseEvents(data.appDetails) : watchedGameEvents),
+      ...watchedGameEvents,
       ...steamEvents,
     ];
     const calendar = generateCalendar(events);

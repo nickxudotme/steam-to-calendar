@@ -54,8 +54,8 @@ export async function fetchSteamMajorEvents(
     uiLang?: string;
   } = {},
 ): Promise<CalendarEvent[]> {
-  const pastDays = options.pastDays ?? 0;
-  const futureDays = options.futureDays ?? 365;
+  const pastDays = options.pastDays ?? 30;
+  const futureDays = options.futureDays ?? 180;
   const data = await runSteamCliJson<SteamCliEvent[]>([
     'events',
     '--past-days',

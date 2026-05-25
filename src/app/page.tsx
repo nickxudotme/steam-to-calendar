@@ -27,6 +27,13 @@ type PreviewEvent = {
   finalPrice?: string;
   releaseTime?: number;
   discountEnd?: number;
+  genres?: string[];
+  reviewSummary?: string;
+  reviewPercentage?: number;
+  reviewCount?: number;
+  developers?: string[];
+  publishers?: string[];
+  releaseDateText?: string | null;
   eventCategory?: SteamEventCategory;
 };
 
@@ -54,11 +61,15 @@ type GameSearchResult = {
   appId: string;
   name: string;
   imageUrl?: string;
+  genres?: string[];
   price?: {
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
   };
+  reviewCount?: number;
+  reviewPercentage?: number;
+  reviewSummary?: string;
   storeUrl: string;
 };
 
@@ -110,6 +121,8 @@ const WEEKDAY_LABELS = {
 } satisfies Record<UiLanguage, string[]>;
 const AUTO_TRACKED_GAME_COUNT = 3;
 const MAX_EVENT_LANES = 12;
+const EVENT_PAST_DAYS_MAX = 180;
+const EVENT_FUTURE_DAYS_MAX = 365;
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
   { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
@@ -129,8 +142,8 @@ const STEAM_EVENT_CATEGORY_LABELS = {
       description: 'Genre and theme events such as bullet heaven or deckbuilders.',
     },
     store_sale: {
-      title: 'Store sale pages',
-      description: 'Publisher, franchise, and partner sale pages.',
+      title: 'Publisher & franchise sales',
+      description: 'Limited-time sales organized around a publisher, franchise, or partner.',
     },
   },
   zh: {
@@ -147,8 +160,8 @@ const STEAM_EVENT_CATEGORY_LABELS = {
       description: '按类型或主题组织的 Steam 活动，例如牌组构筑或弹幕天堂。',
     },
     store_sale: {
-      title: '商店促销页',
-      description: '发行商、系列作品和合作伙伴促销页。',
+      title: '发行商与系列促销',
+      description: '围绕发行商、系列作品或合作伙伴组织的限时促销。',
     },
   },
 } satisfies Record<UiLanguage, Record<SteamEventCategory, { description: string; title: string }>>;
@@ -171,13 +184,11 @@ const UI_COPY = {
   en: {
     addApple: 'Add to Apple Calendar',
     addToCalendar: 'Add to your Calendar',
-    copyFeed: 'Copy feed URL',
-    copied: 'Copied',
     calendarSources: 'Calendar sources',
     hotDealsTitle: 'Tracked Game Deals',
     hotDealsDescription: 'Top sellers that are currently discounted or available to preorder.',
     itemsLabel: 'Items',
-    steamEventsTitle: 'Steam Sales & Fests',
+    steamEventsTitle: 'Steam Fests & Events',
     steamEventsDescription: 'Official Steam sale events, Next Fest, themed fests, and public sale pages.',
     eventTypesTitle: 'Event types',
     eventTypesNone: 'No event types selected',
@@ -195,7 +206,6 @@ const UI_COPY = {
     searchResultsTitle: 'Steam search results',
     searchResultsCount: 'results',
     noSearchResults: 'No Steam games found',
-    steamAppLabel: 'Steam app',
     priceUnavailable: 'Price unavailable',
     wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep the Steam sale calendar without a wishlist.',
     wishlistGenericHint: 'Steam did not respond. You can keep the Steam sale calendar and add games manually.',
@@ -209,6 +219,7 @@ const UI_COPY = {
     steamProfilePlaceholder: 'Paste Steam Profile URL',
     importing: 'Importing...',
     importWishlist: 'Import Steam Wishlist',
+    importWishlistShort: 'Import wishlist',
     importingWishlist: 'Reading your public Steam wishlist and preparing calendar events. This can take a moment for larger wishlists.',
     wishlistHint: 'Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.',
     today: 'Today',
@@ -216,19 +227,23 @@ const UI_COPY = {
     list: 'List',
     syncingCalendar: 'Syncing Steam calendar data...',
     noCalendarEvents: 'No calendar events',
-    noCalendarEventsDescription: 'Enable Steam events, deals, or watched games to preview them here.',
+    noCalendarEventsDescription: 'Add or enable calendar items from the left panel to preview them here.',
+    watchedGamePending: 'We will keep watching this game. If Steam returns a discount or release event, it will appear on the calendar.',
     dealsLegend: 'Deals',
     preordersLegend: 'Preorders',
     eventsLegend: 'Fests / Events',
     salesLegend: 'Sales',
     noEventsVisible: 'No events visible',
-    noEventsVisibleDescription: 'Turn on a calendar source to preview the Steam Sale Calendar.',
+    noEventsVisibleDescription: 'Add or enable items from the left panel to see event details.',
     steamCliEventData: 'Steam CLI event data',
     until: 'Until',
-    dealNote: 'This deal is shown from now until Steam reports it ends.',
+    dealEndsAt: 'Deal ends',
+    developerLabel: 'Developer',
+    genreLabel: 'Type',
+    publisherLabel: 'Publisher',
+    ratingLabel: 'Reviews',
+    releaseDateLabel: 'Release',
     viewOnSteam: 'View on Steam',
-    hidePreview: 'Hide in preview',
-    subscribeFromTop: 'Subscribe from the top bar. Updates follow your calendar app refresh schedule.',
     footerNotice: 'Steam Sale Calendar is not affiliated with Valve Corp.',
     footerHowItWorks: 'How it works',
     footerPrivacy: 'Privacy',
@@ -237,14 +252,12 @@ const UI_COPY = {
   zh: {
     addApple: '添加到 Apple 日历',
     addToCalendar: '添加到系统日历',
-    copyFeed: '复制订阅链接',
-    copied: '已复制',
     calendarSources: '日历来源',
     hotDealsTitle: '关注游戏折扣',
     hotDealsDescription: '当前正在打折或可预购的热门 Steam 游戏。',
     itemsLabel: '数量',
-    steamEventsTitle: 'Steam 促销与活动',
-    steamEventsDescription: 'Steam 官方促销、新品节、主题游戏节和公开促销页面。',
+    steamEventsTitle: 'Steam 节日与活动',
+    steamEventsDescription: 'Steam 官方促销、新品节、主题游戏节和发行商/系列促销。',
     eventTypesTitle: '活动类型',
     eventTypesNone: '未选择活动类型',
     pastDays: '过去天数',
@@ -255,13 +268,12 @@ const UI_COPY = {
     settingsLabel: '设置',
     storeRegionLabel: '商店地区',
     storeNote: '商店地区影响价格，不影响界面语言。',
-    searchPlaceholder: '搜索游戏或粘贴链接',
+    searchPlaceholder: '关键字或粘贴链接',
     searchButton: '搜索',
     searchingButton: '搜索中...',
     searchResultsTitle: 'Steam 搜索结果',
     searchResultsCount: '个结果',
     noSearchResults: '没有找到 Steam 游戏',
-    steamAppLabel: 'Steam 应用',
     priceUnavailable: '暂无价格',
     wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只订阅 Steam 促销日历。',
     wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 促销日历并手动添加游戏。',
@@ -275,6 +287,7 @@ const UI_COPY = {
     steamProfilePlaceholder: '粘贴 Steam 个人资料链接',
     importing: '导入中...',
     importWishlist: '导入 Steam 愿望单',
+    importWishlistShort: '导入愿望单',
     importingWishlist: '正在读取你的公开 Steam 愿望单并准备日历事件。愿望单较大时可能需要一点时间。',
     wishlistHint: '关联公开愿望单后会替代手动选择，并让未来发售事件持续同步到这个日历。',
     today: '今天',
@@ -282,19 +295,23 @@ const UI_COPY = {
     list: '列表',
     syncingCalendar: '正在同步 Steam 日历数据...',
     noCalendarEvents: '暂无日历事件',
-    noCalendarEventsDescription: '开启 Steam 活动、折扣或关注游戏后，就可以在这里预览。',
+    noCalendarEventsDescription: '从左侧添加或开启要显示的内容后，就可以在这里预览。',
+    watchedGamePending: '我们会持续追踪这个游戏；如果 Steam 返回促销或发售活动，就会显示在日历里。',
     dealsLegend: '折扣',
     preordersLegend: '预购',
     eventsLegend: '活动',
     salesLegend: '促销',
     noEventsVisible: '暂无可见事件',
-    noEventsVisibleDescription: '打开一个日历来源后即可预览 Steam 促销日历。',
+    noEventsVisibleDescription: '从左侧添加或开启内容后，就会在这里显示详情。',
     steamCliEventData: 'Steam CLI 活动数据',
     until: '至',
-    dealNote: '这个折扣会从当前时间显示到 Steam 返回的结束时间。',
+    dealEndsAt: '优惠至',
+    developerLabel: '开发商',
+    genreLabel: '类型',
+    publisherLabel: '发行商',
+    ratingLabel: '好评率',
+    releaseDateLabel: '发售日',
     viewOnSteam: '在 Steam 查看',
-    hidePreview: '在预览中隐藏',
-    subscribeFromTop: '从顶部栏订阅。更新频率由你的日历 App 决定。',
     footerNotice: 'Steam Sale Calendar 与 Valve Corp. 没有关联。',
     footerHowItWorks: '工作方式',
     footerPrivacy: '隐私',
@@ -323,13 +340,17 @@ export default function Home() {
   const [isSearchingGames, setIsSearchingGames] = useState(false);
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
+  const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(() => new Set());
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
+  const [searchPreview, setSearchPreview] = useState<{
+    game: GameSearchResult;
+    left: number;
+    top: number;
+  } | null>(null);
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('en');
   const [selectedLanguageCode, setSelectedLanguageCode] = useState('en');
   const [hasInitializedClientLocale, setHasInitializedClientLocale] = useState(false);
@@ -338,7 +359,6 @@ export default function Home() {
   const [origin, setOrigin] = useState('');
   const userSelectedRegionRef = useRef(false);
   const hasSeededDefaultGamesRef = useRef(false);
-  const demoEvents = useMemo(() => buildDemoEvents(todayIso), [todayIso]);
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? 'US';
@@ -384,12 +404,6 @@ export default function Home() {
     return params.toString();
   }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang]);
 
-  const feedUrl = useMemo(() => {
-    return origin
-      ? `${origin}${preview.feedPath}?${calendarQuery}`
-      : `${preview.feedPath}?${calendarQuery}`;
-  }, [calendarQuery, origin, preview.feedPath]);
-
   const webcalUrl = useMemo(() => {
     const calendarUrl = origin
       ? `${origin}${preview.calendarPath}?${calendarQuery}`
@@ -398,27 +412,13 @@ export default function Home() {
     return calendarUrl.replace(/^https?:\/\//, 'webcal://');
   }, [calendarQuery, origin, preview]);
 
-  const calendarEvents = preview.events.length ? preview.events : demoEvents;
+  const calendarEvents = preview.events;
 
   const sortedEvents = useMemo(() => {
     return [...calendarEvents].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [calendarEvents]);
-  const steamEventTypeSummary = useMemo(() => {
-    if (!steamEventCategories.length) {
-      return copy.eventTypesNone;
-    }
-
-    return steamEventCategories
-      .map((category) => STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title)
-      .join(' / ');
-  }, [copy.eventTypesNone, steamEventCategories, uiLanguage]);
-
   const visibleEvents = useMemo(() => {
     return sortedEvents.filter((event) => {
-      if (hiddenEventIds.has(event.id)) {
-        return false;
-      }
-
       if (event.type === 'steam_deal' || event.type === 'steam_preorder') {
         return showMyGames;
       }
@@ -429,7 +429,7 @@ export default function Home() {
 
       return showMyGames;
     });
-  }, [hiddenEventIds, showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
+  }, [showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
 
   const initialFocusDate = useMemo(() => (
     chooseCalendarFocusDate(visibleEvents, todayIso)
@@ -458,16 +458,6 @@ export default function Home() {
     setTodayIso(browserTodayIso);
     setHasInitializedClientLocale(true);
   }, []);
-
-  useEffect(() => {
-    if (copyStatus === 'idle') {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => setCopyStatus('idle'), 2200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [copyStatus]);
 
   useEffect(() => {
     if (
@@ -606,6 +596,21 @@ export default function Home() {
     });
   }
 
+  function handleSearchResultPreview(game: GameSearchResult, element: HTMLElement) {
+    if (window.matchMedia('(max-width: 700px)').matches) {
+      setSearchPreview(null);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const cardWidth = 280;
+    const cardHeight = 246;
+    const left = Math.min(rect.right + 10, window.innerWidth - cardWidth - 12);
+    const top = Math.min(Math.max(rect.top, 12), window.innerHeight - cardHeight - 12);
+
+    setSearchPreview({ game, left, top });
+  }
+
   function handleAddManualGame(game: SelectedGame) {
     if (hasConnectedWishlist) {
       return;
@@ -627,6 +632,21 @@ export default function Home() {
 
   function handleRemoveSelectedGame(appId: string) {
     setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+    setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+  }
+
+  function handleSelectedGameClick(appId: string) {
+    setShowMyGames(true);
+    const matchingEvent = sortedEvents.find((event) => event.appId === appId);
+
+    if (matchingEvent) {
+      setSelectedGameNoticeAppId(null);
+      handleCalendarEventSelect(matchingEvent.id);
+      return;
+    }
+
+    setSelectedGameNoticeAppId(appId);
+    setIsMobileSettingsOpen(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -682,15 +702,6 @@ export default function Home() {
     }
   }
 
-  async function handleCopyFeedUrl() {
-    try {
-      await navigator.clipboard.writeText(feedUrl);
-      setCopyStatus('copied');
-    } catch {
-      setCopyStatus('idle');
-    }
-  }
-
   function handleStoreRegionChange(value: string) {
     userSelectedRegionRef.current = true;
     setStoreRegion(value);
@@ -732,50 +743,45 @@ export default function Home() {
             <span>Steam Sale Calendar</span>
           </a>
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
-            <div className="storeRegionControl" data-tooltip={copy.storeNote}>
-              <span className="storeRegionIcon" aria-hidden="true">🛒</span>
-              <label className="regionSelect">
-                <span className="selectDisplay">
-                  <span className="selectDisplayText">
-                    {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : '...'}
+            <div className="localeControls">
+              <div className="storeRegionControl" data-tooltip={copy.storeNote}>
+                <span className="storeRegionIcon" aria-hidden="true">🛒</span>
+                <label className="regionSelect">
+                  <span className="selectDisplay">
+                    <span className="selectDisplayText">
+                      {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : '...'}
+                    </span>
                   </span>
+                  <select
+                    aria-label="Steam store region"
+                    value={effectiveStoreRegion}
+                    onChange={(event) => handleStoreRegionChange(event.target.value)}
+                  >
+                    {STEAM_STORE_REGIONS.map((region) => (
+                      <option key={region.code} value={region.code}>
+                        {countryFlag(region.code)} {region.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="languageSelect" title={selectedLanguage.label}>
+                <span className="languageIconOnly" aria-hidden="true">
+                  <LanguageIcon />
                 </span>
                 <select
-                  aria-label="Steam store region"
-                  value={effectiveStoreRegion}
-                  onChange={(event) => handleStoreRegionChange(event.target.value)}
+                  aria-label={copy.languageLabel}
+                  value={selectedLanguage.code}
+                  onChange={(event) => handleLanguageChange(event.target.value)}
                 >
-                  {STEAM_STORE_REGIONS.map((region) => (
-                    <option key={region.code} value={region.code}>
-                      {countryFlag(region.code)} {region.name}
+                  {LANGUAGE_OPTIONS.map((language) => (
+                    <option key={language.code} value={language.code}>
+                      {language.label}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
-            <label className="languageSelect" title={selectedLanguage.label}>
-              <span className="languageIconOnly" aria-hidden="true">
-                <LanguageIcon />
-              </span>
-              <select
-                aria-label={copy.languageLabel}
-                value={selectedLanguage.code}
-                onChange={(event) => handleLanguageChange(event.target.value)}
-              >
-                {LANGUAGE_OPTIONS.map((language) => (
-                  <option key={language.code} value={language.code}>
-                    {language.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <a className="calendarCta" href={webcalUrl}>
-              <CalendarListIcon />
-              {copy.addToCalendar}
-            </a>
-            <button className="copyFeedButton" type="button" onClick={handleCopyFeedUrl}>
-              {copyStatus === 'copied' ? copy.copied : copy.copyFeed}
-            </button>
           </div>
         </header>
 
@@ -789,7 +795,13 @@ export default function Home() {
         />
 
         <section className="calendarWorkbench" aria-label="Steam Sale Calendar workbench">
-          <aside className={isMobileSettingsOpen ? 'configPanel isMobileOpen' : 'configPanel'} aria-label="Calendar configuration">
+          <aside
+            className={[
+              'configPanel',
+              isMobileSettingsOpen ? 'isMobileOpen' : '',
+            ].filter(Boolean).join(' ')}
+            aria-label="Calendar configuration"
+          >
             <div className="mobileSheetHeader">
               <h2>{copy.settingsLabel}</h2>
               <button aria-label="Close settings" type="button" onClick={() => setIsMobileSettingsOpen(false)}>×</button>
@@ -811,9 +823,6 @@ export default function Home() {
                 </select>
               </label>
 
-              <button className="mobileCopyFeedButton" type="button" onClick={handleCopyFeedUrl}>
-                {copyStatus === 'copied' ? copy.copied : copy.copyFeed}
-              </button>
             </div>
 
             <div className="panelHeader">
@@ -827,66 +836,65 @@ export default function Home() {
             <SourceToggle
               checked={showSteamEvents}
               title={copy.steamEventsTitle}
-              description={copy.steamEventsDescription}
+              controlsId="steam-event-options"
+              isExpanded={isSteamEventOptionsOpen}
               onChange={setShowSteamEvents}
+              onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
             >
-              <button
-                aria-controls="steam-event-type-options"
-                aria-expanded={isSteamEventOptionsOpen}
-                className="eventOptionsDisclosure"
-                disabled={!showSteamEvents}
-                type="button"
-                onClick={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
-              >
-                <span>
-                  <strong>{copy.eventTypesTitle}</strong>
-                  <small>{steamEventTypeSummary}</small>
-                </span>
-                <i aria-hidden="true" className="disclosureArrow" />
-              </button>
-
               {isSteamEventOptionsOpen ? (
-                <div className="eventTypeGrid" id="steam-event-type-options" aria-label="Steam event types">
-                  {STEAM_EVENT_CATEGORIES.map((category) => (
-                    <label className="eventTypeOption" key={category}>
-                      <input
-                        checked={steamEventCategories.includes(category)}
-                        disabled={!showSteamEvents}
-                        onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
-                        type="checkbox"
-                      />
-                      <span>
-                        <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
-                        <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
+                <div className="eventOptionsPanel" id="steam-event-options">
+                  <div className="eventTypeGrid" aria-label="Steam event types">
+                    {STEAM_EVENT_CATEGORIES.map((category) => (
+                      <label className="eventTypeOption" key={category}>
+                        <input
+                          checked={steamEventCategories.includes(category)}
+                          disabled={!showSteamEvents}
+                          onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                          type="checkbox"
+                        />
+                        <span>
+                          <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
+                          <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="rangeGrid" aria-label="Steam event range">
+                    <label className="rangeControl">
+                      <span className="rangeControlHeader">
+                        <span>{copy.pastDays}</span>
+                        <output>{eventPastDays}</output>
                       </span>
+                      <input
+                        aria-label={copy.pastDays}
+                        type="range"
+                        min="0"
+                        max={EVENT_PAST_DAYS_MAX}
+                        step="1"
+                        value={eventPastDays}
+                        onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, EVENT_PAST_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
+                      />
                     </label>
-                  ))}
+                    <label className="rangeControl">
+                      <span className="rangeControlHeader">
+                        <span>{copy.nextDays}</span>
+                        <output>{eventFutureDays}</output>
+                      </span>
+                      <input
+                        aria-label={copy.nextDays}
+                        type="range"
+                        min="1"
+                        max={EVENT_FUTURE_DAYS_MAX}
+                        step="1"
+                        value={eventFutureDays}
+                        onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, EVENT_FUTURE_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
+                      />
+                    </label>
+                  </div>
                 </div>
               ) : null}
             </SourceToggle>
-
-            <div className="rangeGrid" aria-label="Steam event range">
-              <label>
-                <span>{copy.pastDays}</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="730"
-                  value={eventPastDays}
-                  onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, 730, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
-                />
-              </label>
-              <label>
-                <span>{copy.nextDays}</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="1095"
-                  value={eventFutureDays}
-                  onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, 1095, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
-                />
-              </label>
-            </div>
 
             <div className="panelDivider" />
 
@@ -894,7 +902,6 @@ export default function Home() {
               <div className="sourceTitleRow">
                 <div>
                   <h3>{copy.myGamesTitle}</h3>
-                  <p>{copy.myGamesDescription}</p>
                 </div>
                 <label className="switch">
                   <input
@@ -971,21 +978,24 @@ export default function Home() {
                     const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
 
                     return (
-                      <div className="gameSearchResult" key={game.appId}>
+                      <button
+                        aria-label={isSelected ? `${game.name}, ${copy.added}` : game.name}
+                        className={isSelected ? 'gameSearchResult isSelected' : 'gameSearchResult'}
+                        disabled={hasConnectedWishlist || isSelected}
+                        key={game.appId}
+                        type="button"
+                        onBlur={() => setSearchPreview(null)}
+                        onFocus={(event) => handleSearchResultPreview(game, event.currentTarget)}
+                        onMouseEnter={(event) => handleSearchResultPreview(game, event.currentTarget)}
+                        onMouseLeave={() => setSearchPreview(null)}
+                        onClick={() => handleAddSelectedGame(game)}
+                      >
                         <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                         <div className="gameSearchResultInfo">
                           <strong>{game.name}</strong>
-                          <small>{gameSearchMeta(game, copy)}</small>
                           <SearchResultPrice game={game} copy={copy} />
                         </div>
-                        <button
-                          disabled={hasConnectedWishlist || isSelected}
-                          type="button"
-                          onClick={() => handleAddSelectedGame(game)}
-                        >
-                          {isSelected ? copy.added : copy.add}
-                        </button>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1000,56 +1010,84 @@ export default function Home() {
 
               {selectedGames.length ? (
                 <div className="selectedGames" aria-label="Games added to calendar">
-                  <span className="miniSectionTitle">{copy.addedToCalendar}</span>
+                  <div className="selectedGamesHeader">
+                    <span className="miniSectionTitle">{copy.addedToCalendar}</span>
+                    <span>{selectedGames.length}</span>
+                  </div>
                   {selectedGames.map((game) => (
                     <div
                       className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
                       key={game.appId}
                     >
-                      <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                      <span>{game.name}</span>
-                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>{copy.remove}</button>
+                      <button
+                        className="selectedGameSelect"
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleSelectedGameClick(game.appId)}
+                      >
+                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
+                        <span>{game.name}</span>
+                      </button>
+                      <button
+                        aria-label={`${copy.remove} ${game.name}`}
+                        className="selectedGameRemove"
+                        type="button"
+                        onClick={() => handleRemoveSelectedGame(game.appId)}
+                      >
+                        {copy.remove}
+                      </button>
+                      {selectedGameNoticeAppId === game.appId ? (
+                        <div className="selectedGameNotice" role="status">
+                          {copy.watchedGamePending}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
               ) : null}
 
-              <form
-                className="wishlistImport"
-                id="steam-connect"
-                onSubmit={handleSubmit}
-                aria-label="Import Steam wishlist releases to the calendar"
-              >
-                <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
-                <div className="steamInputWrap">
+              <details className="wishlistImportDetails" id="steam-connect" open={Boolean(error) || isLoading}>
+                <summary>
                   <LinkIcon />
-                  <input
-                    id="steam-id"
-                    inputMode="text"
-                    placeholder={copy.steamProfilePlaceholder}
-                    value={steamId64}
-                    onChange={(event) => setSteamId64(event.target.value)}
-                  />
-                </div>
-                <button disabled={isLoading} type="submit">
-                  {isLoading ? copy.importing : copy.importWishlist}
-                </button>
-              </form>
-              {isLoading ? (
-                <div className="notice loadingNotice" role="status">
-                  {copy.importingWishlist}
-                </div>
-              ) : null}
-              <p className="wishlistHint">{copy.wishlistHint}</p>
+                  <span>{copy.importWishlistShort}</span>
+                </summary>
 
-              {error ? <div className="notice error">{error}</div> : null}
-              {error ? (
-                <div className="notice fallbackNotice">
-                  {errorCode === 'wishlist_private_or_unavailable'
-                    ? copy.wishlistPrivateHint
-                    : copy.wishlistGenericHint}
-                </div>
-              ) : null}
+                <form
+                  className="wishlistImport"
+                  onSubmit={handleSubmit}
+                  aria-label="Import Steam wishlist releases to the calendar"
+                >
+                  <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
+                  <div className="steamInputWrap">
+                    <LinkIcon />
+                    <input
+                      id="steam-id"
+                      inputMode="text"
+                      placeholder={copy.steamProfilePlaceholder}
+                      value={steamId64}
+                      onChange={(event) => setSteamId64(event.target.value)}
+                    />
+                  </div>
+                  <button disabled={isLoading} type="submit">
+                    {isLoading ? copy.importing : copy.importWishlist}
+                  </button>
+                </form>
+                {isLoading ? (
+                  <div className="notice loadingNotice" role="status">
+                    {copy.importingWishlist}
+                  </div>
+                ) : null}
+                <p className="wishlistHint">{copy.wishlistHint}</p>
+
+                {error ? <div className="notice error">{error}</div> : null}
+                {error ? (
+                  <div className="notice fallbackNotice">
+                    {errorCode === 'wishlist_private_or_unavailable'
+                      ? copy.wishlistPrivateHint
+                      : copy.wishlistGenericHint}
+                  </div>
+                ) : null}
+              </details>
             </div>
           </aside>
 
@@ -1064,6 +1102,7 @@ export default function Home() {
               todayIso={todayIso}
               uiCopy={copy}
               uiLanguage={uiLanguage}
+              webcalUrl={webcalUrl}
             />
           </div>
 
@@ -1073,10 +1112,10 @@ export default function Home() {
             isMobileOpen={isMobileDetailOpen}
             onCloseMobile={() => setIsMobileDetailOpen(false)}
             uiLanguage={uiLanguage}
-            onRemove={(eventId) => {
-              setHiddenEventIds((ids) => new Set(ids).add(eventId));
-              setIsMobileDetailOpen(false);
-            }}
+          />
+          <GameSearchPreviewCard
+            copy={copy}
+            preview={searchPreview}
           />
         </section>
 
@@ -1122,6 +1161,7 @@ function CalendarPreview({
   todayIso,
   uiCopy,
   uiLanguage,
+  webcalUrl,
 }: {
   events: PreviewEvent[];
   initialFocusDate: string;
@@ -1132,6 +1172,7 @@ function CalendarPreview({
   todayIso: string;
   uiCopy: typeof UI_COPY[UiLanguage];
   uiLanguage: UiLanguage;
+  webcalUrl: string;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const weekRefs = useRef(new Map<string, HTMLElement>());
@@ -1148,6 +1189,10 @@ function CalendarPreview({
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
   const [calendarView, setCalendarView] = useState<CalendarView>('month');
   const canScrollToToday = todayWeekStart >= weekRange.startIso && todayWeekStart < weekRange.endIso;
+  const calendarAppClassName = [
+    'calendarApp',
+    calendarView === 'list' ? 'isListView' : '',
+  ].filter(Boolean).join(' ');
 
   useEffect(() => {
     if (window.matchMedia('(max-width: 700px)').matches) {
@@ -1272,7 +1317,7 @@ function CalendarPreview({
   }
 
   return (
-    <section className={calendarView === 'list' ? 'calendarApp isListView' : 'calendarApp'} aria-label="Calendar preview">
+    <section className={calendarAppClassName} aria-label="Calendar preview">
       <div className="calendarHeader">
         <h2>{formatCalendarMonthTitle(visibleMonth, uiLanguage)}</h2>
 
@@ -1322,139 +1367,169 @@ function CalendarPreview({
                 <span>{uiCopy.syncingCalendar}</span>
               </div>
             ) : null}
-            <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
-              {weeks.map((week) => {
-                const weekLanes = Math.max(3, week.segments.reduce((highestLane, segment) => (
-                  Math.max(highestLane, segment.lane + 1)
-                ), 0));
+            {events.length ? (
+              <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
+                {weeks.map((week) => {
+                  const weekLanes = Math.max(3, week.segments.reduce((highestLane, segment) => (
+                    Math.max(highestLane, segment.lane + 1)
+                  ), 0));
 
-                return (
-                  <div
-                    aria-label={`Week of ${formatDate(week.weekStartIso, uiLanguage)}`}
-                    className="calendarWeek"
-                    data-week-start={week.weekStartIso}
-                    key={week.weekStartIso}
-                    ref={(node) => {
-                      if (node) {
-                        weekRefs.current.set(week.weekStartIso, node);
-                      } else {
-                        weekRefs.current.delete(week.weekStartIso);
-                      }
-                    }}
-                    role="row"
-                    style={{ '--week-lanes': weekLanes } as CSSProperties}
-                  >
-                    {week.cells.map((cell, index) => (
-                      <div
-                        className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
-                        key={cell.date}
-                        role="gridcell"
-                        aria-label={`${formatDate(cell.date, uiLanguage)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
-                        style={{ gridColumn: index + 1 } as CSSProperties}
-                      >
-                        <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
-                      </div>
-                    ))}
-                    {week.segments.map((segment) => (
-                      <button
-                        aria-label={segment.event.title}
-                        className={[
-                          'calendarSegment',
-                          segment.event.type,
-                          eventVisualClass(segment.event),
-                          segment.event.id === selectedEventId ? 'isSelected' : '',
-                          segment.event.appId && segment.event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
-                          segment.startsAtEvent ? 'startsAtEvent' : '',
-                          segment.endsAtEvent ? 'endsAtEvent' : '',
-                        ].filter(Boolean).join(' ')}
-                        data-event-id={segment.event.id}
-                        data-testid="calendar-event-segment"
-                        key={`${week.weekStartIso}-${segment.event.id}`}
-                        style={{
-                          '--segment-lane': segment.lane,
-                          '--segment-start': segment.startColumn,
-                          '--segment-span': segment.endColumn - segment.startColumn + 1,
-                        } as CSSProperties}
-                        onClick={() => onSelectEvent(segment.event.id)}
-                        title={segment.event.title}
-                        type="button"
-                      >
-                        <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
+                  return (
+                    <div
+                      aria-label={`Week of ${formatDate(week.weekStartIso, uiLanguage)}`}
+                      className="calendarWeek"
+                      data-week-start={week.weekStartIso}
+                      key={week.weekStartIso}
+                      ref={(node) => {
+                        if (node) {
+                          weekRefs.current.set(week.weekStartIso, node);
+                        } else {
+                          weekRefs.current.delete(week.weekStartIso);
+                        }
+                      }}
+                      role="row"
+                      style={{ '--week-lanes': weekLanes } as CSSProperties}
+                    >
+                      {week.cells.map((cell, index) => (
+                        <div
+                          className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
+                          key={cell.date}
+                          role="gridcell"
+                          aria-label={`${formatDate(cell.date, uiLanguage)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
+                          style={{ gridColumn: index + 1 } as CSSProperties}
+                        >
+                          <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
+                        </div>
+                      ))}
+                      {week.segments.map((segment) => (
+                        <button
+                          aria-label={segment.event.title}
+                          className={[
+                            'calendarSegment',
+                            segment.event.type,
+                            eventVisualClass(segment.event),
+                            segment.event.id === selectedEventId ? 'isSelected' : '',
+                            segment.event.appId && segment.event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
+                            segment.startsAtEvent ? 'startsAtEvent' : '',
+                            segment.endsAtEvent ? 'endsAtEvent' : '',
+                          ].filter(Boolean).join(' ')}
+                          data-event-id={segment.event.id}
+                          data-testid="calendar-event-segment"
+                          key={`${week.weekStartIso}-${segment.event.id}`}
+                          style={{
+                            '--segment-lane': segment.lane,
+                            '--segment-start': segment.startColumn,
+                            '--segment-span': segment.endColumn - segment.startColumn + 1,
+                          } as CSSProperties}
+                          onClick={() => onSelectEvent(segment.event.id)}
+                          title={segment.event.title}
+                          type="button"
+                        >
+                          <span className="segmentTitle">{compactEventTitle(segment.event.title)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : !isLoading ? (
+              <div className="emptyEventList emptyCalendarState">
+                <h3>{uiCopy.noCalendarEvents}</h3>
+                <p>{uiCopy.noCalendarEventsDescription}</p>
+              </div>
+            ) : null}
           </div>
 
-          <div className="calendarLegend" aria-label="Calendar legend">
-            {legendItems.map((item) => (
-              <span key={item.className}>
-                <i className={`legendDot ${item.className}`} />
-                {item.label}
-              </span>
-            ))}
-          </div>
+          <CalendarFooter addToCalendarLabel={uiCopy.addToCalendar} legendItems={legendItems} webcalUrl={webcalUrl} />
         </>
       ) : (
-        <div className="eventListScroll" aria-label="Calendar event list">
-          {isLoading ? (
-            <div className="calendarLoadingOverlay" role="status">
-              <span className="loadingSpinner" />
-              <span>{uiCopy.syncingCalendar}</span>
-            </div>
-          ) : null}
-          {listEvents.length ? (
-            <div className="eventList">
-              {listEvents.map((event) => {
-                const shouldShowEventImage = hasGameEventImage(event);
+        <>
+          <div className="eventListScroll" aria-label="Calendar event list">
+            {isLoading ? (
+              <div className="calendarLoadingOverlay" role="status">
+                <span className="loadingSpinner" />
+                <span>{uiCopy.syncingCalendar}</span>
+              </div>
+            ) : null}
+            {listEvents.length ? (
+              <div className="eventList">
+                {listEvents.map((event) => {
+                  const shouldShowEventImage = hasGameEventImage(event);
 
-                return (
-                  <button
-                    className={[
-                      'eventListItem',
-                      eventVisualClass(event),
-                      shouldShowEventImage ? '' : 'noEventImage',
-                      event.id === selectedEventId ? 'isSelected' : '',
-                      event.appId && event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
-                    ].filter(Boolean).join(' ')}
-                    data-testid="calendar-event-list-item"
-                    key={event.id}
-                    onClick={() => onSelectEvent(event.id)}
-                    type="button"
-                  >
-                    <span className="eventListMarker" aria-hidden="true" />
-                    {shouldShowEventImage ? (
-                      <SteamCliImage fallbackClassName="eventListThumbFallback" src={event.imageUrl} />
-                    ) : null}
-                    <span className="eventListContent">
-                      <span className="eventListMeta">
-                        <span>{formatEventDateRange(event, uiLanguage)}</span>
-                        <span>{detailKind(event, uiCopy)}</span>
+                  return (
+                    <button
+                      className={[
+                        'eventListItem',
+                        eventVisualClass(event),
+                        shouldShowEventImage ? '' : 'noEventImage',
+                        event.id === selectedEventId ? 'isSelected' : '',
+                        event.appId && event.appId === recentlyAddedAppId ? 'isNewCalendarItem' : '',
+                      ].filter(Boolean).join(' ')}
+                      data-testid="calendar-event-list-item"
+                      key={event.id}
+                      onClick={() => onSelectEvent(event.id)}
+                      type="button"
+                    >
+                      <span className="eventListMarker" aria-hidden="true" />
+                      {shouldShowEventImage ? (
+                        <SteamCliImage fallbackClassName="eventListThumbFallback" src={event.imageUrl} />
+                      ) : null}
+                      <span className="eventListContent">
+                        <span className="eventListMeta">
+                          <span>{formatEventDateRange(event, uiLanguage)}</span>
+                          <span>{detailKind(event, uiCopy)}</span>
+                        </span>
+                        <strong>{detailTitle(event)}</strong>
+                        <span className="eventListDescription">{detailDescription(event)}</span>
                       </span>
-                      <strong>{detailTitle(event)}</strong>
-                      <span className="eventListDescription">{detailDescription(event)}</span>
-                    </span>
-                    {event.discount || event.finalPrice ? (
-                      <span className="eventListPrice">
-                        {event.discount ? <strong>{event.discount}</strong> : null}
-                        {event.finalPrice ? <span>{event.finalPrice}</span> : null}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="emptyEventList">
-              <h3>{uiCopy.noCalendarEvents}</h3>
-              <p>{uiCopy.noCalendarEventsDescription}</p>
-            </div>
-          )}
-        </div>
+                      {event.discount || event.finalPrice ? (
+                        <span className="eventListPrice">
+                          {event.discount ? <strong>{event.discount}</strong> : null}
+                          {event.finalPrice ? <span>{event.finalPrice}</span> : null}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="emptyEventList">
+                <h3>{uiCopy.noCalendarEvents}</h3>
+                <p>{uiCopy.noCalendarEventsDescription}</p>
+              </div>
+            )}
+          </div>
+          <CalendarFooter addToCalendarLabel={uiCopy.addToCalendar} legendItems={legendItems} webcalUrl={webcalUrl} />
+        </>
       )}
     </section>
+  );
+}
+
+function CalendarFooter({
+  addToCalendarLabel,
+  legendItems,
+  webcalUrl,
+}: {
+  addToCalendarLabel: string;
+  legendItems: ReturnType<typeof calendarLegendItems>;
+  webcalUrl: string;
+}) {
+  return (
+    <div className="calendarFooter">
+      <div className="calendarLegend" aria-label="Calendar legend">
+        {legendItems.map((item) => (
+          <span key={item.className}>
+            <i className={`legendDot ${item.className}`} />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      <a className="calendarFooterCta" href={webcalUrl}>
+        <CalendarListIcon />
+        {addToCalendarLabel}
+      </a>
+    </div>
   );
 }
 
@@ -1511,23 +1586,42 @@ function CalendarListIcon() {
 function SourceToggle({
   children,
   checked,
+  controlsId,
   description,
+  isExpanded,
   onChange,
+  onToggleOptions,
   title,
 }: {
   children?: ReactNode;
+  controlsId?: string;
   checked: boolean;
-  description: string;
+  description?: string;
+  isExpanded?: boolean;
   onChange: (checked: boolean) => void;
+  onToggleOptions?: () => void;
   title: string;
 }) {
   return (
     <div className="sourceCard">
       <div className="sourceTitleRow">
-        <div>
-          <h3>{title}</h3>
-          <p>{description}</p>
-        </div>
+        {onToggleOptions ? (
+          <button
+            aria-controls={controlsId}
+            aria-expanded={isExpanded}
+            className="sourceDisclosureButton"
+            type="button"
+            onClick={onToggleOptions}
+          >
+            <h3>{title}</h3>
+            <i aria-hidden="true" className="disclosureArrow" />
+          </button>
+        ) : (
+          <div>
+            <h3>{title}</h3>
+            {description ? <p>{description}</p> : null}
+          </div>
+        )}
         <label className="switch">
           <input
             checked={checked}
@@ -1547,14 +1641,12 @@ function EventDetails({
   event,
   isMobileOpen,
   onCloseMobile,
-  onRemove,
   uiLanguage,
 }: {
   copy: typeof UI_COPY[UiLanguage];
   event: PreviewEvent | null;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
-  onRemove: (eventId: string) => void;
   uiLanguage: UiLanguage;
 }) {
   if (!event) {
@@ -1576,6 +1668,7 @@ function EventDetails({
   const heroStyle = shouldShowDetailHero ? {
     backgroundImage: `linear-gradient(180deg, rgba(5, 9, 15, 0.02), rgba(5, 9, 15, 0.18)), url("${event.imageUrl}")`,
   } as CSSProperties : undefined;
+  const steamStoreUrl = steamStoreUrlForEvent(event);
 
   return (
     <aside
@@ -1599,7 +1692,7 @@ function EventDetails({
       ) : null}
 
       <div className="detailBody">
-        <div className="detailMeta">
+        <div className={event.type === 'steam_deal' ? 'detailMeta detailMetaCallout' : 'detailMeta'}>
           <span>{formatDetailDateSentence(event, copy, uiLanguage)}</span>
         </div>
 
@@ -1618,32 +1711,131 @@ function EventDetails({
 
         <p className="detailDescription">{detailDescription(event)}</p>
 
-        {event.type === 'steam_deal' ? (
-          <p className="detailNote">{copy.dealNote}</p>
-        ) : null}
+        <DetailFacts copy={copy} event={event} />
 
-        <div className="detailActions">
-          {event.sourceUrl ? (
-            <a className="secondaryAction" href={event.sourceUrl} rel="noreferrer" target="_blank">
-              <SteamButtonIcon />
+        {steamStoreUrl ? (
+          <div className="detailActions">
+            <a className="secondaryAction" href={steamStoreUrl} rel="noreferrer" target="_blank">
+              <ExternalLinkIcon />
               {copy.viewOnSteam}
             </a>
-          ) : null}
-          <button className="ghostAction" onClick={() => onRemove(event.id)} type="button">{copy.hidePreview}</button>
-        </div>
-
-        <div className="subscribeHint">{copy.subscribeFromTop}</div>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
 }
 
-function SteamButtonIcon() {
+function DetailFacts({
+  copy,
+  event,
+}: {
+  copy: typeof UI_COPY[UiLanguage];
+  event: PreviewEvent;
+}) {
+  const facts = detailFacts(event, copy);
+
+  if (!facts.length) {
+    return null;
+  }
+
+  return (
+    <dl className="detailFacts">
+      {facts.map((fact) => (
+        <div className="detailFact" key={fact.label}>
+          <dt>{fact.label}</dt>
+          <dd>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function GameSearchPreviewCard({
+  copy,
+  preview,
+}: {
+  copy: typeof UI_COPY[UiLanguage];
+  preview: { game: GameSearchResult; left: number; top: number } | null;
+}) {
+  if (!preview) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      className="gameSearchPreview"
+      style={{ left: preview.left, top: preview.top }}
+    >
+      <span className="gameSearchPreviewMedia">
+        <SteamCliImage fallbackClassName="gameSearchPreviewFallback" src={preview.game.imageUrl} />
+      </span>
+      <span className="gameSearchPreviewBody">
+        <strong>{preview.game.name}</strong>
+        <SearchResultPrice game={preview.game} copy={copy} />
+        <SearchPreviewFacts copy={copy} game={preview.game} />
+      </span>
+    </div>
+  );
+}
+
+function SearchPreviewFacts({
+  copy,
+  game,
+}: {
+  copy: typeof UI_COPY[UiLanguage];
+  game: GameSearchResult;
+}) {
+  const facts: Array<{ label: string; value: string }> = [];
+  const genres = (game.genres ?? []).filter(Boolean).slice(0, 2);
+  if (genres.length) {
+    facts.push({ label: copy.genreLabel, value: genres.join(' / ') });
+  }
+
+  const rating = formatSearchReviewFact(game);
+  if (rating) {
+    facts.push({ label: copy.ratingLabel, value: rating });
+  }
+
+  if (!facts.length) {
+    return null;
+  }
+
+  return (
+    <span className="gameSearchPreviewFacts">
+      {facts.map((fact) => (
+        <span className="gameSearchPreviewFact" key={fact.label}>
+          <span>{fact.label}</span>
+          <strong>{fact.value}</strong>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function steamStoreUrlForEvent(event: PreviewEvent): string | null {
+  if (!isGameCalendarEvent(event)) {
+    return null;
+  }
+
+  if (event.appId && /^\d{1,10}$/.test(event.appId)) {
+    return `https://store.steampowered.com/app/${event.appId}/`;
+  }
+
+  if (event.sourceUrl?.startsWith('https://store.steampowered.com/app/')) {
+    return event.sourceUrl;
+  }
+
+  return null;
+}
+
+function ExternalLinkIcon() {
   return (
     <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <circle cx="10" cy="10" r="7" />
-      <circle cx="12.8" cy="7.2" r="2.1" />
-      <path d="M4.3 11.8 8.1 13a2.1 2.1 0 0 0 2.2 1.2 2.2 2.2 0 0 0 1.7-2.6 2.1 2.1 0 0 0-2.7-1.6L6.4 8.8" />
+      <path d="M8.2 5.2H5.4a2.2 2.2 0 0 0-2.2 2.2v7.2a2.2 2.2 0 0 0 2.2 2.2h7.2a2.2 2.2 0 0 0 2.2-2.2v-2.8" />
+      <path d="M11.2 3.2h5.6v5.6" />
+      <path d="m9.6 10.4 7-7" />
     </svg>
   );
 }
@@ -1686,100 +1878,6 @@ function LinkIcon() {
       <path d="M11.8 8.2a3 3 0 0 1 0 4.2l-2 2a3 3 0 1 1-4.2-4.2l1.1-1.1" />
     </svg>
   );
-}
-
-function buildDemoEvents(todayIso: string): PreviewEvent[] {
-  const monthStart = `${monthKeyFromIsoDate(todayIso)}-01`;
-
-  return [
-    {
-      id: 'demo-next-fest-start',
-      title: '🎮 Steam Next Fest',
-      description: 'Official Steam festival event. Subscribe to keep it in your calendar.',
-      startDate: addDays(monthStart, 0),
-      endDate: addDays(monthStart, 4),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_major_event',
-      eventCategory: 'next_fest',
-    },
-    {
-      id: 'demo-subnautica',
-      title: '-75% Subnautica',
-      description: 'Top seller deal shown from now until Steam reports it ends.',
-      startDate: addDays(monthStart, 2),
-      endDate: addDays(monthStart, 9),
-      sourceUrl: 'https://store.steampowered.com/app/264710/Subnautica/',
-      type: 'steam_deal',
-      appId: '264710',
-      discount: '-75%',
-      originalPrice: '$29.99',
-      finalPrice: '$7.49',
-    },
-    {
-      id: 'demo-hollow-knight',
-      title: 'Hollow Knight: Silksong preorder',
-      description: 'Preorder tracked as a Steam calendar item.',
-      startDate: addDays(monthStart, 6),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_preorder',
-    },
-    {
-      id: 'demo-elden-ring',
-      title: '-50% Elden Ring',
-      description: 'Popular discount included in the default Steam Sale Calendar preview.',
-      startDate: addDays(monthStart, 8),
-      endDate: addDays(monthStart, 15),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_deal',
-      discount: '-50%',
-      originalPrice: '$59.99',
-      finalPrice: '$29.99',
-    },
-    {
-      id: 'demo-spring-sale',
-      title: '🎮 Steam Spring Sale',
-      description: 'Official Steam sale period displayed as a multi-day calendar event.',
-      startDate: addDays(monthStart, 13),
-      endDate: addDays(monthStart, 22),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_major_event',
-      eventCategory: 'seasonal',
-    },
-    {
-      id: 'demo-red-dead',
-      title: '-70% Red Dead Redemption 2',
-      description: 'Top seller deal shown from now until Steam reports it ends.',
-      startDate: addDays(monthStart, 17),
-      endDate: addDays(monthStart, 24),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_deal',
-      discount: '-70%',
-      originalPrice: '$59.99',
-      finalPrice: '$17.99',
-    },
-    {
-      id: 'demo-ocean-fest',
-      title: '🎮 Ocean Fest Begins',
-      description: 'Themed Steam fest displayed from the official event feed.',
-      startDate: addDays(monthStart, 24),
-      endDate: addDays(monthStart, 28),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_major_event',
-      eventCategory: 'fest',
-    },
-    {
-      id: 'demo-no-mans-sky',
-      title: "-35% No Man's Sky",
-      description: 'A discount item that will appear in your OS calendar while the deal is active.',
-      startDate: addDays(monthStart, 28),
-      endDate: addDays(monthStart, 33),
-      sourceUrl: 'https://store.steampowered.com/',
-      type: 'steam_deal',
-      discount: '-35%',
-      originalPrice: '$59.99',
-      finalPrice: '$38.99',
-    },
-  ];
 }
 
 function buildEventWeekRange(events: PreviewEvent[], todayIso: string): { startIso: string; endIso: string } {
@@ -2298,6 +2396,10 @@ function formatDetailDateSentence(
   copy: typeof UI_COPY[UiLanguage],
   uiLanguage: UiLanguage,
 ): string {
+  if (event.type === 'steam_deal' && event.discountEnd) {
+    return `${copy.dealEndsAt} ${formatUnixDateTime(event.discountEnd, uiLanguage)}`;
+  }
+
   const startDate = formatDate(event.startDate, uiLanguage);
 
   if (!event.endDate || event.endDate === event.startDate) {
@@ -2305,6 +2407,27 @@ function formatDetailDateSentence(
   }
 
   return `${startDate} ${copy.until} ${formatDate(event.endDate, uiLanguage)}`;
+}
+
+function formatUnixDateTime(unixSeconds: number, uiLanguage: UiLanguage): string {
+  const date = new Date(unixSeconds * 1000);
+  const locale = uiLocale(uiLanguage);
+  const dateText = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+  const timeParts = new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    hour12: false,
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).formatToParts(date);
+  const hour = timeParts.find((part) => part.type === 'hour')?.value ?? '00';
+  const minute = timeParts.find((part) => part.type === 'minute')?.value ?? '00';
+  const timeZone = timeParts.find((part) => part.type === 'timeZoneName')?.value;
+
+  return `${dateText} ${hour}:${minute}${timeZone ? ` ${timeZone}` : ''}`;
 }
 
 function compareEventsForList(firstEvent: PreviewEvent, secondEvent: PreviewEvent): number {
@@ -2386,7 +2509,92 @@ function detailTitle(event: PreviewEvent): string {
 }
 
 function detailDescription(event: PreviewEvent): string {
-  return event.description.split('\n')[0] || event.title;
+  const description = event.description
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => (
+      line &&
+      !line.startsWith('Price:') &&
+      !line.startsWith('Release date:') &&
+      !line.startsWith('Steam release date:') &&
+      !/^https?:\/\//.test(line)
+    ));
+
+  return description || detailTitle(event);
+}
+
+function detailFacts(event: PreviewEvent, copy: typeof UI_COPY[UiLanguage]): Array<{ label: string; value: string }> {
+  if (!isGameCalendarEvent(event)) {
+    return [];
+  }
+
+  const facts: Array<{ label: string; value: string }> = [];
+  const genres = (event.genres ?? []).filter(Boolean).slice(0, 3);
+  if (genres.length) {
+    facts.push({ label: copy.genreLabel, value: genres.join(' / ') });
+  }
+
+  const rating = formatReviewFact(event);
+  if (rating) {
+    facts.push({ label: copy.ratingLabel, value: rating });
+  }
+
+  const developers = (event.developers ?? []).filter(Boolean).slice(0, 2);
+  if (developers.length) {
+    facts.push({ label: copy.developerLabel, value: developers.join(' / ') });
+  }
+
+  const publishers = (event.publishers ?? []).filter(Boolean).slice(0, 2);
+  if (publishers.length) {
+    facts.push({ label: copy.publisherLabel, value: publishers.join(' / ') });
+  }
+
+  if (event.releaseDateText) {
+    facts.push({ label: copy.releaseDateLabel, value: event.releaseDateText });
+  }
+
+  return facts.slice(0, 5);
+}
+
+function formatReviewFact(event: PreviewEvent): string | null {
+  const parts: string[] = [];
+  if (event.reviewSummary) {
+    parts.push(event.reviewSummary);
+  }
+
+  if (typeof event.reviewPercentage === 'number') {
+    parts.push(`${event.reviewPercentage}%`);
+  }
+
+  if (typeof event.reviewCount === 'number' && event.reviewCount > 0) {
+    parts.push(formatCompactCount(event.reviewCount));
+  }
+
+  return parts.length ? parts.join(' · ') : null;
+}
+
+function formatSearchReviewFact(game: GameSearchResult): string | null {
+  const parts: string[] = [];
+  if (game.reviewSummary) {
+    parts.push(game.reviewSummary);
+  }
+
+  if (typeof game.reviewPercentage === 'number') {
+    parts.push(`${game.reviewPercentage}%`);
+  }
+
+  if (typeof game.reviewCount === 'number' && game.reviewCount > 0) {
+    parts.push(formatCompactCount(game.reviewCount));
+  }
+
+  return parts.length ? parts.join(' · ') : null;
+}
+
+function formatCompactCount(value: number): string {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: value >= 10_000 ? 1 : 0,
+    notation: 'compact',
+  }).format(value);
 }
 
 function SearchResultPrice({
@@ -2407,8 +2615,4 @@ function SearchResultPrice({
       {game.price.initialFormatted && game.price.discountPercent > 0 ? <del>{game.price.initialFormatted}</del> : null}
     </span>
   );
-}
-
-function gameSearchMeta(game: GameSearchResult, copy: Record<string, string>): string {
-  return `${copy.steamAppLabel} ${game.appId}`;
 }

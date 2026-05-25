@@ -1,4 +1,3 @@
-import { mapWishlistReleaseEvents } from '@/lib/events/mapper';
 import { calendarConfigFromRecord } from '@/lib/calendar-config';
 import { SteamWishlistError } from '@/lib/steam/client';
 import { fetchSteamDealEvents } from '@/lib/steam/deals';
@@ -32,9 +31,12 @@ export async function POST(request: Request) {
           pastDays: config.eventPastDays,
         })
         : Promise.resolve([]),
-      !shouldUseWishlist && config.watchedAppIds.length ? fetchWatchedGameEvents(config.watchedAppIds, locale) : Promise.resolve([]),
+      shouldUseWishlist
+        ? fetchWatchedGameEvents(data.wishlistGames.map((game) => game.appId), locale)
+        : config.watchedAppIds.length
+          ? fetchWatchedGameEvents(config.watchedAppIds, locale)
+          : Promise.resolve([]),
     ]);
-    const wishlistEvents = shouldUseWishlist ? mapWishlistReleaseEvents(data.appDetails) : [];
     const feedPath = `/feed/${steamId64}.ics`;
     const calendarPath = `/cal/${steamId64}`;
 
@@ -48,10 +50,10 @@ export async function POST(request: Request) {
         wishlistGames: data.wishlistGames.length,
         appDetails: data.appDetails.length,
         skippedAppIds: data.skippedAppIds.length,
-        wishlistReleaseEvents: wishlistEvents.length,
+        wishlistReleaseEvents: shouldUseWishlist ? watchedGameEvents.length : 0,
         steamMajorEvents: steamEvents.length,
       },
-      events: [...dealEvents, ...wishlistEvents, ...watchedGameEvents, ...steamEvents].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      events: [...dealEvents, ...watchedGameEvents, ...steamEvents].sort((a, b) => a.startDate.localeCompare(b.startDate)),
     });
   } catch (error) {
     const status = error instanceof SteamWishlistError && error.code === 'invalid_steam_id' ? 400 : 502;

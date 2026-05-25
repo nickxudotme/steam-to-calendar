@@ -10,7 +10,7 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await expect(headerControls.getByLabel('Steam store region')).toContainText('🇦🇪 United Arab Emirates');
   const languageSelect = headerControls.locator('.languageSelect select');
   await expect(languageSelect).toBeVisible();
-  const addCalendarLink = page.locator('.calendarCta').first();
+  const addCalendarLink = page.locator('.calendarFooterCta').first();
   await expect(addCalendarLink).toBeVisible();
   await expect(page.locator('.sourceCard').filter({ hasText: 'Hot Deals & Preorders' })).toHaveCount(0);
   await expect(page.getByLabel('Games added to calendar')).toBeVisible();
@@ -34,17 +34,17 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await page.getByRole('button', { name: 'Today', exact: true }).click();
   await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
 
-  await page.getByLabel('Search Steam games').fill('367520');
+  await page.getByLabel('Search Steam games').fill('620');
   await page.getByRole('button', { name: 'Search' }).click();
   await expect(page.locator('.gameSearchResult').first()).toBeVisible();
-  await page.locator('.gameSearchResult').first().getByRole('button', { name: 'Add' }).click();
+  await page.locator('.gameSearchResult').first().click();
   await expect(page.getByLabel('Games added to calendar')).toBeVisible();
-  await expect(page.locator('.selectedGameRow.isNewlyAdded')).toBeVisible();
+  await expect(page.getByLabel('Games added to calendar').getByText('Portal 2')).toBeVisible();
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]apps=\d/);
 
-  await page.locator('.eventOptionsDisclosure').click();
+  await page.locator('.sourceDisclosureButton').click();
   await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
-  await expect(addCalendarLink).toHaveAttribute('href', /eventTypes=seasonal%2Cfest/);
+  await expect(addCalendarLink).toHaveAttribute('href', /eventTypes=seasonal/);
   await page.locator('.eventTypeOption').filter({ hasText: 'Theme fests' }).click();
 
   const publicFeedResponse = await request.get('/feed/steam-events.ics?deals=0&events=1&wishlist=0');
@@ -57,11 +57,12 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   expect(emptyPublicPreviewResponse.ok()).toBe(true);
   expect((await emptyPublicPreviewResponse.json()).events).toEqual([]);
 
-  await page.locator('.sourceCard').filter({ hasText: 'Steam Sales & Fests' }).locator('.switch').click();
+  await page.locator('.sourceCard').filter({ hasText: 'Steam Fests & Events' }).locator('.switch').click();
 
   const previewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/preview') && response.request().method() === 'POST',
   );
+  await page.locator('.wishlistImportDetails summary').click();
   await page.locator('#steam-id').fill('https://steamcommunity.com/id/nickxudotme/');
   await page.locator('.wishlistImport button[type="submit"]').click();
   await expect((await previewResponse).ok()).toBe(true);

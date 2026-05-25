@@ -1,4 +1,4 @@
-export const STEAM_EVENT_CATEGORIES = ['seasonal', 'next_fest', 'fest', 'store_sale'] as const;
+export const STEAM_EVENT_CATEGORIES = ['seasonal', 'fest', 'next_fest', 'store_sale'] as const;
 
 export type SteamEventCategory = typeof STEAM_EVENT_CATEGORIES[number];
 
@@ -18,10 +18,10 @@ export const DEFAULT_CALENDAR_CONFIG: CalendarConfig = {
   includeSteamEvents: true,
   includeWishlist: true,
   watchedAppIds: [],
-  steamEventCategories: ['seasonal'],
+  steamEventCategories: ['seasonal', 'fest'],
   dealCount: 5,
-  eventPastDays: 0,
-  eventFutureDays: 365,
+  eventPastDays: 30,
+  eventFutureDays: 180,
 };
 
 const DEAL_COUNT_MIN = 1;

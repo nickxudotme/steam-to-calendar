@@ -163,6 +163,10 @@ describe('steam client', () => {
           success: true,
           data: {
             name: 'Subnautica 2',
+            short_description: 'Dive into a new alien ocean world.',
+            developers: ['Unknown Worlds Entertainment'],
+            genres: [{ id: '25', description: 'Adventure' }],
+            publishers: ['KRAFTON, Inc.'],
             release_date: { coming_soon: false, date: 'May 14, 2026' },
           },
         },
@@ -184,9 +188,13 @@ describe('steam client', () => {
     expect(result).toEqual({
       appId: '1962700',
       name: 'Subnautica 2',
+      shortDescription: 'Dive into a new alien ocean world.',
       releaseDateText: 'May 14, 2026',
       hasExactReleaseDate: true,
       storeUrl: 'https://store.steampowered.com/app/1962700/',
+      genres: ['Adventure'],
+      developers: ['Unknown Worlds Entertainment'],
+      publishers: ['KRAFTON, Inc.'],
     });
   });
 

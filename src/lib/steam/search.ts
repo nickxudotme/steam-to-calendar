@@ -5,11 +5,15 @@ export type SteamSearchResult = {
   appId: string;
   name: string;
   imageUrl?: string;
+  genres?: string[];
   price?: {
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
   };
+  reviewCount?: number;
+  reviewPercentage?: number;
+  reviewSummary?: string;
   storeUrl: string;
 };
 
@@ -31,6 +35,10 @@ type SteamCliSearchResult = {
 type SteamCliAppSearchResult = {
   appid: number;
   details?: {
+    genres?: Array<{
+      description?: string;
+      name?: string;
+    }>;
     header_image?: string;
     name?: string;
     price_overview?: {
@@ -39,11 +47,29 @@ type SteamCliAppSearchResult = {
       initial_formatted?: string;
     };
   };
+  reviews?: {
+    review_score_desc?: string;
+    total_negative?: number;
+    total_positive?: number;
+    total_reviews?: number;
+  };
   store_item?: {
     best_purchase_option?: {
       discount_pct?: number;
       formatted_final_price?: string;
       formatted_original_price?: string;
+    };
+    reviews?: {
+      summary_filtered?: {
+        percent_positive?: number;
+        review_count?: number;
+        review_score_label?: string;
+      };
+      summary_language_specific?: {
+        percent_positive?: number;
+        review_count?: number;
+        review_score_label?: string;
+      };
     };
   };
 };
@@ -87,7 +113,7 @@ async function searchSteamGamesByText(
     return [];
   }
 
-  return data
+  const results = data
     .filter((result) => result.type === 'app')
     .map((result) => {
       const appId = String(result.id);
@@ -118,6 +144,8 @@ async function searchSteamGamesByText(
         } : {}),
       };
     });
+
+  return enrichSearchResults(results, options);
 }
 
 export function parseSteamAppInput(input: string): string | null {
@@ -182,6 +210,7 @@ async function fetchSteamGameByAppId(
   const name = data.details?.name?.trim() || `Steam app ${appId}`;
   const bestPurchase = data.store_item?.best_purchase_option;
   const discountPercent = bestPurchase?.discount_pct ?? data.details?.price_overview?.discount_percent ?? 0;
+  const metadata = steamAppSearchMetadata(data);
 
   return {
     appId: String(data.appid || appId),
@@ -197,5 +226,100 @@ async function fetchSteamGameByAppId(
         ? { initialFormatted: bestPurchase?.formatted_original_price ?? data.details?.price_overview?.initial_formatted }
         : {}),
     },
+    ...metadata,
   };
+}
+
+async function enrichSearchResults(
+  results: SteamSearchResult[],
+  options: { cc?: string; lang?: string; uiLang?: string },
+): Promise<SteamSearchResult[]> {
+  const enriched = await mapWithConcurrency(results, 3, async (result) => {
+    const app = await fetchSteamGameByAppId(result.appId, options).catch(() => null);
+    if (!app) {
+      return result;
+    }
+
+    return {
+      ...result,
+      imageUrl: app.imageUrl ?? result.imageUrl,
+      genres: app.genres,
+      reviewCount: app.reviewCount,
+      reviewPercentage: app.reviewPercentage,
+      reviewSummary: app.reviewSummary,
+    };
+  });
+
+  return enriched;
+}
+
+function steamAppSearchMetadata(app: SteamCliAppSearchResult): Pick<
+SteamSearchResult,
+'genres' | 'reviewCount' | 'reviewPercentage' | 'reviewSummary'
+> {
+  const review = readReviewSummary(app.reviews, app.store_item?.reviews);
+  const genres = uniqueStrings((app.details?.genres ?? []).flatMap((genre) => {
+    const value = genre.description?.trim() || genre.name?.trim();
+    return value ? [value] : [];
+  })).slice(0, 3);
+
+  return {
+    ...(genres.length ? { genres } : {}),
+    ...review,
+  };
+}
+
+function readReviewSummary(
+  appReviews: SteamCliAppSearchResult['reviews'] | undefined,
+  storeReviews: NonNullable<SteamCliAppSearchResult['store_item']>['reviews'] | undefined,
+): Pick<SteamSearchResult, 'reviewCount' | 'reviewPercentage' | 'reviewSummary'> {
+  const storeSummary = storeReviews?.summary_filtered ?? storeReviews?.summary_language_specific;
+  const totalPositive = numberOrNull(appReviews?.total_positive);
+  const totalNegative = numberOrNull(appReviews?.total_negative);
+  const appReviewCount = numberOrNull(appReviews?.total_reviews);
+  const storeReviewCount = numberOrNull(storeSummary?.review_count);
+  const reviewCount = storeReviewCount ?? appReviewCount ?? (
+    totalPositive !== null && totalNegative !== null ? totalPositive + totalNegative : null
+  );
+  const explicitPercentage = numberOrNull(storeSummary?.percent_positive);
+  const computedPercentage = explicitPercentage ?? (
+    totalPositive !== null && reviewCount && reviewCount > 0
+      ? Math.round((totalPositive / reviewCount) * 100)
+      : null
+  );
+  const reviewLabel = storeSummary?.review_score_label?.trim() || appReviews?.review_score_desc?.trim();
+
+  return {
+    ...(reviewLabel ? { reviewSummary: reviewLabel } : {}),
+    ...(computedPercentage !== null ? { reviewPercentage: computedPercentage } : {}),
+    ...(reviewCount !== null && reviewCount > 0 ? { reviewCount } : {}),
+  };
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
