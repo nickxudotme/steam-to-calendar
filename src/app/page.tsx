@@ -104,30 +104,53 @@ type CalendarWeek = {
   segments: CalendarEventSegment[];
 };
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_LABELS = {
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  zh: ['日', '一', '二', '三', '四', '五', '六'],
+} satisfies Record<UiLanguage, string[]>;
 const MAX_EVENT_LANES = 12;
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
   { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
 ] as const satisfies readonly LanguageOption[];
-const STEAM_EVENT_CATEGORY_LABELS: Record<SteamEventCategory, { description: string; title: string }> = {
-  seasonal: {
-    title: 'Seasonal sales',
-    description: 'Summer, Autumn, Winter, and Spring sale windows.',
+const STEAM_EVENT_CATEGORY_LABELS = {
+  en: {
+    seasonal: {
+      title: 'Seasonal sales',
+      description: 'Summer, Autumn, Winter, and Spring sale windows.',
+    },
+    next_fest: {
+      title: 'Next Fest',
+      description: 'Official demo festivals for upcoming games.',
+    },
+    fest: {
+      title: 'Theme fests',
+      description: 'Genre and theme events such as bullet heaven or deckbuilders.',
+    },
+    store_sale: {
+      title: 'Store sale pages',
+      description: 'Publisher, franchise, and partner sale pages.',
+    },
   },
-  next_fest: {
-    title: 'Next Fest',
-    description: 'Official demo festivals for upcoming games.',
+  zh: {
+    seasonal: {
+      title: '季节促销',
+      description: '春促、夏促、秋促、冬促等官方促销窗口。',
+    },
+    next_fest: {
+      title: '新品节',
+      description: '面向即将推出游戏的官方试玩节。',
+    },
+    fest: {
+      title: '主题游戏节',
+      description: '按类型或主题组织的 Steam 活动，例如牌组构筑或弹幕天堂。',
+    },
+    store_sale: {
+      title: '商店促销页',
+      description: '发行商、系列作品和合作伙伴促销页。',
+    },
   },
-  fest: {
-    title: 'Theme fests',
-    description: 'Genre and theme events such as bullet heaven or deckbuilders.',
-  },
-  store_sale: {
-    title: 'Store sale pages',
-    description: 'Publisher, franchise, and partner sale pages.',
-  },
-};
+} satisfies Record<UiLanguage, Record<SteamEventCategory, { description: string; title: string }>>;
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -149,7 +172,18 @@ const UI_COPY = {
     addToCalendar: 'Add to your Calendar',
     copyFeed: 'Copy feed URL',
     copied: 'Copied',
+    calendarSources: 'Calendar sources',
+    hotDealsTitle: 'Hot Deals & Preorders',
+    hotDealsDescription: 'Top sellers that are currently discounted or available to preorder.',
+    itemsLabel: 'Items',
+    steamEventsTitle: 'Steam Sales & Fests',
+    steamEventsDescription: 'Official Steam sale events, Next Fest, themed fests, and public sale pages.',
+    pastDays: 'Past days',
+    nextDays: 'Next days',
+    myGamesTitle: 'My Games',
+    myGamesDescription: 'Watch specific games, then connect a public Steam wishlist when you want it to replace manual picks.',
     languageLabel: 'Language',
+    storeSuffix: 'Store',
     settingsLabel: 'Settings',
     storeRegionLabel: 'Store region',
     storeNote: 'Store region affects prices, not language.',
@@ -158,15 +192,58 @@ const UI_COPY = {
     searchingButton: 'Searching...',
     wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep the Steam sale calendar without a wishlist.',
     wishlistGenericHint: 'Steam did not respond. You can keep the Steam sale calendar and add games manually.',
+    wishlistConnected: 'Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.',
+    syncingPreview: 'Syncing your calendar preview with Steam data...',
+    trendingNow: 'Trending now',
+    addedToCalendar: 'Added to calendar',
+    added: 'Added',
+    add: 'Add',
+    remove: 'Remove',
+    steamProfilePlaceholder: 'Paste Steam Profile URL',
+    importing: 'Importing...',
+    importWishlist: 'Import Steam Wishlist',
+    importingWishlist: 'Reading your public Steam wishlist and preparing calendar events. This can take a moment for larger wishlists.',
+    wishlistHint: 'Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.',
+    today: 'Today',
+    month: 'Month',
+    list: 'List',
+    syncingCalendar: 'Syncing Steam calendar data...',
+    noCalendarEvents: 'No calendar events',
+    noCalendarEventsDescription: 'Enable Steam events, deals, or watched games to preview them here.',
+    dealsLegend: 'Deals',
+    preordersLegend: 'Preorders',
+    eventsLegend: 'Fests / Events',
+    salesLegend: 'Sales',
+    noEventsVisible: 'No events visible',
+    noEventsVisibleDescription: 'Turn on a calendar source to preview the Steam Sale Calendar.',
+    steamCliEventData: 'Steam CLI event data',
+    until: 'Until',
+    dealNote: 'This deal is shown from now until Steam reports it ends.',
+    viewOnSteam: 'View on Steam',
     hidePreview: 'Hide in preview',
     subscribeFromTop: 'Subscribe from the top bar. Updates follow your calendar app refresh schedule.',
+    footerNotice: 'Steam Sale Calendar is not affiliated with Valve Corp.',
+    footerHowItWorks: 'How it works',
+    footerPrivacy: 'Privacy',
+    footerChangelog: 'Changelog',
   },
   zh: {
     addApple: '添加到 Apple 日历',
     addToCalendar: '添加到系统日历',
     copyFeed: '复制订阅链接',
     copied: '已复制',
+    calendarSources: '日历来源',
+    hotDealsTitle: '热门折扣与预购',
+    hotDealsDescription: '当前正在打折或可预购的热门 Steam 游戏。',
+    itemsLabel: '数量',
+    steamEventsTitle: 'Steam 促销与活动',
+    steamEventsDescription: 'Steam 官方促销、新品节、主题游戏节和公开促销页面。',
+    pastDays: '过去天数',
+    nextDays: '未来天数',
+    myGamesTitle: '我的游戏',
+    myGamesDescription: '关注指定游戏；之后也可以关联公开 Steam 愿望单来替代手动选择。',
     languageLabel: '语言',
+    storeSuffix: '商店',
     settingsLabel: '设置',
     storeRegionLabel: '商店地区',
     storeNote: '商店地区影响价格，不影响界面语言。',
@@ -175,8 +252,40 @@ const UI_COPY = {
     searchingButton: '搜索中...',
     wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只订阅 Steam 促销日历。',
     wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 促销日历并手动添加游戏。',
+    wishlistConnected: '愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。',
+    syncingPreview: '正在从 Steam 同步日历预览...',
+    trendingNow: '近期热门',
+    addedToCalendar: '已添加到日历',
+    added: '已添加',
+    add: '添加',
+    remove: '移除',
+    steamProfilePlaceholder: '粘贴 Steam 个人资料链接',
+    importing: '导入中...',
+    importWishlist: '导入 Steam 愿望单',
+    importingWishlist: '正在读取你的公开 Steam 愿望单并准备日历事件。愿望单较大时可能需要一点时间。',
+    wishlistHint: '关联公开愿望单后会替代手动选择，并让未来发售事件持续同步到这个日历。',
+    today: '今天',
+    month: '月',
+    list: '列表',
+    syncingCalendar: '正在同步 Steam 日历数据...',
+    noCalendarEvents: '暂无日历事件',
+    noCalendarEventsDescription: '开启 Steam 活动、折扣或关注游戏后，就可以在这里预览。',
+    dealsLegend: '折扣',
+    preordersLegend: '预购',
+    eventsLegend: '活动',
+    salesLegend: '促销',
+    noEventsVisible: '暂无可见事件',
+    noEventsVisibleDescription: '打开一个日历来源后即可预览 Steam 促销日历。',
+    steamCliEventData: 'Steam CLI 活动数据',
+    until: '至',
+    dealNote: '这个折扣会从当前时间显示到 Steam 返回的结束时间。',
+    viewOnSteam: '在 Steam 查看',
     hidePreview: '在预览中隐藏',
     subscribeFromTop: '从顶部栏订阅。更新频率由你的日历 App 决定。',
+    footerNotice: 'Steam Sale Calendar 与 Valve Corp. 没有关联。',
+    footerHowItWorks: '工作方式',
+    footerPrivacy: '隐私',
+    footerChangelog: '更新记录',
   },
 } satisfies Record<UiLanguage, Record<string, string>>;
 
@@ -206,6 +315,7 @@ export default function Home() {
   const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(() => new Set());
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('en');
   const [selectedLanguageCode, setSelectedLanguageCode] = useState('en');
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
@@ -215,7 +325,7 @@ export default function Home() {
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? 'US';
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} Store`;
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} ${copy.storeSuffix}`;
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
@@ -543,6 +653,17 @@ export default function Home() {
     ));
   }
 
+  function handleCalendarEventSelect(eventId: string) {
+    setSelectedEventId(eventId);
+    setIsMobileSettingsOpen(false);
+    setIsMobileDetailOpen(true);
+  }
+
+  function handleCloseMobileOverlays() {
+    setIsMobileSettingsOpen(false);
+    setIsMobileDetailOpen(false);
+  }
+
   return (
     <main className="appRoot">
       <div className="shell">
@@ -596,9 +717,9 @@ export default function Home() {
         <h1 className="srOnly">Build your Steam Sale Calendar</h1>
 
         <button
-          aria-label="Close settings"
-          className={isMobileSettingsOpen ? 'mobileSheetBackdrop isVisible' : 'mobileSheetBackdrop'}
-          onClick={() => setIsMobileSettingsOpen(false)}
+          aria-label="Close overlay"
+          className={isMobileSettingsOpen || isMobileDetailOpen ? 'mobileSheetBackdrop isVisible' : 'mobileSheetBackdrop'}
+          onClick={handleCloseMobileOverlays}
           type="button"
         />
 
@@ -646,7 +767,7 @@ export default function Home() {
             </div>
 
             <div className="panelHeader">
-              <h2>Calendar sources</h2>
+              <h2>{copy.calendarSources}</h2>
             </div>
 
             {publicPreviewError ? (
@@ -655,13 +776,13 @@ export default function Home() {
 
             <SourceToggle
               checked={showDeals}
-              title="Hot Deals & Preorders"
-              description="Top sellers that are currently discounted or available to preorder."
+              title={copy.hotDealsTitle}
+              description={copy.hotDealsDescription}
               onChange={setShowDeals}
             />
 
             <div className="controlRow">
-              <span>Items</span>
+              <span>{copy.itemsLabel}</span>
               <div className="stepper" aria-label="Hot deals count">
                 <button type="button" onClick={() => setDealCount((count) => Math.max(3, count - 1))}>-</button>
                 <output>{dealCount}</output>
@@ -671,8 +792,8 @@ export default function Home() {
 
             <SourceToggle
               checked={showSteamEvents}
-              title="Steam Sales & Fests"
-              description="Official Steam sale events, Next Fest, themed fests, and public sale pages."
+              title={copy.steamEventsTitle}
+              description={copy.steamEventsDescription}
               onChange={setShowSteamEvents}
             />
 
@@ -686,8 +807,8 @@ export default function Home() {
                     type="checkbox"
                   />
                   <span>
-                    <strong>{STEAM_EVENT_CATEGORY_LABELS[category].title}</strong>
-                    <small>{STEAM_EVENT_CATEGORY_LABELS[category].description}</small>
+                    <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
+                    <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
                   </span>
                 </label>
               ))}
@@ -695,7 +816,7 @@ export default function Home() {
 
             <div className="rangeGrid" aria-label="Steam event range">
               <label>
-                <span>Past days</span>
+                <span>{copy.pastDays}</span>
                 <input
                   type="number"
                   min="0"
@@ -705,7 +826,7 @@ export default function Home() {
                 />
               </label>
               <label>
-                <span>Next days</span>
+                <span>{copy.nextDays}</span>
                 <input
                   type="number"
                   min="1"
@@ -721,8 +842,8 @@ export default function Home() {
             <div className="myGamesBlock">
               <div className="sourceTitleRow">
                 <div>
-                  <h3>My Games</h3>
-                  <p>Watch specific games, then connect a public Steam wishlist when you want it to replace manual picks.</p>
+                  <h3>{copy.myGamesTitle}</h3>
+                  <p>{copy.myGamesDescription}</p>
                 </div>
                 <label className="switch">
                   <input
@@ -754,19 +875,19 @@ export default function Home() {
 
               {hasConnectedWishlist ? (
                 <div className="notice wishlistNotice">
-                  Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.
+                  {copy.wishlistConnected}
                 </div>
               ) : null}
 
               {isPreviewLoading && !hasConnectedWishlist ? (
                 <div className="notice loadingNotice" role="status">
-                  Syncing your calendar preview with Steam data...
+                  {copy.syncingPreview}
                 </div>
               ) : null}
 
               {trendingGames.length ? (
                 <div className="trendingGames" aria-label="Trending games">
-                  <span className="miniSectionTitle">Trending now</span>
+                  <span className="miniSectionTitle">{copy.trendingNow}</span>
                   {trendingGames.map((game) => {
                     const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
 
@@ -779,7 +900,7 @@ export default function Home() {
                           type="button"
                           onClick={() => handleAddManualGame(game)}
                         >
-                          {isSelected ? 'Added' : 'Add'}
+                          {isSelected ? copy.added : copy.add}
                         </button>
                       </div>
                     );
@@ -789,7 +910,7 @@ export default function Home() {
 
               {selectedGames.length ? (
                 <div className="selectedGames" aria-label="Games added to calendar">
-                  <span className="miniSectionTitle">Added to calendar</span>
+                  <span className="miniSectionTitle">{copy.addedToCalendar}</span>
                   {selectedGames.map((game) => (
                     <div
                       className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
@@ -797,7 +918,7 @@ export default function Home() {
                     >
                       {game.imageUrl ? <img src={game.imageUrl} alt="" /> : <span className="gameThumbFallback" />}
                       <span>{game.name}</span>
-                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>Remove</button>
+                      <button type="button" onClick={() => handleRemoveSelectedGame(game.appId)}>{copy.remove}</button>
                     </div>
                   ))}
                 </div>
@@ -837,7 +958,7 @@ export default function Home() {
                           type="button"
                           onClick={() => handleAddSelectedGame(game)}
                         >
-                          {isSelected ? 'Added' : 'Add'}
+                          {isSelected ? copy.added : copy.add}
                         </button>
                       </div>
                     );
@@ -851,27 +972,27 @@ export default function Home() {
                 onSubmit={handleSubmit}
                 aria-label="Import Steam wishlist releases to the calendar"
               >
-                <label className="srOnly" htmlFor="steam-id">Paste your Steam Profile URL</label>
+                <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
                 <div className="steamInputWrap">
                   <LinkIcon />
                   <input
                     id="steam-id"
                     inputMode="text"
-                    placeholder="Paste Steam Profile URL"
+                    placeholder={copy.steamProfilePlaceholder}
                     value={steamId64}
                     onChange={(event) => setSteamId64(event.target.value)}
                   />
                 </div>
                 <button disabled={isLoading} type="submit">
-                  {isLoading ? 'Importing...' : 'Import Steam Wishlist'}
+                  {isLoading ? copy.importing : copy.importWishlist}
                 </button>
               </form>
               {isLoading ? (
                 <div className="notice loadingNotice" role="status">
-                  Reading your public Steam wishlist and preparing calendar events. This can take a moment for larger wishlists.
+                  {copy.importingWishlist}
                 </div>
               ) : null}
-              <p className="wishlistHint">Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.</p>
+              <p className="wishlistHint">{copy.wishlistHint}</p>
 
               {error ? <div className="notice error">{error}</div> : null}
               {error ? (
@@ -889,17 +1010,25 @@ export default function Home() {
               events={visibleEvents}
               initialFocusDate={initialFocusDate}
               isLoading={isPreviewLoading}
-              onSelectEvent={setSelectedEventId}
+              onSelectEvent={handleCalendarEventSelect}
               recentlyAddedAppId={recentlyAddedAppId}
               selectedEventId={selectedEvent?.id ?? null}
               todayIso={todayIso}
+              uiCopy={copy}
+              uiLanguage={uiLanguage}
             />
           </div>
 
           <EventDetails
             event={selectedEvent}
             copy={copy}
-            onRemove={(eventId) => setHiddenEventIds((ids) => new Set(ids).add(eventId))}
+            isMobileOpen={isMobileDetailOpen}
+            onCloseMobile={() => setIsMobileDetailOpen(false)}
+            uiLanguage={uiLanguage}
+            onRemove={(eventId) => {
+              setHiddenEventIds((ids) => new Set(ids).add(eventId));
+              setIsMobileDetailOpen(false);
+            }}
           />
         </section>
 
@@ -912,18 +1041,21 @@ export default function Home() {
             aria-label="Open settings"
             className="mobileSettingsButton"
             type="button"
-            onClick={() => setIsMobileSettingsOpen(true)}
+            onClick={() => {
+              setIsMobileDetailOpen(false);
+              setIsMobileSettingsOpen(true);
+            }}
           >
             <SettingsIcon />
           </button>
         </nav>
 
         <footer className="siteFooter">
-          <span>Steam Sale Calendar is not affiliated with Valve Corp.</span>
+          <span>{copy.footerNotice}</span>
           <nav aria-label="Footer links">
-            <a href="#calendar-preview">How it works</a>
-            <a href="#steam-connect">Privacy</a>
-            <a href="#calendar-preview">Changelog</a>
+            <a href="#calendar-preview">{copy.footerHowItWorks}</a>
+            <a href="#steam-connect">{copy.footerPrivacy}</a>
+            <a href="#calendar-preview">{copy.footerChangelog}</a>
             <a href="https://github.com" rel="noreferrer" target="_blank">GitHub</a>
           </nav>
         </footer>
@@ -940,6 +1072,8 @@ function CalendarPreview({
   recentlyAddedAppId,
   selectedEventId,
   todayIso,
+  uiCopy,
+  uiLanguage,
 }: {
   events: PreviewEvent[];
   initialFocusDate: string;
@@ -948,6 +1082,8 @@ function CalendarPreview({
   recentlyAddedAppId: string | null;
   selectedEventId: string | null;
   todayIso: string;
+  uiCopy: typeof UI_COPY[UiLanguage];
+  uiLanguage: UiLanguage;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const weekRefs = useRef(new Map<string, HTMLElement>());
@@ -1083,10 +1219,10 @@ function CalendarPreview({
   return (
     <section className={calendarView === 'list' ? 'calendarApp isListView' : 'calendarApp'} aria-label="Calendar preview">
       <div className="calendarHeader">
-        <h2>{formatCalendarMonthTitle(visibleMonth)}</h2>
+        <h2>{formatCalendarMonthTitle(visibleMonth, uiLanguage)}</h2>
 
         <div className="calendarControls">
-          <button className="todayButton" disabled={!canScrollToToday} type="button" onClick={handleTodayClick}>Today</button>
+          <button className="todayButton" disabled={!canScrollToToday} type="button" onClick={handleTodayClick}>{uiCopy.today}</button>
           <div className="viewTabs" aria-label="Calendar view">
             <button
               aria-pressed={calendarView === 'month'}
@@ -1094,7 +1230,7 @@ function CalendarPreview({
               type="button"
               onClick={() => setCalendarView('month')}
             >
-              Month
+              {uiCopy.month}
             </button>
             <button
               aria-pressed={calendarView === 'list'}
@@ -1102,7 +1238,7 @@ function CalendarPreview({
               type="button"
               onClick={() => setCalendarView('list')}
             >
-              List
+              {uiCopy.list}
             </button>
           </div>
         </div>
@@ -1114,7 +1250,7 @@ function CalendarPreview({
             className="calendarWeekdays"
             aria-hidden="true"
           >
-            {WEEKDAYS.map((weekday) => (
+            {WEEKDAY_LABELS[uiLanguage].map((weekday) => (
               <div className="weekday" key={weekday}>{weekday}</div>
             ))}
           </div>
@@ -1128,7 +1264,7 @@ function CalendarPreview({
             {isLoading ? (
               <div className="calendarLoadingOverlay" role="status">
                 <span className="loadingSpinner" />
-                <span>Syncing Steam calendar data...</span>
+                <span>{uiCopy.syncingCalendar}</span>
               </div>
             ) : null}
             <div className="calendarTimeline" role="grid" aria-label="Continuous calendar grid">
@@ -1139,7 +1275,7 @@ function CalendarPreview({
 
                 return (
                   <div
-                    aria-label={`Week of ${formatDate(week.weekStartIso)}`}
+                    aria-label={`Week of ${formatDate(week.weekStartIso, uiLanguage)}`}
                     className="calendarWeek"
                     data-week-start={week.weekStartIso}
                     key={week.weekStartIso}
@@ -1158,7 +1294,7 @@ function CalendarPreview({
                         className={cell.date.startsWith(`${visibleMonth}-`) ? 'dayCell' : 'dayCell outsideMonth'}
                         key={cell.date}
                         role="gridcell"
-                        aria-label={`${formatDate(cell.date)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
+                        aria-label={`${formatDate(cell.date, uiLanguage)}${cell.events.length ? `, ${cell.events.length} events` : ''}`}
                         style={{ gridColumn: index + 1 } as CSSProperties}
                       >
                         <span className={cell.date === todayIso ? 'dayNumber isToday' : 'dayNumber'}>{cell.day}</span>
@@ -1198,10 +1334,10 @@ function CalendarPreview({
           </div>
 
           <div className="calendarLegend" aria-label="Calendar legend">
-            <span><i className="legendDot dealEvent" />Deals</span>
-            <span><i className="legendDot preorderEvent" />Preorders</span>
-            <span><i className="legendDot nextFestEvent" />Fests / Events</span>
-            <span><i className="legendDot saleEvent" />Sales</span>
+            <span><i className="legendDot dealEvent" />{uiCopy.dealsLegend}</span>
+            <span><i className="legendDot preorderEvent" />{uiCopy.preordersLegend}</span>
+            <span><i className="legendDot nextFestEvent" />{uiCopy.eventsLegend}</span>
+            <span><i className="legendDot saleEvent" />{uiCopy.salesLegend}</span>
           </div>
         </>
       ) : (
@@ -1209,7 +1345,7 @@ function CalendarPreview({
           {isLoading ? (
             <div className="calendarLoadingOverlay" role="status">
               <span className="loadingSpinner" />
-              <span>Syncing Steam calendar data...</span>
+              <span>{uiCopy.syncingCalendar}</span>
             </div>
           ) : null}
           {listEvents.length ? (
@@ -1231,8 +1367,8 @@ function CalendarPreview({
                   {event.imageUrl ? <img src={event.imageUrl} alt="" /> : <span className="eventListThumbFallback" />}
                   <span className="eventListContent">
                     <span className="eventListMeta">
-                      <span>{formatEventDateRange(event)}</span>
-                      <span>{detailKind(event)}</span>
+                      <span>{formatEventDateRange(event, uiLanguage)}</span>
+                      <span>{detailKind(event, uiCopy)}</span>
                     </span>
                     <strong>{detailTitle(event)}</strong>
                     <span className="eventListDescription">{detailDescription(event)}</span>
@@ -1248,8 +1384,8 @@ function CalendarPreview({
             </div>
           ) : (
             <div className="emptyEventList">
-              <h3>No calendar events</h3>
-              <p>Enable Steam events, deals, or watched games to preview them here.</p>
+              <h3>{uiCopy.noCalendarEvents}</h3>
+              <p>{uiCopy.noCalendarEventsDescription}</p>
             </div>
           )}
         </div>
@@ -1317,18 +1453,28 @@ function SourceToggle({
 function EventDetails({
   copy,
   event,
+  isMobileOpen,
+  onCloseMobile,
   onRemove,
+  uiLanguage,
 }: {
   copy: typeof UI_COPY[UiLanguage];
   event: PreviewEvent | null;
+  isMobileOpen: boolean;
+  onCloseMobile: () => void;
   onRemove: (eventId: string) => void;
+  uiLanguage: UiLanguage;
 }) {
   if (!event) {
     return (
-      <aside className="detailPanel" aria-label="Selected event details">
+      <aside className={isMobileOpen ? 'detailPanel isMobileOpen' : 'detailPanel'} aria-label="Selected event details">
+        <div className="mobileDetailHeader">
+          <h2>{copy.noEventsVisible}</h2>
+          <button aria-label="Close details" type="button" onClick={onCloseMobile}>×</button>
+        </div>
         <div className="emptyDetail">
-          <h2>No events visible</h2>
-          <p>Turn on a calendar source to preview the Steam Sale Calendar.</p>
+          <h2>{copy.noEventsVisible}</h2>
+          <p>{copy.noEventsVisibleDescription}</p>
         </div>
       </aside>
     );
@@ -1341,9 +1487,13 @@ function EventDetails({
   } as CSSProperties : undefined;
 
   return (
-    <aside className="detailPanel" aria-label="Selected event details">
+    <aside className={isMobileOpen ? 'detailPanel isMobileOpen' : 'detailPanel'} aria-label="Selected event details">
+      <div className="mobileDetailHeader">
+        <h2>{copy.steamEventsTitle}</h2>
+        <button aria-label="Close details" type="button" onClick={onCloseMobile}>×</button>
+      </div>
       <div className="detailTitleBlock">
-        <span>{detailKind(event)}</span>
+        <span>{detailKind(event, copy)}</span>
         <h2>{detailTitle(event)}</h2>
       </div>
       <div
@@ -1354,13 +1504,13 @@ function EventDetails({
         ].join(' ')}
         style={heroStyle}
       >
-        {!hasSteamCliImage ? <span>Steam CLI event data</span> : null}
+        {!hasSteamCliImage ? <span>{copy.steamCliEventData}</span> : null}
       </div>
 
       <div className="detailBody">
         <div className="detailMeta">
-          <span>{formatDate(event.startDate)}</span>
-          {event.endDate ? <span>Until {formatDate(event.endDate)}</span> : null}
+          <span>{formatDate(event.startDate, uiLanguage)}</span>
+          {event.endDate ? <span>{copy.until} {formatDate(event.endDate, uiLanguage)}</span> : null}
         </div>
 
         {event.discount || event.finalPrice ? (
@@ -1379,14 +1529,14 @@ function EventDetails({
         <p className="detailDescription">{detailDescription(event)}</p>
 
         {event.type === 'steam_deal' ? (
-          <p className="detailNote">This deal is shown from now until Steam reports it ends.</p>
+          <p className="detailNote">{copy.dealNote}</p>
         ) : null}
 
         <div className="detailActions">
           {event.sourceUrl ? (
             <a className="secondaryAction" href={event.sourceUrl} rel="noreferrer" target="_blank">
               <SteamButtonIcon />
-              View on Steam
+              {copy.viewOnSteam}
             </a>
           ) : null}
           <button className="ghostAction" onClick={() => onRemove(event.id)} type="button">{copy.hidePreview}</button>
@@ -1870,33 +2020,37 @@ function shiftMonth(monthKey: string, delta: number): string {
   return value.toISOString().slice(0, 7);
 }
 
-function formatMonth(value: string): string {
+function uiLocale(uiLanguage: UiLanguage): string {
+  return uiLanguage === 'zh' ? 'zh-CN' : 'en';
+}
+
+function formatMonth(value: string, uiLanguage: UiLanguage): string {
   const [year, month] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en', {
+  return new Intl.DateTimeFormat(uiLocale(uiLanguage), {
     month: 'long',
     year: 'numeric',
   }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-function formatCalendarMonthTitle(value: string): string {
-  return formatMonth(value);
+function formatCalendarMonthTitle(value: string, uiLanguage: UiLanguage): string {
+  return formatMonth(value, uiLanguage);
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string, uiLanguage: UiLanguage = 'en'): string {
   const [year, month, day] = value.split('-').map(Number);
-  return new Intl.DateTimeFormat('en', {
+  return new Intl.DateTimeFormat(uiLocale(uiLanguage), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-function formatEventDateRange(event: PreviewEvent): string {
+function formatEventDateRange(event: PreviewEvent, uiLanguage: UiLanguage): string {
   if (!event.endDate || event.endDate === event.startDate) {
-    return formatDate(event.startDate);
+    return formatDate(event.startDate, uiLanguage);
   }
 
-  return `${formatDate(event.startDate)} - ${formatDate(event.endDate)}`;
+  return `${formatDate(event.startDate, uiLanguage)} - ${formatDate(event.endDate, uiLanguage)}`;
 }
 
 function compareEventsForList(firstEvent: PreviewEvent, secondEvent: PreviewEvent): number {
@@ -1939,16 +2093,16 @@ function compactEventTitle(title: string): string {
     .replace(/^🎮\s*/, '');
 }
 
-function detailKind(event: PreviewEvent): string {
+function detailKind(event: PreviewEvent, copy: typeof UI_COPY[UiLanguage]): string {
   switch (event.type) {
     case 'steam_deal':
-      return 'Hot deal';
+      return copy.hotDealsTitle;
     case 'steam_preorder':
-      return 'Preorder';
+      return copy.preordersLegend;
     case 'wishlist_release':
-      return 'Watched game';
+      return copy.myGamesTitle;
     case 'steam_major_event':
-      return 'Steam Sales & Fests';
+      return copy.steamEventsTitle;
   }
 }
 

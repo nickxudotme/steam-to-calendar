@@ -1454,6 +1454,7 @@ select {
 .mobileSheetBackdrop,
 .mobileSheetHeader,
 .mobileSheetControls,
+.mobileDetailHeader,
 .mobileBottomBar {
   display: none;
 }
@@ -1611,7 +1612,20 @@ select {
 }
 
 @media (max-width: 700px) {
+  body {
+    height: 100svh;
+    overflow: hidden;
+  }
+
+  .appRoot {
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
   .shell {
+    height: 100svh;
+    overflow: hidden;
     padding: 0 10px calc(92px + env(safe-area-inset-bottom));
   }
 
@@ -1640,6 +1654,8 @@ select {
 
   .calendarWorkbench {
     display: block;
+    height: calc(100svh - 72px - 82px - env(safe-area-inset-bottom));
+    overflow: hidden;
   }
 
   .configPanel {
@@ -1665,6 +1681,30 @@ select {
     transform: translateY(0);
   }
 
+  .detailPanel {
+    border-bottom: 0;
+    border-radius: 18px 18px 0 0;
+    bottom: 0;
+    box-shadow: 0 -26px 70px rgba(0, 0, 0, 0.58);
+    display: grid;
+    grid-template-rows: auto minmax(66px, auto) 150px minmax(0, 1fr);
+    left: 0;
+    max-height: min(78svh, 720px);
+    min-height: min(54svh, 520px);
+    overflow: hidden;
+    padding: 10px 14px calc(22px + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    top: auto;
+    transform: translateY(106%);
+    transition: transform 190ms ease;
+    z-index: 32;
+  }
+
+  .detailPanel.isMobileOpen {
+    transform: translateY(0);
+  }
+
   .mobileSheetBackdrop.isVisible {
     background: rgba(1, 6, 12, 0.64);
     border: 0;
@@ -1683,6 +1723,35 @@ select {
     position: sticky;
     top: 0;
     z-index: 2;
+  }
+
+  .mobileDetailHeader {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0 8px;
+    z-index: 2;
+  }
+
+  .mobileDetailHeader h2 {
+    color: #ffffff;
+    font-size: 1.08rem;
+    margin: 0;
+  }
+
+  .mobileDetailHeader button {
+    align-items: center;
+    background: rgba(12, 22, 34, 0.96);
+    border: 1px solid rgba(117, 151, 184, 0.28);
+    border-radius: 999px;
+    color: #d7e5ee;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 1.35rem;
+    height: 36px;
+    justify-content: center;
+    line-height: 1;
+    width: 36px;
   }
 
   .mobileSheetHeader h2 {
@@ -1806,7 +1875,7 @@ select {
   }
 
   .calendarExperience {
-    height: calc(100svh - 150px - env(safe-area-inset-bottom));
+    height: 100%;
     min-height: 0;
   }
 
@@ -1918,8 +1987,22 @@ select {
     font-size: 0.76rem;
   }
 
-  .detailPanel {
-    margin-top: 12px;
+  .detailTitleBlock {
+    align-self: center;
+    padding: 4px 42px 12px 2px;
+  }
+
+  .detailTitleBlock h2 {
+    font-size: 1.28rem;
+  }
+
+  .detailHero {
+    margin: 0;
+    min-height: 0;
+  }
+
+  .detailBody {
+    padding: 14px 0 0;
   }
 
   .rangeGrid {

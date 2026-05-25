@@ -17,6 +17,8 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   );
   await headerControls.getByLabel('Language').selectOption('zh-CN');
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]lang=schinese&uiLang=zh-CN/);
+  await expect(page.getByText('日历来源')).toBeVisible();
+  await expect(page.getByRole('button', { name: '今天', exact: true })).toBeVisible();
   await headerControls.getByLabel('Language').selectOption('en');
   await expect(page.getByRole('button', { name: 'Previous month' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Next month' })).toHaveCount(0);
@@ -59,8 +61,8 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   const previewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/preview') && response.request().method() === 'POST',
   );
-  await page.getByLabel('Paste your Steam Profile URL').fill('https://steamcommunity.com/id/nickxudotme/');
-  await page.getByRole('button', { name: 'Import Steam Wishlist' }).click();
+  await page.locator('#steam-id').fill('https://steamcommunity.com/id/nickxudotme/');
+  await page.locator('.wishlistImport button[type="submit"]').click();
   await expect((await previewResponse).ok()).toBe(true);
   await expect(page.getByText('Wishlist connected. Manual game picks are ignored')).toBeVisible();
   const importedCalendarHref = await addCalendarLink.getAttribute('href');
