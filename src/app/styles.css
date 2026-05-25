@@ -13,7 +13,7 @@ html {
 
 body {
   margin: 0;
-  background: #07111b;
+  background: #071017;
   color: #eef5fb;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   height: 100%;
@@ -34,12 +34,12 @@ select {
 }
 
 .appRoot {
-  --bg: #07111b;
-  --panel: rgba(16, 29, 43, 0.88);
-  --panel-deep: rgba(8, 15, 25, 0.92);
-  --panel-soft: rgba(28, 45, 62, 0.72);
-  --line: rgba(111, 146, 177, 0.25);
-  --line-strong: rgba(102, 192, 244, 0.54);
+  --bg: #071017;
+  --panel: rgba(15, 25, 35, 0.94);
+  --panel-deep: rgba(7, 13, 21, 0.96);
+  --panel-soft: rgba(25, 38, 50, 0.72);
+  --line: rgba(151, 174, 191, 0.18);
+  --line-strong: rgba(102, 192, 244, 0.5);
   --fg: #f4f8fb;
   --text: #d6e1ea;
   --muted: #9baebd;
@@ -53,10 +53,9 @@ select {
   --danger: #ff5b4f;
   --radius: 7px;
   background:
-    linear-gradient(180deg, rgba(5, 12, 20, 0.72), rgba(5, 12, 20, 0.9) 54%, #07111b),
-    linear-gradient(90deg, rgba(5, 11, 19, 0.98), rgba(15, 38, 57, 0.58), rgba(5, 11, 19, 0.92)),
-    url("/assets/backgrounds/game-library-universe.png") center top / cover,
-    #07111b;
+    radial-gradient(circle at 24% -18%, rgba(102, 192, 244, 0.18), transparent 34%),
+    radial-gradient(circle at 86% 0%, rgba(164, 208, 7, 0.1), transparent 30%),
+    linear-gradient(180deg, #0a1721, #071017 48%, #050b12);
   color: var(--fg);
   height: 100dvh;
   min-height: 0;
@@ -65,9 +64,8 @@ select {
 
 .appRoot::before {
   background:
-    linear-gradient(180deg, rgba(102, 192, 244, 0.12), transparent 230px),
-    repeating-linear-gradient(90deg, rgba(102, 192, 244, 0.035) 0 1px, transparent 1px 96px),
-    repeating-linear-gradient(0deg, rgba(102, 192, 244, 0.02) 0 1px, transparent 1px 92px);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 180px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03), transparent 42%, rgba(255, 255, 255, 0.02));
   content: "";
   inset: 0;
   mask-image: linear-gradient(180deg, black, black 78%, transparent);
@@ -89,13 +87,13 @@ select {
 
 .siteHeader {
   align-items: center;
-  border-bottom: 1px solid rgba(117, 151, 184, 0.17);
+  border-bottom: 1px solid rgba(151, 174, 191, 0.12);
   display: flex;
-  gap: 20px;
-  min-height: 78px;
+  gap: 18px;
+  min-height: 76px;
   justify-content: space-between;
   margin: 0 -12px 12px;
-  padding: 14px 28px;
+  padding: 12px 28px;
 }
 
 .brandMark {
@@ -103,27 +101,45 @@ select {
   color: #f5f8fa;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 16px;
-  font-size: 1.46rem;
-  font-weight: 850;
+  gap: 13px;
   letter-spacing: 0;
   text-decoration: none;
 }
 
-.brandMark > span:last-child {
+.brandText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.brandName {
+  color: #ffffff;
+  font-size: 1.28rem;
+  font-weight: 880;
+  line-height: 1.08;
+  white-space: nowrap;
+}
+
+.brandTagline {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.2;
+  max-width: min(42vw, 460px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .brandIcon {
   align-items: center;
-  background: rgba(4, 10, 17, 0.18);
+  background: rgba(4, 10, 17, 0.3);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
   display: inline-flex;
-  height: 48px;
+  height: 44px;
   justify-content: center;
   overflow: hidden;
-  width: 48px;
+  width: 44px;
 }
 
 .brandIcon img {
@@ -303,6 +319,112 @@ select {
   pointer-events: none;
 }
 
+.infoButton {
+  align-items: center;
+  background: rgba(15, 29, 42, 0.78);
+  border: 1px solid rgba(151, 174, 191, 0.24);
+  border-radius: 999px;
+  color: #d9e8f3;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.92rem;
+  font-weight: 860;
+  height: 42px;
+  justify-content: center;
+  line-height: 1;
+  width: 42px;
+}
+
+.infoButton:hover,
+.infoButton:focus-visible {
+  background: rgba(25, 47, 66, 0.92);
+  border-color: rgba(102, 192, 244, 0.5);
+  color: #ffffff;
+  outline: none;
+}
+
+.introOverlay {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 80;
+}
+
+.introBackdrop {
+  background: rgba(1, 6, 12, 0.72);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.introSheet {
+  background:
+    linear-gradient(180deg, rgba(18, 32, 45, 0.98), rgba(7, 14, 23, 0.98));
+  border: 1px solid rgba(151, 174, 191, 0.22);
+  border-radius: 12px;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58);
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+  padding: 28px;
+  position: relative;
+  width: min(100%, 560px);
+}
+
+.introKicker {
+  color: var(--steam-blue);
+  font-size: 0.78rem;
+  font-weight: 880;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.introSheet h2 {
+  color: #ffffff;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.introSheet p {
+  color: #c6d5df;
+  font-size: 1rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 58ch;
+}
+
+.introPrimary {
+  align-items: center;
+  background: linear-gradient(180deg, #168dff, #0867bf);
+  border: 1px solid rgba(102, 192, 244, 0.7);
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.98rem;
+  font-weight: 870;
+  justify-content: center;
+  justify-self: start;
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+.introPrimary:hover,
+.introPrimary:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+}
+
 .calendarFooterCta {
   align-items: center;
   border-radius: 7px;
@@ -337,10 +459,10 @@ select {
 .configPanel,
 .calendarExperience,
 .detailPanel {
-  background: linear-gradient(180deg, rgba(18, 32, 47, 0.9), rgba(8, 16, 27, 0.95));
+  background: linear-gradient(180deg, rgba(14, 25, 36, 0.94), rgba(7, 13, 21, 0.97));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
   min-width: 0;
   overflow: hidden;
 }
@@ -384,8 +506,8 @@ select {
 .sourceCard,
 .myGamesBlock,
 .infoCard {
-  background: linear-gradient(180deg, rgba(15, 30, 45, 0.72), rgba(8, 15, 25, 0.7));
-  border: 1px solid rgba(117, 151, 184, 0.23);
+  background: rgba(8, 15, 24, 0.5);
+  border: 1px solid rgba(151, 174, 191, 0.16);
   border-radius: var(--radius);
   padding: 14px;
 }
@@ -1320,8 +1442,8 @@ select {
 
 .calendarHeader {
   align-items: center;
-  background: linear-gradient(90deg, rgba(13, 22, 33, 0.96), rgba(22, 43, 60, 0.96));
-  border-bottom: 1px solid rgba(102, 192, 244, 0.23);
+  background: rgba(8, 15, 24, 0.88);
+  border-bottom: 1px solid rgba(151, 174, 191, 0.16);
   display: grid;
   gap: 14px;
   grid-template-columns: 1fr auto;
@@ -1448,7 +1570,7 @@ select {
 }
 
 .calendarTimeline {
-  background: rgba(102, 192, 244, 0.09);
+  background: rgba(151, 174, 191, 0.1);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1468,7 +1590,7 @@ select {
 }
 
 .dayCell {
-  background: rgba(10, 20, 31, 0.89);
+  background: rgba(9, 17, 26, 0.9);
   min-height: calc(48px + (var(--week-lanes) * 29px));
   padding: 10px;
   position: relative;
@@ -1480,7 +1602,7 @@ select {
 }
 
 .outsideMonth {
-  background: rgba(10, 20, 31, 0.56);
+  background: rgba(9, 17, 26, 0.58);
 }
 
 .dayNumber {
@@ -2251,6 +2373,18 @@ select {
     font-size: 1.02rem;
   }
 
+  .brandText {
+    gap: 0;
+  }
+
+  .brandName {
+    font-size: 1rem;
+  }
+
+  .brandTagline {
+    display: none;
+  }
+
   .brandIcon {
     height: 40px;
     width: 40px;
@@ -2269,10 +2403,10 @@ select {
   .headerControls {
     display: flex;
     flex: 0 0 auto;
-    gap: 0;
+    gap: 8px;
   }
 
-  .headerControls > :not(.localeControls) {
+  .headerControls > :not(.localeControls):not(.infoButton) {
     display: none;
   }
 
@@ -2293,6 +2427,31 @@ select {
     grid-template-columns: 1fr 12px;
     height: 42px;
     min-width: 54px;
+  }
+
+  .infoButton {
+    background: rgba(13, 24, 36, 0.9);
+    height: 42px;
+    width: 42px;
+  }
+
+  .introOverlay {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .introSheet {
+    border-radius: 18px;
+    gap: 14px;
+    padding: 22px;
+  }
+
+  .introSheet h2 {
+    font-size: clamp(1.7rem, 9vw, 2.35rem);
+  }
+
+  .introPrimary {
+    justify-self: stretch;
   }
 
   .languageIconOnly .miniIcon {

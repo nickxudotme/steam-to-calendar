@@ -4,7 +4,7 @@ Last updated: 2026-05-25
 
 ## Product
 
-The product direction has moved from "wishlist releases only" to **Steam Sale Calendar**:
+The product direction has moved from "wishlist releases only" to **Steam to Calendar**:
 
 1. Show an immediately useful calendar even when the user has not provided an account.
 2. Include Steam sale/festival events, current hot discounts, and preorders by default.
@@ -12,7 +12,7 @@ The product direction has moved from "wishlist releases only" to **Steam Sale Ca
 4. Generate a dynamic calendar feed whose settings and Steam language are encoded in the URL query string.
 5. Make it clear that the feed can be subscribed to from the user's OS calendar apps through `webcal://` or copied HTTPS feed URLs.
 
-The product positioning remains calendar-first. The app is not trying to become a full Steam database. Its job is to put timely Steam buying/release moments into the calendar the user already checks.
+The product positioning remains calendar-first: track Steam deals, game launch dates, and events in the user's system calendar. The app is not trying to become a full Steam database.
 
 ## Implementation
 

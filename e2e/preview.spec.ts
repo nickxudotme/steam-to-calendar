@@ -3,7 +3,8 @@ import { expect, test } from '@playwright/test';
 test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ page, request }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Steam Sale Calendar').first()).toBeVisible();
+  await expect(page.getByText('Steam to Calendar').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Start tracking' }).click();
   await expect(page.getByRole('region', { name: 'Calendar preview', exact: true })).toBeVisible();
   const headerControls = page.locator('.headerControls');
   await expect(headerControls.locator('.regionSelect .selectDisplayText')).toHaveText(/United States|China/);
@@ -21,7 +22,7 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   );
   await languageSelect.selectOption('zh-CN');
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]lang=schinese&uiLang=zh-CN/);
-  await expect(page.getByText('日历来源')).toBeVisible();
+  await expect(page.getByText('追踪内容')).toBeVisible();
   await expect(page.getByRole('button', { name: '今天', exact: true })).toBeVisible();
   await languageSelect.selectOption('en');
   await expect(page.getByRole('button', { name: 'Previous month' })).toHaveCount(0);
@@ -57,7 +58,7 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   expect(emptyPublicPreviewResponse.ok()).toBe(true);
   expect((await emptyPublicPreviewResponse.json()).events).toEqual([]);
 
-  await page.locator('.sourceCard').filter({ hasText: 'Steam Fests & Events' }).locator('.switch').click();
+  await page.locator('.sourceCard').filter({ hasText: 'Steam Events' }).locator('.switch').click();
 
   const previewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/preview') && response.request().method() === 'POST',

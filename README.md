@@ -1,8 +1,8 @@
-# Steam Sale Calendar
+# Steam to Calendar
 
-Put Steam sales, fests, hot deals, preorders, and watched games into the calendar you actually live in.
+Track Steam deals, game launch dates, and events in your calendar.
 
-Steam Sale Calendar is a Next.js app that builds a subscribable OS calendar from Steam data. It can show official Steam sale/festival events, current top discounted or preorder games, manually watched games, and public wishlist releases. The UI previews the feed as a vertical calendar, then exposes both an HTTPS `.ics` URL and a `webcal://` subscription URL for Apple Calendar, Google Calendar, Outlook, Fantastical, and other calendar apps.
+Steam to Calendar is a Next.js app that builds a subscribable OS calendar from Steam data. It can show official Steam sale/festival events, current top discounted or preorder games, manually watched games, and public wishlist releases. The UI previews the feed as a vertical calendar, then exposes both an HTTPS `.ics` URL and a `webcal://` subscription URL for Apple Calendar, Google Calendar, Outlook, Fantastical, and other calendar apps.
 
 Live prototype:
 
@@ -160,7 +160,7 @@ Apple Calendar may reject local `webcal://localhost:3000` subscriptions. For loc
 
 In scope for the current prototype:
 
-- Account-free Steam sale calendar subscription.
+- Account-free Steam calendar subscription.
 - Official Steam sale/festival events.
 - Current hot discounts and preorders.
 - Manual watched games and public wishlist releases.

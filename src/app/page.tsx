@@ -123,6 +123,7 @@ const AUTO_TRACKED_GAME_COUNT = 3;
 const MAX_EVENT_LANES = 12;
 const EVENT_PAST_DAYS_MAX = 180;
 const EVENT_FUTURE_DAYS_MAX = 365;
+const INTRO_STORAGE_KEY = 'steam-to-calendar-intro-seen';
 const LANGUAGE_OPTIONS = [
   { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
   { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
@@ -182,33 +183,39 @@ const PUBLIC_PREVIEW: PreviewResponse = {
 
 const UI_COPY = {
   en: {
+    productName: 'Steam to Calendar',
+    positioning: 'Track Steam deals, game launch dates, and events in your calendar.',
+    positioningShort: 'Steam deals, launches, and events in your calendar.',
+    introBody: 'Follow specific games, import a public wishlist, choose Steam sales and fests, then subscribe from Apple Calendar, Google Calendar, Outlook, or Fantastical.',
+    introPrimary: 'Start tracking',
+    infoLabel: 'About Steam to Calendar',
     addApple: 'Add to Apple Calendar',
-    addToCalendar: 'Add to your Calendar',
-    calendarSources: 'Calendar sources',
+    addToCalendar: 'Subscribe in Calendar',
+    calendarSources: 'Track',
     hotDealsTitle: 'Tracked Game Deals',
     hotDealsDescription: 'Top sellers that are currently discounted or available to preorder.',
     itemsLabel: 'Items',
-    steamEventsTitle: 'Steam Fests & Events',
-    steamEventsDescription: 'Official Steam sale events, Next Fest, themed fests, and public sale pages.',
+    steamEventsTitle: 'Steam Events',
+    steamEventsDescription: 'Official sale windows, Next Fest, theme fests, and publisher events.',
     eventTypesTitle: 'Event types',
     eventTypesNone: 'No event types selected',
     pastDays: 'Past days',
     nextDays: 'Next days',
-    myGamesTitle: 'My Games',
-    myGamesDescription: 'Watch specific games, then connect a public Steam wishlist when you want it to replace manual picks.',
+    myGamesTitle: 'Tracked Games',
+    myGamesDescription: 'Follow specific games, then connect a public Steam wishlist when you want it to replace manual picks.',
     languageLabel: 'Language',
     settingsLabel: 'Settings',
     storeRegionLabel: 'Store region',
     storeNote: 'Store region affects prices, not language.',
-    searchPlaceholder: 'Search Steam games, appID, or store URL',
+    searchPlaceholder: 'Search or paste URL',
     searchButton: 'Search',
     searchingButton: 'Searching...',
     searchResultsTitle: 'Steam search results',
     searchResultsCount: 'results',
     noSearchResults: 'No Steam games found',
     priceUnavailable: 'Price unavailable',
-    wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep the Steam sale calendar without a wishlist.',
-    wishlistGenericHint: 'Steam did not respond. You can keep the Steam sale calendar and add games manually.',
+    wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep Steam events without a wishlist.',
+    wishlistGenericHint: 'Steam did not respond. You can keep Steam events and add games manually.',
     wishlistConnected: 'Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.',
     syncingPreview: 'Syncing your calendar preview with Steam data...',
     trendingNow: 'Trending now',
@@ -244,25 +251,31 @@ const UI_COPY = {
     ratingLabel: 'Reviews',
     releaseDateLabel: 'Release',
     viewOnSteam: 'View on Steam',
-    footerNotice: 'Steam Sale Calendar is not affiliated with Valve Corp.',
+    footerNotice: 'Steam to Calendar is not affiliated with Valve Corp.',
     footerHowItWorks: 'How it works',
     footerPrivacy: 'Privacy',
     footerChangelog: 'Changelog',
   },
   zh: {
+    productName: 'Steam to Calendar',
+    positioning: '在系统日历里追踪 Steam 折扣、游戏发售日和活动。',
+    positioningShort: '在日历里追踪 Steam 折扣、发售和活动。',
+    introBody: '关注指定游戏、导入公开愿望单、选择 Steam 促销和活动，然后订阅到 Apple Calendar、Google Calendar、Outlook 或 Fantastical。',
+    introPrimary: '开始追踪',
+    infoLabel: '关于 Steam to Calendar',
     addApple: '添加到 Apple 日历',
-    addToCalendar: '添加到系统日历',
-    calendarSources: '日历来源',
+    addToCalendar: '订阅到日历',
+    calendarSources: '追踪内容',
     hotDealsTitle: '关注游戏折扣',
     hotDealsDescription: '当前正在打折或可预购的热门 Steam 游戏。',
     itemsLabel: '数量',
-    steamEventsTitle: 'Steam 节日与活动',
-    steamEventsDescription: 'Steam 官方促销、新品节、主题游戏节和发行商/系列促销。',
+    steamEventsTitle: 'Steam 活动',
+    steamEventsDescription: 'Steam 官方促销窗口、新品节、主题游戏节和发行商活动。',
     eventTypesTitle: '活动类型',
     eventTypesNone: '未选择活动类型',
     pastDays: '过去天数',
     nextDays: '未来天数',
-    myGamesTitle: '我的游戏',
+    myGamesTitle: '关注游戏',
     myGamesDescription: '关注指定游戏；之后也可以关联公开 Steam 愿望单来替代手动选择。',
     languageLabel: '语言',
     settingsLabel: '设置',
@@ -275,8 +288,8 @@ const UI_COPY = {
     searchResultsCount: '个结果',
     noSearchResults: '没有找到 Steam 游戏',
     priceUnavailable: '暂无价格',
-    wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只订阅 Steam 促销日历。',
-    wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 促销日历并手动添加游戏。',
+    wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只保留 Steam 活动。',
+    wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 活动并手动添加游戏。',
     wishlistConnected: '愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。',
     syncingPreview: '正在从 Steam 同步日历预览...',
     trendingNow: '近期热门',
@@ -312,7 +325,7 @@ const UI_COPY = {
     ratingLabel: '好评率',
     releaseDateLabel: '发售日',
     viewOnSteam: '在 Steam 查看',
-    footerNotice: 'Steam Sale Calendar 与 Valve Corp. 没有关联。',
+    footerNotice: 'Steam to Calendar 与 Valve Corp. 没有关联。',
     footerHowItWorks: '工作方式',
     footerPrivacy: '隐私',
     footerChangelog: '更新记录',
@@ -341,6 +354,7 @@ export default function Home() {
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
+  const [isIntroOpen, setIsIntroOpen] = useState(false);
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -445,6 +459,13 @@ export default function Home() {
   useEffect(() => {
     setOrigin(window.location.origin);
     setShouldSendDetectedStoreRegion(shouldSendClientStoreRegion(window.location.hostname));
+    try {
+      if (window.localStorage.getItem(INTRO_STORAGE_KEY) !== '1') {
+        setIsIntroOpen(true);
+      }
+    } catch {
+      setIsIntroOpen(true);
+    }
     const browserLanguage = languageCodeFromBrowser(navigator.language);
     const browserStoreRegion = storeRegionFromBrowser();
 
@@ -732,15 +753,27 @@ export default function Home() {
     setIsMobileDetailOpen(false);
   }
 
+  function handleCloseIntro() {
+    setIsIntroOpen(false);
+    try {
+      window.localStorage.setItem(INTRO_STORAGE_KEY, '1');
+    } catch {
+      // localStorage may be unavailable in private browsing; closing should still work.
+    }
+  }
+
   return (
     <main className="appRoot">
       <div className="shell">
         <header className="siteHeader">
-          <a className="brandMark" href="/" aria-label="Wishlist in Calendar home">
+          <a className="brandMark" href="/" aria-label={`${copy.productName} home`}>
             <span className="brandIcon">
               <img src="/assets/brand/wishlist-in-calendar-logo.png" alt="" />
             </span>
-            <span>Steam Sale Calendar</span>
+            <span className="brandText">
+              <span className="brandName">{copy.productName}</span>
+              <span className="brandTagline">{copy.positioningShort}</span>
+            </span>
           </a>
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <div className="localeControls">
@@ -782,10 +815,24 @@ export default function Home() {
                 </select>
               </label>
             </div>
+            <button
+              aria-label={copy.infoLabel}
+              className="infoButton"
+              type="button"
+              onClick={() => setIsIntroOpen(true)}
+            >
+              i
+            </button>
           </div>
         </header>
 
-        <h1 className="srOnly">Build your Steam Sale Calendar</h1>
+        <h1 className="srOnly">{copy.positioning}</h1>
+
+        <IntroSheet
+          copy={copy}
+          isOpen={isIntroOpen}
+          onClose={handleCloseIntro}
+        />
 
         <button
           aria-label="Close overlay"
@@ -794,7 +841,7 @@ export default function Home() {
           type="button"
         />
 
-        <section className="calendarWorkbench" aria-label="Steam Sale Calendar workbench">
+        <section className="calendarWorkbench" aria-label={`${copy.productName} workbench`}>
           <aside
             className={[
               'configPanel',
@@ -1148,6 +1195,44 @@ export default function Home() {
         </footer>
       </div>
     </main>
+  );
+}
+
+function IntroSheet({
+  copy,
+  isOpen,
+  onClose,
+}: {
+  copy: typeof UI_COPY[UiLanguage];
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="introOverlay" role="presentation">
+      <button
+        aria-label="Close introduction"
+        className="introBackdrop"
+        type="button"
+        onClick={onClose}
+      />
+      <section
+        aria-labelledby="intro-title"
+        aria-modal="true"
+        className="introSheet"
+        role="dialog"
+      >
+        <div className="introKicker">{copy.productName}</div>
+        <h2 id="intro-title">{copy.positioning}</h2>
+        <p>{copy.introBody}</p>
+        <button className="introPrimary" type="button" onClick={onClose}>
+          {copy.introPrimary}
+        </button>
+      </section>
+    </div>
   );
 }
 
