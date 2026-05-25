@@ -64,9 +64,16 @@ export async function searchSteamGames(
     return game ? [game] : [];
   }
 
+  return searchSteamGamesByText(normalizedQuery, options);
+}
+
+async function searchSteamGamesByText(
+  query: string,
+  options: { cc?: string; count?: number; lang?: string; uiLang?: string } = {},
+): Promise<SteamSearchResult[]> {
   const data = await runSteamCliJson<SteamCliSearchResult[]>([
     'search',
-    normalizedQuery,
+    query,
     '--count',
     String(options.count ?? 8),
   ], {
@@ -115,10 +122,6 @@ export async function searchSteamGames(
 
 export function parseSteamAppInput(input: string): string | null {
   const trimmed = input.trim();
-
-  if (/^\d{1,10}$/.test(trimmed)) {
-    return trimmed;
-  }
 
   try {
     const url = new URL(trimmed);
