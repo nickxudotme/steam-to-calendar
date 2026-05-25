@@ -10,7 +10,7 @@ import {
   type SteamEventCategory,
 } from '@/lib/calendar-config';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
-import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from '@/lib/steam/regions';
+import { countryFlag, STEAM_STORE_REGION_CODES, STEAM_STORE_REGIONS, steamStoreRegionName } from '@/lib/steam/regions';
 
 type PreviewEvent = {
   id: string;
@@ -183,7 +183,6 @@ const UI_COPY = {
     myGamesTitle: 'My Games',
     myGamesDescription: 'Watch specific games, then connect a public Steam wishlist when you want it to replace manual picks.',
     languageLabel: 'Language',
-    storeSuffix: 'Store',
     settingsLabel: 'Settings',
     storeRegionLabel: 'Store region',
     storeNote: 'Store region affects prices, not language.',
@@ -248,7 +247,6 @@ const UI_COPY = {
     myGamesTitle: '我的游戏',
     myGamesDescription: '关注指定游戏；之后也可以关联公开 Steam 愿望单来替代手动选择。',
     languageLabel: '语言',
-    storeSuffix: '商店',
     settingsLabel: '设置',
     storeRegionLabel: '商店地区',
     storeNote: '商店地区影响价格，不影响界面语言。',
@@ -322,6 +320,7 @@ export default function Home() {
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
+  const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(() => new Set());
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
@@ -329,14 +328,17 @@ export default function Home() {
   const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('en');
   const [selectedLanguageCode, setSelectedLanguageCode] = useState('en');
+  const [hasInitializedClientLocale, setHasInitializedClientLocale] = useState(false);
+  const [shouldSendDetectedStoreRegion, setShouldSendDetectedStoreRegion] = useState(false);
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [origin, setOrigin] = useState('');
   const userSelectedRegionRef = useRef(false);
   const demoEvents = useMemo(() => buildDemoEvents(todayIso), [todayIso]);
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
-  const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? 'US';
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} ${copy.storeSuffix}`;
+  const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? 'US';
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)}`;
+  const shouldShowResolvedStoreRegion = hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
@@ -357,14 +359,14 @@ export default function Home() {
   const publicPreviewQuery = useMemo(() => {
     const params = calendarConfigToSearchParams(calendarConfig);
 
-    if (storeRegion) {
-      params.set('cc', storeRegion);
+    if (storeRegion || shouldSendDetectedStoreRegion) {
+      params.set('cc', effectiveStoreRegion);
     }
     params.set('lang', effectiveSteamLang);
     params.set('uiLang', effectiveUiLang);
 
     return params.toString();
-  }, [calendarConfig, effectiveSteamLang, effectiveUiLang, storeRegion]);
+  }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang, shouldSendDetectedStoreRegion, storeRegion]);
 
   const calendarQuery = useMemo(() => {
     const params = calendarConfigToSearchParams(calendarConfig);
@@ -441,12 +443,19 @@ export default function Home() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    setShouldSendDetectedStoreRegion(shouldSendClientStoreRegion(window.location.hostname));
     const browserLanguage = languageCodeFromBrowser(navigator.language);
+    const browserStoreRegion = storeRegionFromBrowser();
+
+    if (browserStoreRegion) {
+      setDetectedStoreRegion(browserStoreRegion);
+    }
     setSelectedLanguageCode(browserLanguage.code);
     setUiLanguage(browserLanguage.uiLanguage);
     const browserTodayIso = localIsoDate();
 
     setTodayIso(browserTodayIso);
+    setHasInitializedClientLocale(true);
   }, []);
 
   useEffect(() => {
@@ -463,6 +472,10 @@ export default function Home() {
     let isMounted = true;
 
     async function loadPublicPreview() {
+      if (!hasInitializedClientLocale) {
+        return;
+      }
+
       setIsPreviewLoading(true);
 
       try {
@@ -479,8 +492,8 @@ export default function Home() {
             currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview
           ));
 
-          if (!userSelectedRegionRef.current && !storeRegion && payload.locale?.cc) {
-            setStoreRegion(payload.locale.cc);
+          if (!userSelectedRegionRef.current && payload.locale?.cc) {
+            setDetectedStoreRegion(payload.locale.cc);
           }
         }
     } catch (caught) {
@@ -500,7 +513,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [publicPreviewQuery, storeRegion]);
+  }, [hasInitializedClientLocale, publicPreviewQuery]);
 
   useEffect(() => {
     if (!selectedEventId || !visibleEvents.some((event) => event.id === selectedEventId)) {
@@ -689,7 +702,12 @@ export default function Home() {
           </a>
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <label className="regionSelect">
-              <span>{effectiveStoreRegionLabel}</span>
+              <span className="selectDisplay">
+                <span className="selectIcon" aria-hidden="true">🛒</span>
+                <span className="selectDisplayText">
+                  {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : '...'}
+                </span>
+              </span>
               <select
                 aria-label="Steam store region"
                 value={effectiveStoreRegion}
@@ -703,7 +721,9 @@ export default function Home() {
               </select>
             </label>
             <label className="languageSelect">
-              <span><span className="selectPrefix">{copy.languageLabel}: </span>{selectedLanguage.label}</span>
+              <span className="languageIconOnly" aria-hidden="true">
+                A/文
+              </span>
               <select
                 aria-label="Language"
                 value={selectedLanguage.code}
@@ -1763,6 +1783,140 @@ function languageCodeFromBrowser(language: string): LanguageOption {
   }
 
   return languageOptionByCode('en');
+}
+
+function storeRegionFromBrowser(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const timeZoneRegion = storeRegionFromTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+  if (timeZoneRegion) {
+    return timeZoneRegion;
+  }
+
+  return storeRegionFromLanguages(navigator.languages?.length ? navigator.languages : [navigator.language]);
+}
+
+function storeRegionFromTimeZone(timeZone?: string): string | null {
+  if (!timeZone) {
+    return null;
+  }
+
+  const timeZoneToRegion: Record<string, string> = {
+    'Asia/Shanghai': 'CN',
+    'Asia/Hong_Kong': 'HK',
+    'Asia/Taipei': 'TW',
+    'Asia/Tokyo': 'JP',
+    'Asia/Seoul': 'KR',
+    'Asia/Singapore': 'SG',
+    'Asia/Bangkok': 'TH',
+    'Asia/Ho_Chi_Minh': 'VN',
+    'Asia/Jakarta': 'ID',
+    'Asia/Kuala_Lumpur': 'MY',
+    'Asia/Manila': 'PH',
+    'Asia/Kolkata': 'IN',
+    'Australia/Sydney': 'AU',
+    'Australia/Melbourne': 'AU',
+    'Australia/Brisbane': 'AU',
+    'Australia/Perth': 'AU',
+    'Pacific/Auckland': 'NZ',
+    'Europe/London': 'GB',
+    'Europe/Berlin': 'DE',
+    'Europe/Paris': 'FR',
+    'Europe/Rome': 'IT',
+    'Europe/Madrid': 'ES',
+    'Europe/Amsterdam': 'NL',
+    'Europe/Brussels': 'BE',
+    'Europe/Vienna': 'AT',
+    'Europe/Zurich': 'CH',
+    'Europe/Stockholm': 'SE',
+    'Europe/Oslo': 'NO',
+    'Europe/Copenhagen': 'DK',
+    'Europe/Helsinki': 'FI',
+    'Europe/Warsaw': 'PL',
+    'Europe/Prague': 'CZ',
+    'Europe/Budapest': 'HU',
+    'Europe/Bucharest': 'RO',
+    'Europe/Istanbul': 'TR',
+    'Europe/Kyiv': 'UA',
+    'America/Sao_Paulo': 'BR',
+    'America/Mexico_City': 'MX',
+    'America/Argentina/Buenos_Aires': 'AR',
+    'America/Santiago': 'CL',
+    'America/Bogota': 'CO',
+    'America/Lima': 'PE',
+    'America/Toronto': 'CA',
+    'America/Vancouver': 'CA',
+    'America/Montreal': 'CA',
+    'Africa/Johannesburg': 'ZA',
+    'Asia/Riyadh': 'SA',
+    'Asia/Dubai': 'AE',
+  };
+
+  if (timeZoneToRegion[timeZone]) {
+    return normalizeBrowserStoreRegion(timeZoneToRegion[timeZone]);
+  }
+
+  if (timeZone.startsWith('America/')) {
+    return 'US';
+  }
+
+  return null;
+}
+
+function storeRegionFromLanguages(languages: readonly string[]): string | null {
+  for (const language of languages) {
+    const regionMatch = language.match(/[-_]([a-z]{2})\b/i);
+    const explicitRegion = normalizeBrowserStoreRegion(regionMatch?.[1]);
+
+    if (explicitRegion) {
+      return explicitRegion;
+    }
+
+    const lower = language.toLowerCase();
+
+    if (lower.startsWith('zh-hk')) {
+      return 'HK';
+    }
+
+    if (lower.startsWith('zh-tw') || lower.startsWith('zh-hant')) {
+      return 'TW';
+    }
+
+    if (lower.startsWith('zh')) {
+      return 'CN';
+    }
+
+    if (lower.startsWith('ja')) {
+      return 'JP';
+    }
+
+    if (lower.startsWith('ko')) {
+      return 'KR';
+    }
+  }
+
+  return null;
+}
+
+function normalizeBrowserStoreRegion(region?: string): string | null {
+  if (!region) {
+    return null;
+  }
+
+  const upperRegion = region.toUpperCase();
+
+  return STEAM_STORE_REGION_CODES.has(upperRegion) ? upperRegion : null;
+}
+
+function shouldSendClientStoreRegion(hostname: string): boolean {
+  return hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname.endsWith('.local') ||
+    hostname.startsWith('192.168.');
 }
 
 function chooseCalendarFocusDate(events: PreviewEvent[], todayIso: string): string {

@@ -142,22 +142,70 @@ select {
   display: inline-grid;
   font-size: 0.96rem;
   font-weight: 740;
-  gap: 8px;
-  grid-template-columns: auto 28px;
+  grid-template-columns: minmax(0, 1fr) 30px;
   max-width: min(360px, 100%);
   min-height: 48px;
-  padding: 0 10px 0 16px;
+  min-width: 218px;
+  position: relative;
 }
 
 .languageSelect {
-  max-width: min(220px, 100%);
+  max-width: 88px;
+  min-width: 84px;
 }
 
-.regionSelect span,
-.languageSelect span {
+.selectDisplay {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  padding: 0 8px 0 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.selectDisplayText {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.selectIcon {
+  flex: 0 0 auto;
+  font-size: 0.98rem;
+  line-height: 1;
+}
+
+.languageIcon {
+  align-items: center;
+  border: 1px solid rgba(184, 201, 216, 0.3);
+  border-radius: 5px;
+  color: #d9e8f3;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 850;
+  height: 22px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 5px;
+}
+
+.languageIconOnly {
+  align-items: center;
+  color: #d9e8f3;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 850;
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: center;
+  letter-spacing: 0;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .regionSelect select,
@@ -167,18 +215,22 @@ select {
   border: 0;
   color: transparent;
   cursor: pointer;
-  height: 32px;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: 100%;
   outline: none;
-  width: 28px;
+  width: 100%;
 }
 
 .regionSelect::after,
 .languageSelect::after {
+  align-self: center;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid #b7c8d5;
   content: "";
   grid-column: 2;
+  grid-row: 1;
   justify-self: center;
   pointer-events: none;
 }
