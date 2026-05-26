@@ -3263,7 +3263,7 @@ select {
   }
 
   .detailPanel.noDetailHero .detailMeta {
-    border-left: 3px solid rgba(102, 192, 244, 0.62);
+    border-left: 2px solid rgba(102, 192, 244, 0.55);
     color: #d6e5ee;
     font-size: 0.9rem;
     font-weight: 820;
