@@ -3107,6 +3107,7 @@ select {
 
   .detailPanel.noDetailHero {
     grid-template-rows: none;
+    min-height: min(38svh, 380px);
   }
 
   .detailPanel.isMobileOpen {
@@ -3262,19 +3263,18 @@ select {
   }
 
   .detailPanel.noDetailHero .detailMeta {
-    background: rgba(102, 192, 244, 0.08);
-    border: 1px solid rgba(102, 192, 244, 0.16);
-    border-radius: 8px;
-    color: #cfdfeb;
+    border-left: 3px solid rgba(102, 192, 244, 0.62);
+    color: #d6e5ee;
     font-size: 0.9rem;
     font-weight: 820;
-    padding: 9px 11px;
+    line-height: 1.35;
+    padding: 2px 0 2px 12px;
   }
 
   .detailPanel.noDetailHero .detailDescription {
     color: #d6e1ea;
-    font-size: 1rem;
-    line-height: 1.56;
+    font-size: 0.98rem;
+    line-height: 1.5;
     margin: 0;
   }
 
