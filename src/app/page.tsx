@@ -1059,6 +1059,7 @@ export default function Home() {
             />
             <div className="calendarActionBar">
               <CalendarLegend legendItems={calendarLegendItems(visibleEvents, copy)} />
+              <span className="calendarNotice">{copy.footerNotice}</span>
             </div>
           </div>
 
@@ -1100,15 +1101,6 @@ export default function Home() {
           </button>
         </nav>
 
-        <footer className="siteFooter">
-          <span>{copy.footerNotice}</span>
-          <nav aria-label="Footer links">
-            <a href="#calendar-preview">{copy.footerHowItWorks}</a>
-            <a href="#steam-connect">{copy.footerPrivacy}</a>
-            <a href="#calendar-preview">{copy.footerChangelog}</a>
-            <a href="https://github.com" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </footer>
       </div>
     </main>
   );

@@ -71,7 +71,7 @@ select {
 
 .shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
   margin: 0 auto;
   min-height: 0;
@@ -1860,7 +1860,8 @@ select {
   background: rgba(8, 15, 24, 0.72);
   border-top: 1px solid rgba(117, 151, 184, 0.16);
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 38px;
   padding: 0 16px;
 }
@@ -1868,6 +1869,16 @@ select {
 .calendarActionBar .calendarLegend {
   align-content: center;
   min-height: 38px;
+}
+
+.calendarNotice {
+  color: rgba(155, 174, 189, 0.76);
+  font-size: 0.72rem;
+  font-weight: 650;
+  justify-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendarExperience .calendarFooter {
@@ -2708,30 +2719,6 @@ select {
   padding: 18px;
 }
 
-.siteFooter {
-  align-items: center;
-  border-top: 1px solid rgba(117, 151, 184, 0.16);
-  color: var(--muted);
-  display: flex;
-  font-size: 0.82rem;
-  gap: 20px;
-  justify-content: space-between;
-  margin: 14px -12px 0;
-  min-height: 54px;
-  padding: 0 28px;
-}
-
-.siteFooter nav {
-  align-items: center;
-  display: flex;
-  gap: 30px;
-}
-
-.siteFooter a {
-  color: var(--muted);
-  text-decoration: none;
-}
-
 .mobileSheetBackdrop,
 .mobileSheetHeader,
 .mobileSheetControls,
@@ -2903,18 +2890,6 @@ select {
     grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .siteFooter {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    margin: 16px -14px 0;
-    padding: 16px 14px;
-  }
-
-  .siteFooter nav {
-    flex-wrap: wrap;
-    gap: 18px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -3306,6 +3281,10 @@ select {
     padding: 0 12px;
   }
 
+  .calendarNotice {
+    display: none;
+  }
+
   .calendarActionBar .calendarLegend span {
     font-size: 0.72rem;
   }
@@ -3520,9 +3499,6 @@ select {
     grid-template-columns: 1fr 1fr;
   }
 
-  .siteFooter {
-    display: none;
-  }
 }
 
 @media (max-width: 360px) {
