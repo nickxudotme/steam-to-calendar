@@ -1052,11 +1052,7 @@ export default function Home() {
               webcalUrl={webcalUrl}
             />
             <div className="calendarActionBar">
-              <span className="calendarReadyIcon" aria-hidden="true">✓</span>
-              <div>
-                <span className="calendarReadyTitle">{copy.calendarReadyTitle}</span>
-                <strong>{calendarSummaryItems}</strong>
-              </div>
+              <CalendarLegend legendItems={calendarLegendItems(visibleEvents, copy)} />
               <a className="primaryCalendarCta" href={webcalUrl}>
                 <CalendarListIcon />
                 <span>
@@ -1546,18 +1542,28 @@ function CalendarFooter({
 }) {
   return (
     <div className="calendarFooter">
-      <div className="calendarLegend" aria-label="Calendar legend">
-        {legendItems.map((item) => (
-          <span key={item.className}>
-            <i className={`legendDot ${item.className}`} />
-            {item.label}
-          </span>
-        ))}
-      </div>
+      <CalendarLegend legendItems={legendItems} />
       <a className="calendarFooterCta" href={webcalUrl}>
         <CalendarListIcon />
         {addToCalendarLabel}
       </a>
+    </div>
+  );
+}
+
+function CalendarLegend({
+  legendItems,
+}: {
+  legendItems: ReturnType<typeof calendarLegendItems>;
+}) {
+  return (
+    <div className="calendarLegend" aria-label="Calendar legend">
+      {legendItems.map((item) => (
+        <span key={item.className}>
+          <i className={`legendDot ${item.className}`} />
+          {item.label}
+        </span>
+      ))}
     </div>
   );
 }
