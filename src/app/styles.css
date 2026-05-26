@@ -1431,11 +1431,15 @@ select {
 .selectedGameSelect img,
 .selectedGameSelect .gameThumbFallback {
   aspect-ratio: 231 / 87;
-  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
   border-radius: 5px;
   display: block;
   object-fit: contain;
   width: 68px;
+}
+
+.gameSearchResult .gameThumbFallback,
+.selectedGameSelect .gameThumbFallback {
+  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
 }
 
 .selectedGameSelect {
@@ -1560,8 +1564,11 @@ select {
 
 .gameSearchPreviewMedia img,
 .gameSearchPreviewFallback {
-  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
   object-fit: contain;
+}
+
+.gameSearchPreviewFallback {
+  background: linear-gradient(135deg, rgba(102, 192, 244, 0.22), rgba(32, 120, 201, 0.08));
 }
 
 .gameSearchPreviewBody {
@@ -2446,7 +2453,7 @@ select {
 
 .detailPanel {
   display: grid;
-  grid-template-rows: 86px 190px minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   position: relative;
 }
 
@@ -2474,7 +2481,7 @@ select {
 
 .detailTitleBlock {
   align-self: end;
-  padding: 0 16px 16px;
+  padding: 22px 16px 12px;
 }
 
 .detailPanel.noDetailHero .detailTitleBlock {
@@ -2506,6 +2513,7 @@ select {
   background:
     linear-gradient(135deg, rgba(22, 134, 223, 0.18), transparent 42%),
     linear-gradient(180deg, rgba(10, 21, 34, 0.92), rgba(6, 12, 22, 0.98));
+  aspect-ratio: 231 / 87;
   border: 1px solid rgba(117, 151, 184, 0.16);
   color: rgba(190, 211, 225, 0.64);
   display: flex;
@@ -2521,8 +2529,8 @@ select {
 .detailHero.hasSteamCliImage {
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 100% 100%, contain;
-  border-color: rgba(117, 151, 184, 0.22);
+  background-size: 100% 100%, cover;
+  border: 0;
   color: transparent;
 }
 
@@ -2828,7 +2836,7 @@ select {
   .detailPanel {
     grid-column: auto;
     grid-template-columns: none;
-    grid-template-rows: 86px 190px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     min-height: 0;
   }
 
@@ -2877,17 +2885,13 @@ select {
   .detailPanel {
     grid-column: auto;
     grid-template-columns: none;
-    grid-template-rows: 86px 190px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     order: initial;
   }
 
   .detailPanel.noDetailHero {
     grid-template-columns: none;
     grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .detailHero {
-    min-height: 220px;
   }
 
   .siteFooter {
@@ -3218,7 +3222,6 @@ select {
 
   .detailPanel .detailHero {
     margin: 0 0 16px;
-    min-height: 150px;
   }
 
   .detailPanel .detailBody {
