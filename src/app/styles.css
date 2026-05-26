@@ -3018,7 +3018,7 @@ select {
 
   .calendarWorkbench {
     display: block;
-    height: calc(100svh - 72px - 124px - env(safe-area-inset-bottom));
+    height: calc(100svh - 72px - 94px - env(safe-area-inset-bottom));
     overflow: hidden;
   }
 
