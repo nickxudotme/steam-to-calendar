@@ -183,7 +183,7 @@ export default function Home() {
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? 'US';
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)}`;
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${storeRegionCurrencySymbol(effectiveStoreRegion)})`;
   const shouldShowResolvedStoreRegion = hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
@@ -608,7 +608,7 @@ export default function Home() {
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <div className="localeControls">
               <div className="storeRegionControl" data-tooltip={copy.storeNote}>
-                <span className="storeRegionIcon" aria-hidden="true">🛒</span>
+                <span className="storeRegionIcon" aria-hidden="true">{storeRegionCurrencySymbol(effectiveStoreRegion)}</span>
                 <label className="regionSelect">
                   <span className="selectDisplay">
                     <span className="selectDisplayText">
@@ -680,290 +680,312 @@ export default function Home() {
             aria-label="Calendar configuration"
           >
             <div className="mobileSheetHeader">
-              <h2>{copy.createCalendarTitle}</h2>
+              <h2>{copy.calendarSetupTitle}</h2>
               <button aria-label="Close settings" type="button" onClick={() => setIsMobileSettingsOpen(false)}>×</button>
             </div>
 
             <div className="taskPanelHeader">
-              <h2>{copy.createCalendarTitle}</h2>
-              <p>{copy.createCalendarSubtitle}</p>
-              <div className="taskPanelSummary">{calendarSummaryItems}</div>
+              <h2>{copy.calendarSetupTitle}</h2>
+              <p>{copy.calendarSetupSubtitle}</p>
             </div>
-
-            <a className="drawerCalendarCta" href={webcalUrl}>
-              <CalendarListIcon />
-              {copy.addToCalendar}
-            </a>
 
             {publicPreviewError ? (
               <div className="notice error">{copy.wishlistGenericHint}</div>
             ) : null}
 
-            <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
-              <div className="taskCardTopline">
-                <span>{copy.recommendedLabel}</span>
-              </div>
-              <div className="taskCardHeader">
-                <LinkIcon />
-                <div>
-                  <h3>{copy.connectWishlistTitle}</h3>
-                  <p>{copy.connectWishlistDescription}</p>
-                </div>
-              </div>
+            <div className="setupChecklist">
+              <section className="setupStep" aria-label={copy.steamEventsTitle}>
+                <div className="setupStepMarker" aria-hidden="true">1</div>
+                <div className="setupStepBody">
+                  <SourceToggle
+                    checked={showSteamEvents}
+                    description={copy.steamEventsDescription}
+                    title={copy.steamEventsTitle}
+                    statusLabel={showSteamEvents ? copy.includedLabel : copy.excludedLabel}
+                    controlsId="steam-event-options"
+                    isExpanded={isSteamEventOptionsOpen}
+                    onChange={setShowSteamEvents}
+                    onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
+                  >
+                    {isSteamEventOptionsOpen ? (
+                      <div className="eventOptionsPanel" id="steam-event-options">
+                        <div className="eventTypeGrid" aria-label="Steam event types">
+                          {STEAM_EVENT_CATEGORIES.map((category) => (
+                            <label className="eventTypeOption" key={category}>
+                              <input
+                                checked={steamEventCategories.includes(category)}
+                                disabled={!showSteamEvents}
+                                onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                                type="checkbox"
+                              />
+                              <span>
+                                <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
+                                <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
 
-              <form
-                className="wishlistImport"
-                onSubmit={handleSubmit}
-                aria-label="Import Steam wishlist releases to the calendar"
-              >
-                <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
-                <div className="steamInputWrap">
-                  <LinkIcon />
-                  <input
-                    id="steam-id"
-                    inputMode="text"
-                    placeholder={copy.steamProfilePlaceholder}
-                    value={steamId64}
-                    onChange={(event) => setSteamId64(event.target.value)}
-                  />
-                </div>
-                <button disabled={isLoading} type="submit">
-                  {isLoading ? copy.importing : copy.importWishlist}
-                </button>
-              </form>
-              {isLoading ? (
-                <div className="notice loadingNotice" role="status">
-                  {copy.importingWishlist}
-                </div>
-              ) : null}
-              <p className="wishlistHint">{copy.wishlistHint}</p>
-
-              {error ? <div className="notice error">{error}</div> : null}
-              {error ? (
-                <div className="notice fallbackNotice">
-                  {errorCode === 'wishlist_private_or_unavailable'
-                    ? copy.wishlistPrivateHint
-                    : copy.wishlistGenericHint}
-                </div>
-              ) : null}
-            </section>
-
-            <div className="myGamesBlock">
-              <div className="sourceTitleRow">
-                <div>
-                  <h3>{copy.manualGamesTitle}</h3>
-                  <p>{copy.manualGamesDescription}</p>
-                </div>
-                <label className="switch">
-                  <input
-                    checked={showMyGames}
-                    onChange={(event) => setShowMyGames(event.target.checked)}
-                    type="checkbox"
-                  />
-                  <span />
-                </label>
-              </div>
-
-              <form className="gameSearchForm" onSubmit={handleGameSearchSubmit}>
-                <label className="searchBox" htmlFor="game-search">
-                  <span className="srOnly">Search Steam games</span>
-                  <SearchIcon />
-                  <input
-                    disabled={!showMyGames || hasConnectedWishlist}
-                    id="game-search"
-                    placeholder={copy.searchPlaceholder}
-                    type="search"
-                    value={gameSearch}
-                    onChange={(event) => {
-                      setGameSearch(event.target.value);
-
-                      if (!event.target.value.trim()) {
-                        setGameSearchResults([]);
-                        setGameSearchError(null);
-                        setLastGameSearchQuery('');
-                      }
-                    }}
-                  />
-                </label>
-                <button disabled={!showMyGames || hasConnectedWishlist || isSearchingGames || !gameSearch.trim()} type="submit">
-                  {isSearchingGames ? copy.searchingButton : copy.searchButton}
-                </button>
-              </form>
-
-              {hasConnectedWishlist ? (
-                <div className="notice wishlistNotice">
-                  {copy.wishlistConnected}
-                </div>
-              ) : null}
-
-              {isPreviewLoading && !hasConnectedWishlist ? (
-                <div className="notice loadingNotice" role="status">
-                  {copy.syncingPreview}
-                </div>
-              ) : null}
-
-              {gameSearchError ? <div className="notice error">{gameSearchError}</div> : null}
-
-              {isSearchingGames ? (
-                <div className="gameSearchResults" aria-label="Steam game search loading results" role="status">
-                  {[0, 1, 2].map((index) => (
-                    <div className="gameSearchResult skeletonResult" key={index}>
-                      <span className="skeletonThumb" />
-                      <div>
-                        <span className="skeletonLine wide" />
-                        <span className="skeletonLine narrow" />
+                        <div className="rangeGrid" aria-label="Steam event range">
+                          <label className="rangeControl">
+                            <span className="rangeControlHeader">
+                              <span>{copy.pastDays}</span>
+                              <output>{eventPastDays}</output>
+                            </span>
+                            <input
+                              aria-label={copy.pastDays}
+                              type="range"
+                              min="0"
+                              max={EVENT_PAST_DAYS_MAX}
+                              step="1"
+                              value={eventPastDays}
+                              onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, EVENT_PAST_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
+                            />
+                          </label>
+                          <label className="rangeControl">
+                            <span className="rangeControlHeader">
+                              <span>{copy.nextDays}</span>
+                              <output>{eventFutureDays}</output>
+                            </span>
+                            <input
+                              aria-label={copy.nextDays}
+                              type="range"
+                              min="1"
+                              max={EVENT_FUTURE_DAYS_MAX}
+                              step="1"
+                              value={eventFutureDays}
+                              onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, EVENT_FUTURE_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
+                            />
+                          </label>
+                        </div>
                       </div>
-                      <span className="skeletonButton" />
-                    </div>
-                  ))}
+                    ) : null}
+                  </SourceToggle>
                 </div>
-              ) : null}
+              </section>
 
-              {!isSearchingGames && gameSearchResults.length ? (
-                <div className="gameSearchResults" aria-label="Steam game search results">
-                  <div className="gameSearchResultsHeader">
-                    <span className="miniSectionTitle">{copy.searchResultsTitle}</span>
-                    <span>{gameSearchResults.length} {copy.searchResultsCount}</span>
+              <section className="setupStep" aria-label={copy.myGamesTitle}>
+                <div className="setupStepMarker" aria-hidden="true">2</div>
+                <div className="setupStepBody">
+                  <div className="trackedGamesStepHeader">
+                    <h3>{copy.myGamesTitle}</h3>
+                    <p>{copy.trackedGamesSetupDescription}</p>
                   </div>
-                  {gameSearchResults.map((game) => {
-                    const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
 
-                    return (
-                      <button
-                        aria-label={isSelected ? `${game.name}, ${copy.added}` : game.name}
-                        className={isSelected ? 'gameSearchResult isSelected' : 'gameSearchResult'}
-                        disabled={hasConnectedWishlist || isSelected}
-                        key={game.appId}
-                        type="button"
-                        onBlur={() => setSearchPreview(null)}
-                        onFocus={(event) => handleSearchResultPreview(game, event.currentTarget)}
-                        onMouseEnter={(event) => handleSearchResultPreview(game, event.currentTarget)}
-                        onMouseLeave={() => setSearchPreview(null)}
-                        onClick={() => handleAddSelectedGame(game)}
-                      >
-                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                        <div className="gameSearchResultInfo">
-                          <strong>{game.name}</strong>
-                          <SearchResultPrice game={game} copy={copy} />
+                  <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
+                    <div className="taskCardHeader">
+                      <LinkIcon />
+                      <div>
+                        <div className="taskCardTitleLine">
+                          <h3>{copy.connectWishlistTitle}</h3>
+                          <span>{copy.recommendedLabel}</span>
                         </div>
-                        {isSelected ? <span className="searchResultStatus">{copy.added}</span> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
+                        <p>{copy.connectWishlistDescription}</p>
+                      </div>
+                    </div>
 
-              {!isSearchingGames && lastGameSearchQuery && !gameSearchResults.length && !gameSearchError ? (
-                <div className="notice gameSearchEmpty" role="status">
-                  <strong>{copy.noSearchResults}</strong>
-                  <span>{lastGameSearchQuery}</span>
-                </div>
-              ) : null}
-
-              {selectedGames.length ? (
-                <div className="selectedGames" aria-label="Games added to calendar">
-                  <div className="selectedGamesHeader">
-                    <span className="miniSectionTitle">{copy.addedToCalendar}</span>
-                    <span>{selectedGames.length}</span>
-                  </div>
-                  {selectedGames.map((game) => (
-                    <div
-                      className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
-                      key={game.appId}
+                    <form
+                      className="wishlistImport"
+                      onSubmit={handleSubmit}
+                      aria-label="Import Steam wishlist releases to the calendar"
                     >
-                      <button
-                        className="selectedGameSelect"
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => handleSelectedGameClick(game.appId)}
-                      >
-                        <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-                        <span>{game.name}</span>
-                      </button>
-                      <button
-                        aria-label={`${copy.remove} ${game.name}`}
-                        className="selectedGameRemove"
-                        type="button"
-                        onClick={() => handleRemoveSelectedGame(game.appId)}
-                      >
-                        {copy.remove}
-                      </button>
-                      {selectedGameNoticeAppId === game.appId ? (
-                        <div className="selectedGameNotice" role="status">
-                          {copy.watchedGamePending}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-            </div>
-
-            <div className="panelDivider" />
-
-            <SourceToggle
-              checked={showSteamEvents}
-              title={copy.steamEventsTitle}
-              controlsId="steam-event-options"
-              isExpanded={isSteamEventOptionsOpen}
-              onChange={setShowSteamEvents}
-              onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
-            >
-              {isSteamEventOptionsOpen ? (
-                <div className="eventOptionsPanel" id="steam-event-options">
-                  <div className="eventTypeGrid" aria-label="Steam event types">
-                    {STEAM_EVENT_CATEGORIES.map((category) => (
-                      <label className="eventTypeOption" key={category}>
+                      <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
+                      <div className="steamInputWrap">
+                        <LinkIcon />
                         <input
-                          checked={steamEventCategories.includes(category)}
-                          disabled={!showSteamEvents}
-                          onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                          id="steam-id"
+                          inputMode="text"
+                          placeholder={copy.steamProfilePlaceholder}
+                          value={steamId64}
+                          onChange={(event) => setSteamId64(event.target.value)}
+                        />
+                      </div>
+                      <button disabled={isLoading} type="submit">
+                        {isLoading ? copy.importing : copy.importWishlist}
+                      </button>
+                    </form>
+                    {isLoading ? (
+                      <div className="notice loadingNotice" role="status">
+                        {copy.importingWishlist}
+                      </div>
+                    ) : null}
+                    <p className="wishlistHint">{copy.wishlistHint}</p>
+
+                    {error ? <div className="notice error">{error}</div> : null}
+                    {error ? (
+                      <div className="notice fallbackNotice">
+                        {errorCode === 'wishlist_private_or_unavailable'
+                          ? copy.wishlistPrivateHint
+                          : copy.wishlistGenericHint}
+                      </div>
+                    ) : null}
+                  </section>
+
+                  <div className="setupChoiceDivider" aria-hidden="true">
+                    <span>{copy.orLabel}</span>
+                  </div>
+
+                  <div className="myGamesBlock">
+                    <div className="sourceTitleRow">
+                      <div>
+                        <h3>{copy.manualGamesTitle}</h3>
+                        <p>{copy.manualGamesDescription}</p>
+                      </div>
+                      <label className="switch">
+                        <input
+                          checked={showMyGames}
+                          onChange={(event) => setShowMyGames(event.target.checked)}
                           type="checkbox"
                         />
-                        <span>
-                          <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
-                          <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
-                        </span>
+                        <span />
                       </label>
-                    ))}
-                  </div>
+                    </div>
 
-                  <div className="rangeGrid" aria-label="Steam event range">
-                    <label className="rangeControl">
-                      <span className="rangeControlHeader">
-                        <span>{copy.pastDays}</span>
-                        <output>{eventPastDays}</output>
-                      </span>
-                      <input
-                        aria-label={copy.pastDays}
-                        type="range"
-                        min="0"
-                        max={EVENT_PAST_DAYS_MAX}
-                        step="1"
-                        value={eventPastDays}
-                        onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, EVENT_PAST_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
-                      />
-                    </label>
-                    <label className="rangeControl">
-                      <span className="rangeControlHeader">
-                        <span>{copy.nextDays}</span>
-                        <output>{eventFutureDays}</output>
-                      </span>
-                      <input
-                        aria-label={copy.nextDays}
-                        type="range"
-                        min="1"
-                        max={EVENT_FUTURE_DAYS_MAX}
-                        step="1"
-                        value={eventFutureDays}
-                        onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, EVENT_FUTURE_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
-                      />
-                    </label>
+                    <form className="gameSearchForm" onSubmit={handleGameSearchSubmit}>
+                      <label className="searchBox" htmlFor="game-search">
+                        <span className="srOnly">Search Steam games</span>
+                        <SearchIcon />
+                        <input
+                          disabled={!showMyGames || hasConnectedWishlist}
+                          id="game-search"
+                          placeholder={copy.searchPlaceholder}
+                          type="search"
+                          value={gameSearch}
+                          onChange={(event) => {
+                            setGameSearch(event.target.value);
+
+                            if (!event.target.value.trim()) {
+                              setGameSearchResults([]);
+                              setGameSearchError(null);
+                              setLastGameSearchQuery('');
+                            }
+                          }}
+                        />
+                      </label>
+                      <button disabled={!showMyGames || hasConnectedWishlist || isSearchingGames || !gameSearch.trim()} type="submit">
+                        {isSearchingGames ? copy.searchingButton : copy.searchButton}
+                      </button>
+                    </form>
+
+                    {hasConnectedWishlist ? (
+                      <div className="notice wishlistNotice">
+                        {copy.wishlistConnected}
+                      </div>
+                    ) : null}
+
+                    {isPreviewLoading && !hasConnectedWishlist ? (
+                      <div className="notice loadingNotice" role="status">
+                        {copy.syncingPreview}
+                      </div>
+                    ) : null}
+
+                    {gameSearchError ? <div className="notice error">{gameSearchError}</div> : null}
+
+                    {isSearchingGames ? (
+                      <div className="gameSearchResults" aria-label="Steam game search loading results" role="status">
+                        {[0, 1, 2].map((index) => (
+                          <div className="gameSearchResult skeletonResult" key={index}>
+                            <span className="skeletonThumb" />
+                            <div>
+                              <span className="skeletonLine wide" />
+                              <span className="skeletonLine narrow" />
+                            </div>
+                            <span className="skeletonButton" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {!isSearchingGames && gameSearchResults.length ? (
+                      <div className="gameSearchResults" aria-label="Steam game search results">
+                        <div className="gameSearchResultsHeader">
+                          <span className="miniSectionTitle">{copy.searchResultsTitle}</span>
+                          <span>{gameSearchResults.length} {copy.searchResultsCount}</span>
+                        </div>
+                        {gameSearchResults.map((game) => {
+                          const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
+
+                          return (
+                            <button
+                              aria-label={isSelected ? `${game.name}, ${copy.added}` : game.name}
+                              className={isSelected ? 'gameSearchResult isSelected' : 'gameSearchResult'}
+                              disabled={hasConnectedWishlist || isSelected}
+                              key={game.appId}
+                              type="button"
+                              onBlur={() => setSearchPreview(null)}
+                              onFocus={(event) => handleSearchResultPreview(game, event.currentTarget)}
+                              onMouseEnter={(event) => handleSearchResultPreview(game, event.currentTarget)}
+                              onMouseLeave={() => setSearchPreview(null)}
+                              onClick={() => handleAddSelectedGame(game)}
+                            >
+                              <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
+                              <div className="gameSearchResultInfo">
+                                <strong>{game.name}</strong>
+                                <SearchResultPrice game={game} copy={copy} />
+                              </div>
+                              {isSelected ? <span className="searchResultStatus">{copy.added}</span> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
+                    {!isSearchingGames && lastGameSearchQuery && !gameSearchResults.length && !gameSearchError ? (
+                      <div className="notice gameSearchEmpty" role="status">
+                        <strong>{copy.noSearchResults}</strong>
+                        <span>{lastGameSearchQuery}</span>
+                      </div>
+                    ) : null}
+
+                    {selectedGames.length ? (
+                      <div className="selectedGames" aria-label="Games added to calendar">
+                        <div className="selectedGamesHeader">
+                          <span className="miniSectionTitle">{copy.addedToCalendar}</span>
+                          <span>{selectedGames.length}</span>
+                        </div>
+                        {selectedGames.map((game) => (
+                          <div
+                            className={game.appId === recentlyAddedAppId ? 'selectedGameRow isNewlyAdded' : 'selectedGameRow'}
+                            key={game.appId}
+                          >
+                            <button
+                              className="selectedGameSelect"
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleSelectedGameClick(game.appId)}
+                            >
+                              <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
+                              <span>{game.name}</span>
+                            </button>
+                            <button
+                              aria-label={`${copy.remove} ${game.name}`}
+                              className="selectedGameRemove"
+                              type="button"
+                              onClick={() => handleRemoveSelectedGame(game.appId)}
+                            >
+                              {copy.remove}
+                            </button>
+                            {selectedGameNoticeAppId === game.appId ? (
+                              <div className="selectedGameNotice" role="status">
+                                {copy.watchedGamePending}
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              ) : null}
-            </SourceToggle>
+              </section>
+
+              <div className="setupReadyStep">
+                <span aria-hidden="true">✓</span>
+                <div>
+                  <strong>{copy.calendarReadyTitle}</strong>
+                  <p>{calendarSummaryItems}</p>
+                </div>
+              </div>
+            </div>
 
             <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
               <label className="sheetSelect">
@@ -985,16 +1007,6 @@ export default function Home() {
           </aside>
 
           <div className="calendarExperience" id="calendar-preview">
-            <div className="calendarActionBar">
-              <div>
-                <span>{copy.calendarReadyTitle}</span>
-                <strong>{calendarSummaryItems}</strong>
-              </div>
-              <a className="primaryCalendarCta" href={webcalUrl}>
-                <CalendarListIcon />
-                {copy.addToCalendar}
-              </a>
-            </div>
             <CalendarPreview
               events={visibleEvents}
               initialFocusDate={initialFocusDate}
@@ -1007,6 +1019,17 @@ export default function Home() {
               uiLanguage={uiLanguage}
               webcalUrl={webcalUrl}
             />
+            <div className="calendarActionBar">
+              <span className="calendarReadyIcon" aria-hidden="true">✓</span>
+              <div>
+                <span className="calendarReadyTitle">{copy.calendarReadyTitle}</span>
+                <strong>{calendarSummaryItems}</strong>
+              </div>
+              <a className="primaryCalendarCta" href={webcalUrl}>
+                <CalendarListIcon />
+                {copy.addToCalendar}
+              </a>
+            </div>
           </div>
 
           <EventDetails
@@ -1287,13 +1310,28 @@ function CalendarPreview({
     scrollToCalendarWeek(todayWeekStart);
   }
 
+  function handleAdjacentMonth(direction: -1 | 1) {
+    const targetDate = addMonthsToMonthKey(visibleMonth, direction);
+    const targetWeekStart = weekStartForDate(`${targetDate}-01`);
+
+    pendingWeekScroll.current = targetWeekStart;
+    setCalendarView('month');
+    scrollToCalendarWeek(targetWeekStart);
+  }
+
   return (
     <section className={calendarAppClassName} aria-label="Calendar preview">
       <div className="calendarHeader">
         <h2>{formatCalendarMonthTitle(visibleMonth, uiLanguage)}</h2>
 
         <div className="calendarControls">
+          <button className="monthNavButton" type="button" aria-label="Previous month" onClick={() => handleAdjacentMonth(-1)}>
+            <ChevronLeftIcon />
+          </button>
           <button className="todayButton" disabled={!canScrollToToday} type="button" onClick={handleTodayClick}>{uiCopy.today}</button>
+          <button className="monthNavButton" type="button" aria-label="Next month" onClick={() => handleAdjacentMonth(1)}>
+            <ChevronRightIcon />
+          </button>
           <div className="viewTabs" aria-label="Calendar view">
             <button
               aria-pressed={calendarView === 'month'}
@@ -1554,6 +1592,14 @@ function CalendarListIcon() {
   );
 }
 
+function StarIcon() {
+  return (
+    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
+      <path d="m10 3.4 1.9 3.8 4.2.6-3 3 0.7 4.1-3.8-2-3.8 2 .7-4.1-3-3 4.2-.6L10 3.4Z" />
+    </svg>
+  );
+}
+
 function SourceToggle({
   children,
   checked,
@@ -1562,6 +1608,7 @@ function SourceToggle({
   isExpanded,
   onChange,
   onToggleOptions,
+  statusLabel,
   title,
 }: {
   children?: ReactNode;
@@ -1571,6 +1618,7 @@ function SourceToggle({
   isExpanded?: boolean;
   onChange: (checked: boolean) => void;
   onToggleOptions?: () => void;
+  statusLabel?: string;
   title: string;
 }) {
   return (
@@ -1602,6 +1650,12 @@ function SourceToggle({
           <span />
         </label>
       </div>
+      {description || statusLabel ? (
+        <div className="sourceCardMeta">
+          {statusLabel ? <span className="sourceStatusPill">{statusLabel}</span> : null}
+          {description ? <p>{description}</p> : null}
+        </div>
+      ) : null}
       {children}
     </div>
   );
@@ -1657,6 +1711,9 @@ function EventDetails({
       <div className="detailTitleBlock">
         <span>{detailKind(event, copy)}</span>
         <h2>{detailTitle(event)}</h2>
+        <button aria-label="Save event" className="detailFavoriteButton" type="button">
+          <StarIcon />
+        </button>
       </div>
       {shouldShowDetailHero ? (
         <div className="detailHero gameHero hasSteamCliImage" style={heroStyle} />
@@ -2205,6 +2262,37 @@ function formatMonth(value: string, uiLanguage: UiLanguage): string {
 
 function formatCalendarMonthTitle(value: string, uiLanguage: UiLanguage): string {
   return formatMonth(value, uiLanguage);
+}
+
+function addMonthsToMonthKey(value: string, delta: number): string {
+  const [year, month] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function storeRegionCurrencySymbol(regionCode: string): string {
+  const currencyByRegion: Record<string, string> = {
+    AU: 'A$',
+    BR: 'R$',
+    CA: 'C$',
+    CN: '¥',
+    DE: '€',
+    EU: '€',
+    FR: '€',
+    GB: '£',
+    HK: 'HK$',
+    JP: '¥',
+    KR: '₩',
+    MX: 'MX$',
+    NZ: 'NZ$',
+    SG: 'S$',
+    TH: '฿',
+    TR: '₺',
+    TW: 'NT$',
+    US: '$',
+  };
+
+  return currencyByRegion[regionCode.toUpperCase()] ?? '$';
 }
 
 function formatDate(value: string, uiLanguage: UiLanguage = 'en'): string {
