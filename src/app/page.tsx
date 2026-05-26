@@ -183,7 +183,7 @@ export default function Home() {
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? 'US';
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${storeRegionCurrencySymbol(effectiveStoreRegion)})`;
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${storeRegionCurrencySymbol(effectiveStoreRegion, preview.events)})`;
   const shouldShowResolvedStoreRegion = hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
@@ -608,7 +608,7 @@ export default function Home() {
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <div className="localeControls">
               <div className="storeRegionControl" data-tooltip={copy.storeNote}>
-                <span className="storeRegionIcon" aria-hidden="true">{storeRegionCurrencySymbol(effectiveStoreRegion)}</span>
+                <span className="storeRegionIcon" aria-hidden="true">{storeRegionCurrencySymbol(effectiveStoreRegion, preview.events)}</span>
                 <label className="regionSelect">
                   <span className="selectDisplay">
                     <span className="selectDisplayText">
@@ -2222,29 +2222,90 @@ function formatCalendarMonthTitle(value: string, uiLanguage: UiLanguage): string
   return formatMonth(value, uiLanguage);
 }
 
-function storeRegionCurrencySymbol(regionCode: string): string {
+function storeRegionCurrencySymbol(regionCode: string, events: PreviewEvent[] = []): string {
+  const actualPriceSymbol = inferCurrencySymbolFromEvents(events);
+
+  if (actualPriceSymbol) {
+    return actualPriceSymbol;
+  }
+
   const currencyByRegion: Record<string, string> = {
+    AE: '$',
+    AR: '$',
+    AT: '€',
     AU: 'A$',
+    BE: '€',
     BR: 'R$',
     CA: 'C$',
+    CH: 'CHF',
+    CL: 'CLP$',
     CN: '¥',
+    CO: 'COL$',
+    CZ: 'Kč',
+    DK: 'kr',
     DE: '€',
     EU: '€',
+    ES: '€',
+    FI: '€',
     FR: '€',
     GB: '£',
     HK: 'HK$',
+    HU: 'Ft',
+    ID: 'Rp',
+    IN: '₹',
+    IT: '€',
     JP: '¥',
     KR: '₩',
+    MY: 'RM',
     MX: 'MX$',
+    NL: '€',
+    NO: 'kr',
     NZ: 'NZ$',
+    PE: 'S/',
+    PH: '₱',
+    PL: 'zł',
+    RO: 'lei',
+    SA: '$',
+    SE: 'kr',
     SG: 'S$',
     TH: '฿',
-    TR: '₺',
+    TR: '$',
     TW: 'NT$',
+    UA: '₴',
     US: '$',
+    VN: '₫',
+    ZA: 'R',
   };
 
   return currencyByRegion[regionCode.toUpperCase()] ?? '$';
+}
+
+function inferCurrencySymbolFromEvents(events: PreviewEvent[]): string | null {
+  for (const event of events) {
+    const symbol = inferCurrencySymbol(event.finalPrice) ?? inferCurrencySymbol(event.originalPrice);
+
+    if (symbol) {
+      return symbol;
+    }
+  }
+
+  return null;
+}
+
+function inferCurrencySymbol(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const prefix = trimmed.match(/^([^\d\s.,]+)/)?.[1];
+
+  if (prefix) {
+    return prefix;
+  }
+
+  return trimmed.match(/([^\d\s.,]+)$/)?.[1] ?? null;
 }
 
 function formatDate(value: string, uiLanguage: UiLanguage = 'en'): string {
