@@ -89,4 +89,38 @@ describe('watched Steam games', () => {
     expect(events[0].description).toContain('Return to Planet 4546B with friends.');
     expect(events[0].description).not.toContain('watched Steam games');
   });
+
+  it('keeps preorder pricing on unreleased selected games', () => {
+    const events = mapSteamCliAppToWatchedEvents({
+      appid: 3768760,
+      details: {
+        name: '007 First Light',
+        price_overview: {
+          final_formatted: '$69.99',
+        },
+        release_date: { coming_soon: true, date: '2027' },
+        short_description: 'A first-person origin story.',
+      },
+      store_item: {
+        best_purchase_option: {
+          formatted_final_price: '$59.99',
+          formatted_original_price: '$69.99',
+        },
+        release: {
+          steam_release_date: 1798761600,
+        },
+      },
+    }, { today: '2026-05-25' });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        appId: '3768760',
+        finalPrice: '$59.99',
+        originalPrice: '$69.99',
+        title: '🎮 007 First Light releases',
+        type: 'wishlist_release',
+      }),
+    ]);
+    expect(events[0].description).toContain('Price: $59.99 (was $69.99)');
+  });
 });

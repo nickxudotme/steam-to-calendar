@@ -125,6 +125,8 @@ export function mapSteamCliAppToWatchedEvents(
   const name = app.details?.name?.trim() || `Steam app ${appId}`;
   const sourceUrl = `https://store.steampowered.com/app/${appId}/`;
   const bestPurchase = app.store_item?.best_purchase_option;
+  const finalPrice = bestPurchase?.formatted_final_price ?? app.details?.price_overview?.final_formatted;
+  const originalPrice = bestPurchase?.formatted_original_price ?? app.details?.price_overview?.initial_formatted;
   const discountPercent = bestPurchase?.discount_pct ?? app.details?.price_overview?.discount_percent ?? 0;
   const discountEnd = bestPurchase?.active_discounts?.find((discount) => discount.discount_end_date)?.discount_end_date;
   const imageUrl = app.details?.header_image;
@@ -139,8 +141,8 @@ export function mapSteamCliAppToWatchedEvents(
       title: `-${discountPercent}% ${name}`,
       description: [
         shortDescription,
-        bestPurchase?.formatted_final_price && bestPurchase.formatted_original_price
-          ? `Price: ${bestPurchase.formatted_final_price} (was ${bestPurchase.formatted_original_price})`
+        finalPrice && originalPrice
+          ? `Price: ${finalPrice} (was ${originalPrice})`
           : null,
         sourceUrl,
       ].filter((part): part is string => Boolean(part)).join('\n'),
@@ -150,8 +152,8 @@ export function mapSteamCliAppToWatchedEvents(
       type: 'steam_deal',
       appId,
       discount: `-${discountPercent}%`,
-      finalPrice: bestPurchase?.formatted_final_price ?? app.details?.price_overview?.final_formatted,
-      originalPrice: bestPurchase?.formatted_original_price ?? app.details?.price_overview?.initial_formatted,
+      finalPrice,
+      originalPrice,
       ...(imageUrl ? { imageUrl } : {}),
       discountEnd,
       ...metadata,
@@ -168,6 +170,7 @@ export function mapSteamCliAppToWatchedEvents(
         title: `🎮 ${name} releases`,
         description: [
           shortDescription,
+          finalPrice ? `Price: ${finalPrice}${originalPrice ? ` (was ${originalPrice})` : ''}` : null,
           app.details?.release_date?.date ? `Steam release date: ${app.details.release_date.date}` : null,
           sourceUrl,
         ].filter((part): part is string => Boolean(part)).join('\n'),
@@ -175,6 +178,8 @@ export function mapSteamCliAppToWatchedEvents(
         sourceUrl,
         type: 'wishlist_release',
         appId,
+        finalPrice,
+        originalPrice,
         ...(imageUrl ? { imageUrl } : {}),
         releaseTime,
         ...metadata,
