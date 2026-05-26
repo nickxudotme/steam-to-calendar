@@ -1070,6 +1070,26 @@ select {
   opacity: 0.62;
 }
 
+.gameSearchResult.isSelected {
+  background: linear-gradient(180deg, rgba(30, 72, 52, 0.74), rgba(11, 31, 24, 0.66));
+  border-color: rgba(164, 208, 7, 0.46);
+  opacity: 1;
+}
+
+.searchResultStatus {
+  background: rgba(164, 208, 7, 0.12);
+  border: 1px solid rgba(164, 208, 7, 0.32);
+  border-radius: 999px;
+  color: #d9f78b;
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1;
+  padding: 5px 7px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+
 .selectedGameRow.isNewlyAdded {
   animation: addedRowPulse 1200ms ease-out both;
 }
@@ -1246,6 +1266,54 @@ select {
   font-weight: 820;
   line-height: 1.25;
   overflow-wrap: anywhere;
+}
+
+.undoToast {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(20, 38, 54, 0.98), rgba(8, 16, 26, 0.98));
+  border: 1px solid rgba(102, 192, 244, 0.34);
+  border-radius: 8px;
+  bottom: 72px;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #edf6fc;
+  display: flex;
+  gap: 14px;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 10px 10px 14px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+.undoToast span {
+  font-size: 0.86rem;
+  font-weight: 730;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undoToast button {
+  background: rgba(102, 192, 244, 0.13);
+  border: 1px solid rgba(102, 192, 244, 0.36);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-weight: 850;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.undoToast button:hover,
+.undoToast button:focus-visible {
+  background: rgba(102, 192, 244, 0.2);
+  border-color: rgba(102, 192, 244, 0.58);
+  outline: none;
 }
 
 .searchResultPrice {
@@ -2506,16 +2574,19 @@ select {
   }
 
   .detailPanel {
+    -webkit-overflow-scrolling: touch;
     border-bottom: 0;
     border-radius: 18px 18px 0 0;
     bottom: 0;
     box-shadow: 0 -26px 70px rgba(0, 0, 0, 0.58);
     display: grid;
-    grid-template-rows: auto minmax(66px, auto) 150px minmax(0, 1fr);
+    grid-auto-rows: max-content;
+    grid-template-rows: none;
     left: 0;
-    max-height: min(78svh, 720px);
+    max-height: min(82svh, 720px);
     min-height: min(54svh, 520px);
-    overflow: hidden;
+    overflow: auto;
+    overscroll-behavior: contain;
     padding: 10px 14px calc(22px + env(safe-area-inset-bottom));
     position: fixed;
     right: 0;
@@ -2526,7 +2597,7 @@ select {
   }
 
   .detailPanel.noDetailHero {
-    grid-template-rows: auto minmax(66px, auto) minmax(0, 1fr);
+    grid-template-rows: none;
   }
 
   .detailPanel.isMobileOpen {
@@ -2555,10 +2626,15 @@ select {
 
   .mobileDetailHeader {
     align-items: center;
+    background: #0b1520;
+    border-bottom: 1px solid rgba(117, 151, 184, 0.12);
     display: flex;
     justify-content: space-between;
-    padding: 4px 0 8px;
-    z-index: 2;
+    margin: -10px -14px 0;
+    padding: 10px 14px 8px;
+    position: sticky;
+    top: -10px;
+    z-index: 3;
   }
 
   .mobileDetailHeader h2 {
@@ -2600,6 +2676,32 @@ select {
     justify-content: center;
     line-height: 1;
     width: 36px;
+  }
+
+  .detailPanel .detailTitleBlock {
+    padding: 10px 0 14px;
+  }
+
+  .detailPanel .detailHero {
+    margin: 0 0 16px;
+    min-height: 150px;
+  }
+
+  .detailPanel .detailBody {
+    overflow: visible;
+    padding: 0 0 8px;
+  }
+
+  .undoToast {
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    left: 12px;
+    max-width: none;
+    right: 12px;
+    transform: none;
+  }
+
+  .undoToast span {
+    white-space: normal;
   }
 
   .mobileSheetControls {

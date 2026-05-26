@@ -41,6 +41,11 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   await page.locator('.gameSearchResult').first().click();
   await expect(page.getByLabel('Games added to calendar')).toBeVisible();
   await expect(page.getByLabel('Games added to calendar').getByText('Portal 2')).toBeVisible();
+  await expect(page.locator('.undoToast')).toContainText('Portal 2 added to calendar');
+  await page.locator('.undoToast').getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByLabel('Games added to calendar').getByText('Portal 2')).toHaveCount(0);
+  await page.locator('.gameSearchResult').first().click();
+  await expect(page.getByLabel('Games added to calendar').getByText('Portal 2')).toBeVisible();
   await expect(addCalendarLink).toHaveAttribute('href', /[?&]apps=\d/);
 
   await page.locator('.sourceDisclosureButton').click();

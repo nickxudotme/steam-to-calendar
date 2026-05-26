@@ -220,8 +220,10 @@ const UI_COPY = {
     syncingPreview: 'Syncing your calendar preview with Steam data...',
     trendingNow: 'Trending now',
     addedToCalendar: 'Added to calendar',
+    addedToast: 'Added to calendar',
     added: 'Added',
     add: 'Add',
+    undo: 'Undo',
     remove: 'Remove',
     steamProfilePlaceholder: 'Paste Steam Profile URL',
     importing: 'Importing...',
@@ -294,8 +296,10 @@ const UI_COPY = {
     syncingPreview: '正在从 Steam 同步日历预览...',
     trendingNow: '近期热门',
     addedToCalendar: '已添加到日历',
+    addedToast: '已添加到日历',
     added: '已添加',
     add: '添加',
+    undo: '撤回',
     remove: '移除',
     steamProfilePlaceholder: '粘贴 Steam 个人资料链接',
     importing: '导入中...',
@@ -354,6 +358,7 @@ export default function Home() {
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
+  const [undoableGame, setUndoableGame] = useState<SelectedGame | null>(null);
   const [isIntroOpen, setIsIntroOpen] = useState(false);
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
@@ -573,6 +578,16 @@ export default function Home() {
     return () => window.clearTimeout(timeoutId);
   }, [recentlyAddedAppId]);
 
+  useEffect(() => {
+    if (!undoableGame) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setUndoableGame(null), 6000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [undoableGame]);
+
   async function handleGameSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const query = gameSearch.trim();
@@ -637,23 +652,28 @@ export default function Home() {
       return;
     }
 
+    if (selectedGames.some((selectedGame) => selectedGame.appId === game.appId)) {
+      return;
+    }
+
     setShowMyGames(true);
     setRecentlyAddedAppId(game.appId);
-    setSelectedGames((games) => {
-      if (games.some((selectedGame) => selectedGame.appId === game.appId)) {
-        return games;
-      }
-
-      return [
-        ...games,
-        game,
-      ].slice(-10);
-    });
+    setUndoableGame(game);
+    setSelectedGames((games) => [...games, game].slice(-10));
   }
 
   function handleRemoveSelectedGame(appId: string) {
     setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+    setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
     setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setUndoableGame((currentGame) => (currentGame?.appId === appId ? null : currentGame));
+  }
+
+  function handleUndoAddGame(appId: string) {
+    setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+    setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setUndoableGame(null);
   }
 
   function handleSelectedGameClick(appId: string) {
@@ -1042,6 +1062,7 @@ export default function Home() {
                           <strong>{game.name}</strong>
                           <SearchResultPrice game={game} copy={copy} />
                         </div>
+                        {isSelected ? <span className="searchResultStatus">{copy.added}</span> : null}
                       </button>
                     );
                   })}
@@ -1165,6 +1186,12 @@ export default function Home() {
             preview={searchPreview}
             uiLanguage={uiLanguage}
           />
+          <UndoAddToast
+            copy={copy}
+            game={undoableGame}
+            onUndo={handleUndoAddGame}
+            uiLanguage={uiLanguage}
+          />
         </section>
 
         <nav className="mobileBottomBar" aria-label="Mobile calendar actions">
@@ -1196,6 +1223,35 @@ export default function Home() {
         </footer>
       </div>
     </main>
+  );
+}
+
+function UndoAddToast({
+  copy,
+  game,
+  onUndo,
+  uiLanguage,
+}: {
+  copy: typeof UI_COPY[UiLanguage];
+  game: SelectedGame | null;
+  onUndo: (appId: string) => void;
+  uiLanguage: UiLanguage;
+}) {
+  if (!game) {
+    return null;
+  }
+
+  const message = uiLanguage === 'zh'
+    ? `${game.name} ${copy.addedToast}`
+    : `${game.name} ${copy.addedToast.toLowerCase()}`;
+
+  return (
+    <div className="undoToast" role="status" aria-live="polite">
+      <span>{message}</span>
+      <button type="button" onClick={() => onUndo(game.appId)}>
+        {copy.undo}
+      </button>
+    </div>
   );
 }
 
