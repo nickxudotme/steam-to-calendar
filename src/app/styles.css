@@ -2460,7 +2460,7 @@ select {
 }
 
 .detailPanel.noDetailHero {
-  grid-template-rows: 86px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .closeDetail {
@@ -2484,6 +2484,12 @@ select {
 .detailTitleBlock {
   align-self: end;
   padding: 0 16px 16px;
+}
+
+.detailPanel.noDetailHero .detailTitleBlock {
+  align-self: start;
+  border-bottom: 1px solid rgba(117, 151, 184, 0.14);
+  padding: 22px 16px 18px;
 }
 
 .detailTitleBlock span {
@@ -2836,7 +2842,7 @@ select {
 
   .detailPanel.noDetailHero {
     grid-template-columns: none;
-    grid-template-rows: 86px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .detailHero {
@@ -2885,7 +2891,7 @@ select {
 
   .detailPanel.noDetailHero {
     grid-template-columns: none;
-    grid-template-rows: 86px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .detailHero {
