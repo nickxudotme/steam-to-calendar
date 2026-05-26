@@ -52,6 +52,8 @@ select {
   --steam-pink: #d73a74;
   --danger: #ff5b4f;
   --radius: 7px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
   background:
     radial-gradient(circle at 24% -18%, rgba(102, 192, 244, 0.18), transparent 34%),
     radial-gradient(circle at 86% 0%, rgba(164, 208, 7, 0.1), transparent 30%),
@@ -336,6 +338,7 @@ select {
   height: 42px;
   justify-content: center;
   line-height: 1;
+  transition: background 160ms var(--ease-soft), border-color 160ms var(--ease-soft), color 160ms var(--ease-soft), transform 140ms var(--ease-soft);
   width: 42px;
 }
 
@@ -345,6 +348,11 @@ select {
   border-color: rgba(102, 192, 244, 0.5);
   color: #ffffff;
   outline: none;
+  transform: translateY(-1px);
+}
+
+.infoButton:active {
+  transform: translateY(1px) scale(0.98);
 }
 
 .introOverlay {
@@ -420,12 +428,18 @@ select {
   justify-self: start;
   min-height: 46px;
   padding: 0 18px;
+  transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 150ms var(--ease-soft);
 }
 
 .introPrimary:hover,
 .introPrimary:focus-visible {
   filter: brightness(1.08);
   outline: none;
+  transform: translateY(-1px);
+}
+
+.introPrimary:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .calendarFooterCta {
@@ -440,6 +454,7 @@ select {
   padding: 0 14px;
   text-decoration: none;
   white-space: nowrap;
+  transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 160ms var(--ease-soft);
 }
 
 .calendarFooterCta {
@@ -448,6 +463,17 @@ select {
   box-shadow: 0 10px 24px rgba(22, 134, 223, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   color: #ffffff;
   min-width: 176px;
+}
+
+.calendarFooterCta:hover,
+.calendarFooterCta:focus-visible {
+  filter: brightness(1.06);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.calendarFooterCta:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .calendarWorkbench {
@@ -484,6 +510,40 @@ select {
   padding: 20px 14px;
 }
 
+.taskPanelHeader {
+  display: grid;
+  gap: 8px;
+  padding: 2px 2px 4px;
+}
+
+.taskPanelHeader h2 {
+  color: #ffffff;
+  font-size: 1.22rem;
+  font-weight: 880;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.taskPanelHeader p {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.42;
+  margin: 0;
+}
+
+.taskPanelSummary {
+  background: rgba(102, 192, 244, 0.08);
+  border: 1px solid rgba(102, 192, 244, 0.18);
+  border-radius: 999px;
+  color: #cce9fb;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 840;
+  justify-self: start;
+  line-height: 1.25;
+  padding: 6px 9px;
+}
+
 .panelHeader h2,
 .calendarHeader h2,
 .detailBody h2,
@@ -508,6 +568,7 @@ select {
 
 .sourceCard,
 .myGamesBlock,
+.wishlistTaskCard,
 .infoCard {
   background: rgba(8, 15, 24, 0.5);
   border: 1px solid rgba(151, 174, 191, 0.16);
@@ -515,9 +576,63 @@ select {
   padding: 14px;
 }
 
-.myGamesBlock {
+.myGamesBlock,
+.wishlistTaskCard {
   display: grid;
   gap: 10px;
+}
+
+.wishlistTaskCard {
+  background:
+    linear-gradient(180deg, rgba(22, 134, 223, 0.16), rgba(8, 15, 24, 0.58)),
+    rgba(8, 15, 24, 0.5);
+  border-color: rgba(102, 192, 244, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 32px rgba(0, 0, 0, 0.18);
+}
+
+.taskCardTopline {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.taskCardTopline span {
+  background: rgba(199, 242, 75, 0.12);
+  border: 1px solid rgba(199, 242, 75, 0.28);
+  border-radius: 999px;
+  color: #d9f78b;
+  font-size: 0.68rem;
+  font-weight: 880;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.taskCardHeader {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.taskCardHeader .linkIcon {
+  color: var(--steam-blue);
+  margin-top: 2px;
+}
+
+.taskCardHeader h3 {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 860;
+  line-height: 1.18;
+  margin: 0;
+}
+
+.taskCardHeader p {
+  color: #bad0df;
+  font-size: 0.82rem;
+  line-height: 1.42;
+  margin: 6px 0 0;
 }
 
 .sourceTitleRow {
@@ -908,11 +1023,16 @@ select {
   color: #dcebf4;
   height: 42px;
   min-height: 42px;
+  transition: background 160ms var(--ease-soft), color 160ms var(--ease-soft), transform 120ms var(--ease-soft);
 }
 
 .gameSearchForm button:not(:disabled):hover {
   background: linear-gradient(180deg, rgba(22, 134, 223, 0.72), rgba(10, 76, 138, 0.76));
   color: #ffffff;
+}
+
+.gameSearchForm button:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .gameSearchForm button:disabled,
@@ -1016,6 +1136,7 @@ select {
   position: relative;
   text-align: left;
   padding: 8px;
+  transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), transform 150ms var(--ease-soft);
   width: 100%;
   z-index: 1;
 }
@@ -1027,7 +1148,7 @@ select {
   overflow: hidden;
   padding: 6px;
   position: relative;
-  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), transform 150ms var(--ease-soft);
 }
 
 .selectedGameRow::after {
@@ -1048,6 +1169,7 @@ select {
   background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
   border-color: rgba(102, 192, 244, 0.42);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
 }
 
 .selectedGameRow:hover::after,
@@ -1058,6 +1180,8 @@ select {
 .gameSearchResult:not(:disabled):hover {
   background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
   border-color: rgba(102, 192, 244, 0.42);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
   z-index: 8;
 }
 
@@ -1065,7 +1189,13 @@ select {
   border-color: rgba(102, 192, 244, 0.7);
   box-shadow: 0 0 0 2px rgba(102, 192, 244, 0.16);
   outline: none;
+  transform: translateY(-1px);
   z-index: 8;
+}
+
+.gameSearchResult:not(:disabled):active,
+.selectedGameRow:active {
+  transform: translateY(0) scale(0.995);
 }
 
 .gameSearchResult:disabled {
@@ -1157,7 +1287,7 @@ select {
   right: 10px;
   top: 50%;
   transform: translate(4px, -50%);
-  transition: opacity 120ms ease, transform 120ms ease, border-color 120ms ease, background 120ms ease;
+  transition: opacity 140ms var(--ease-soft), transform 140ms var(--ease-soft), border-color 140ms var(--ease-soft), background 140ms var(--ease-soft);
   z-index: 2;
 }
 
@@ -1286,6 +1416,7 @@ select {
   padding: 10px 10px 10px 14px;
   position: fixed;
   transform: translateX(-50%);
+  animation: toastIn 220ms var(--ease-out) both;
   z-index: 40;
 }
 
@@ -1310,6 +1441,7 @@ select {
   font-weight: 850;
   min-height: 34px;
   padding: 0 12px;
+  transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), transform 120ms var(--ease-soft);
 }
 
 .undoToast button:hover,
@@ -1317,6 +1449,10 @@ select {
   background: rgba(102, 192, 244, 0.2);
   border-color: rgba(102, 192, 244, 0.58);
   outline: none;
+}
+
+.undoToast button:active {
+  transform: scale(0.97);
 }
 
 .searchResultPrice {
@@ -1501,6 +1637,85 @@ select {
   min-width: 0;
 }
 
+.calendarExperience {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.calendarActionBar {
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(22, 134, 223, 0.16), rgba(7, 13, 21, 0.86) 48%, rgba(164, 208, 7, 0.1)),
+    rgba(8, 15, 24, 0.92);
+  border-bottom: 1px solid rgba(151, 174, 191, 0.16);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 10px 16px;
+}
+
+.calendarActionBar div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.calendarActionBar span {
+  color: #ffffff;
+  font-size: 0.96rem;
+  font-weight: 870;
+  line-height: 1.16;
+}
+
+.calendarActionBar strong {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1.26;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primaryCalendarCta,
+.drawerCalendarCta {
+  align-items: center;
+  background: linear-gradient(180deg, #168dff, #0867bf);
+  border: 1px solid rgba(102, 192, 244, 0.72);
+  border-radius: 7px;
+  box-shadow: 0 10px 24px rgba(22, 134, 223, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 870;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  text-decoration: none;
+  transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 160ms var(--ease-soft);
+  white-space: nowrap;
+}
+
+.primaryCalendarCta:hover,
+.primaryCalendarCta:focus-visible,
+.drawerCalendarCta:hover,
+.drawerCalendarCta:focus-visible {
+  filter: brightness(1.06);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.primaryCalendarCta:active,
+.drawerCalendarCta:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.drawerCalendarCta {
+  display: none;
+}
+
 .calendarApp {
   display: grid;
   grid-template-rows: 64px 32px minmax(0, 1fr) 56px;
@@ -1669,7 +1884,7 @@ select {
   min-height: calc(48px + (var(--week-lanes) * 29px));
   padding: 10px;
   position: relative;
-  transition: background 160ms ease;
+  transition: background 160ms var(--ease-soft);
 }
 
 .dayCell:hover {
@@ -1726,13 +1941,26 @@ select {
   position: absolute;
   text-overflow: ellipsis;
   top: calc(38px + (var(--segment-lane) * 29px));
+  transition: border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), filter 150ms var(--ease-soft), transform 150ms var(--ease-soft);
   white-space: normal;
   width: calc((100% / 7) * var(--segment-span) - 8px);
   z-index: 2;
 }
 
+.calendarSegment:hover,
+.calendarSegment:focus-visible {
+  filter: brightness(1.08) saturate(1.04);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.calendarSegment:active {
+  transform: translateY(0) scale(0.995);
+}
+
 .calendarSegment.isSelected {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.26), 0 10px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3), 0 12px 28px rgba(0, 0, 0, 0.32);
+  filter: brightness(1.08) saturate(1.08);
   z-index: 4;
 }
 
@@ -1837,7 +2065,7 @@ select {
   min-height: 76px;
   padding: 10px;
   text-align: left;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition: border-color 160ms var(--ease-soft), background 160ms var(--ease-soft), box-shadow 160ms var(--ease-soft), transform 160ms var(--ease-soft);
   width: 100%;
 }
 
@@ -1849,11 +2077,17 @@ select {
 .eventListItem:hover {
   background: rgba(26, 45, 63, 0.64);
   border-color: rgba(102, 192, 244, 0.36);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .eventListItem.isSelected {
   border-color: rgba(102, 192, 244, 0.62);
-  box-shadow: inset 0 0 0 1px rgba(102, 192, 244, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(102, 192, 244, 0.24), 0 10px 26px rgba(0, 0, 0, 0.18);
+}
+
+.eventListItem:active {
+  transform: translateY(0) scale(0.997);
 }
 
 .eventListMarker {
@@ -2221,12 +2455,24 @@ select {
   justify-content: center;
   min-height: 50px;
   text-decoration: none;
+  transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 160ms var(--ease-soft);
 }
 
 .secondaryAction {
   background: linear-gradient(180deg, #168dff, #0867bf);
   border: 1px solid rgba(102, 192, 244, 0.6);
   color: #ffffff;
+}
+
+.secondaryAction:hover,
+.secondaryAction:focus-visible {
+  filter: brightness(1.06);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.secondaryAction:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .emptyDetail {
@@ -2305,6 +2551,18 @@ select {
   }
 }
 
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 @keyframes calendarItemAdded {
   0% {
     box-shadow: 0 0 0 0 rgba(199, 242, 75, 0.65), 0 0 30px rgba(102, 192, 244, 0.52);
@@ -2324,13 +2582,21 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
   .calendarSegment.isNewCalendarItem,
   .loadingNotice::before,
   .loadingSpinner,
   .selectedGameRow.isNewlyAdded,
   .skeletonButton,
   .skeletonLine,
-  .skeletonThumb {
+  .skeletonThumb,
+  .undoToast {
     animation: none;
   }
 }
@@ -2556,12 +2822,12 @@ select {
     max-height: min(82svh, 720px);
     overflow: auto;
     overscroll-behavior: contain;
-    padding: 10px 14px calc(22px + env(safe-area-inset-bottom));
+    padding: 10px 14px calc(92px + env(safe-area-inset-bottom));
     position: fixed;
     right: 0;
     top: auto;
     transform: translateY(106%);
-    transition: transform 190ms ease;
+    transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
     z-index: 32;
   }
 
@@ -2577,6 +2843,11 @@ select {
 
   .selectedGameRow:hover .selectedGameRemove,
   .selectedGameRow:focus-within .selectedGameRemove {
+    transform: none;
+  }
+
+  .selectedGameRow:hover,
+  .selectedGameRow:focus-within {
     transform: none;
   }
 
@@ -2608,7 +2879,7 @@ select {
     right: 0;
     top: auto;
     transform: translateY(106%);
-    transition: transform 190ms ease;
+    transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
     z-index: 32;
   }
 
@@ -2620,14 +2891,24 @@ select {
     transform: translateY(0);
   }
 
-  .mobileSheetBackdrop.isVisible {
+  .mobileSheetBackdrop {
     background: rgba(1, 6, 12, 0.64);
     border: 0;
     display: block;
     inset: 0;
+    opacity: 0;
     padding: 0;
+    pointer-events: none;
     position: fixed;
+    transition: opacity 220ms var(--ease-soft), visibility 220ms var(--ease-soft);
+    visibility: hidden;
     z-index: 28;
+  }
+
+  .mobileSheetBackdrop.isVisible {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
   }
 
   .mobileSheetHeader {
@@ -2638,6 +2919,26 @@ select {
     position: sticky;
     top: 0;
     z-index: 2;
+  }
+
+  .taskPanelHeader {
+    gap: 7px;
+    padding: 4px 0 2px;
+  }
+
+  .taskPanelHeader h2 {
+    display: none;
+  }
+
+  .taskPanelSummary {
+    border-radius: 8px;
+    display: flex;
+    justify-self: stretch;
+    padding: 8px 10px;
+  }
+
+  .wishlistTaskCard {
+    border-color: rgba(102, 192, 244, 0.42);
   }
 
   .mobileDetailHeader {
@@ -2766,7 +3067,32 @@ select {
     padding: 7px;
     position: fixed;
     right: 16px;
+    transition: transform 180ms var(--ease-soft), box-shadow 180ms var(--ease-soft), border-color 180ms var(--ease-soft);
     z-index: 24;
+  }
+
+  .calendarActionBar {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 58px;
+    padding: 9px 12px;
+  }
+
+  .calendarActionBar span {
+    font-size: 0.9rem;
+  }
+
+  .calendarActionBar strong {
+    font-size: 0.72rem;
+  }
+
+  .calendarActionBar .primaryCalendarCta {
+    display: none;
+  }
+
+  .drawerCalendarCta {
+    display: inline-flex;
+    min-height: 54px;
+    width: 100%;
   }
 
   .mobileAddCalendar,
@@ -2777,6 +3103,7 @@ select {
     justify-content: center;
     min-height: 56px;
     text-decoration: none;
+    transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), background 150ms var(--ease-soft), border-color 150ms var(--ease-soft);
   }
 
   .mobileAddCalendar {
@@ -2804,6 +3131,11 @@ select {
     color: #d7e5ee;
     cursor: pointer;
     padding: 0;
+  }
+
+  .mobileAddCalendar:active,
+  .mobileSettingsButton:active {
+    transform: scale(0.98);
   }
 
   .calendarExperience {

@@ -251,6 +251,14 @@ export default function Home() {
       return showMyGames;
     });
   }, [showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
+  const trackedGameCount = hasConnectedWishlist ? preview.stats.wishlistGames : selectedGames.length;
+  const calendarSummaryItems = [
+    formatCountLabel(visibleEvents.length, copy.calendarSummaryEvents, uiLanguage),
+    hasConnectedWishlist
+      ? copy.calendarSummaryWishlist
+      : formatCountLabel(trackedGameCount, copy.calendarSummaryGames, uiLanguage),
+    showSteamEvents ? copy.calendarSummarySteamEvents : null,
+  ].filter(Boolean).join(' · ');
 
   const initialFocusDate = useMemo(() => (
     chooseCalendarFocusDate(visibleEvents, todayIso)
@@ -672,105 +680,79 @@ export default function Home() {
             aria-label="Calendar configuration"
           >
             <div className="mobileSheetHeader">
-              <h2>{copy.settingsLabel}</h2>
+              <h2>{copy.createCalendarTitle}</h2>
               <button aria-label="Close settings" type="button" onClick={() => setIsMobileSettingsOpen(false)}>×</button>
             </div>
 
-            <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
-              <label className="sheetSelect">
-                <span>{copy.storeRegionLabel}</span>
-                <select
-                  aria-label="Steam store region"
-                  value={effectiveStoreRegion}
-                  onChange={(event) => handleStoreRegionChange(event.target.value)}
-                >
-                  {STEAM_STORE_REGIONS.map((region) => (
-                    <option key={region.code} value={region.code}>
-                      {countryFlag(region.code)} {region.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
+            <div className="taskPanelHeader">
+              <h2>{copy.createCalendarTitle}</h2>
+              <p>{copy.createCalendarSubtitle}</p>
+              <div className="taskPanelSummary">{calendarSummaryItems}</div>
             </div>
 
-            <div className="panelHeader">
-              <h2>{copy.calendarSources}</h2>
-            </div>
+            <a className="drawerCalendarCta" href={webcalUrl}>
+              <CalendarListIcon />
+              {copy.addToCalendar}
+            </a>
 
             {publicPreviewError ? (
               <div className="notice error">{copy.wishlistGenericHint}</div>
             ) : null}
 
-            <SourceToggle
-              checked={showSteamEvents}
-              title={copy.steamEventsTitle}
-              controlsId="steam-event-options"
-              isExpanded={isSteamEventOptionsOpen}
-              onChange={setShowSteamEvents}
-              onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
-            >
-              {isSteamEventOptionsOpen ? (
-                <div className="eventOptionsPanel" id="steam-event-options">
-                  <div className="eventTypeGrid" aria-label="Steam event types">
-                    {STEAM_EVENT_CATEGORIES.map((category) => (
-                      <label className="eventTypeOption" key={category}>
-                        <input
-                          checked={steamEventCategories.includes(category)}
-                          disabled={!showSteamEvents}
-                          onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
-                          type="checkbox"
-                        />
-                        <span>
-                          <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
-                          <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+            <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
+              <div className="taskCardTopline">
+                <span>{copy.recommendedLabel}</span>
+              </div>
+              <div className="taskCardHeader">
+                <LinkIcon />
+                <div>
+                  <h3>{copy.connectWishlistTitle}</h3>
+                  <p>{copy.connectWishlistDescription}</p>
+                </div>
+              </div>
 
-                  <div className="rangeGrid" aria-label="Steam event range">
-                    <label className="rangeControl">
-                      <span className="rangeControlHeader">
-                        <span>{copy.pastDays}</span>
-                        <output>{eventPastDays}</output>
-                      </span>
-                      <input
-                        aria-label={copy.pastDays}
-                        type="range"
-                        min="0"
-                        max={EVENT_PAST_DAYS_MAX}
-                        step="1"
-                        value={eventPastDays}
-                        onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, EVENT_PAST_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
-                      />
-                    </label>
-                    <label className="rangeControl">
-                      <span className="rangeControlHeader">
-                        <span>{copy.nextDays}</span>
-                        <output>{eventFutureDays}</output>
-                      </span>
-                      <input
-                        aria-label={copy.nextDays}
-                        type="range"
-                        min="1"
-                        max={EVENT_FUTURE_DAYS_MAX}
-                        step="1"
-                        value={eventFutureDays}
-                        onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, EVENT_FUTURE_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
-                      />
-                    </label>
-                  </div>
+              <form
+                className="wishlistImport"
+                onSubmit={handleSubmit}
+                aria-label="Import Steam wishlist releases to the calendar"
+              >
+                <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
+                <div className="steamInputWrap">
+                  <LinkIcon />
+                  <input
+                    id="steam-id"
+                    inputMode="text"
+                    placeholder={copy.steamProfilePlaceholder}
+                    value={steamId64}
+                    onChange={(event) => setSteamId64(event.target.value)}
+                  />
+                </div>
+                <button disabled={isLoading} type="submit">
+                  {isLoading ? copy.importing : copy.importWishlist}
+                </button>
+              </form>
+              {isLoading ? (
+                <div className="notice loadingNotice" role="status">
+                  {copy.importingWishlist}
                 </div>
               ) : null}
-            </SourceToggle>
+              <p className="wishlistHint">{copy.wishlistHint}</p>
 
-            <div className="panelDivider" />
+              {error ? <div className="notice error">{error}</div> : null}
+              {error ? (
+                <div className="notice fallbackNotice">
+                  {errorCode === 'wishlist_private_or_unavailable'
+                    ? copy.wishlistPrivateHint
+                    : copy.wishlistGenericHint}
+                </div>
+              ) : null}
+            </section>
 
             <div className="myGamesBlock">
               <div className="sourceTitleRow">
                 <div>
-                  <h3>{copy.myGamesTitle}</h3>
+                  <h3>{copy.manualGamesTitle}</h3>
+                  <p>{copy.manualGamesDescription}</p>
                 </div>
                 <label className="switch">
                   <input
@@ -916,52 +898,103 @@ export default function Home() {
                 </div>
               ) : null}
 
-              <details className="wishlistImportDetails" id="steam-connect" open={Boolean(error) || isLoading}>
-                <summary>
-                  <LinkIcon />
-                  <span>{copy.importWishlistShort}</span>
-                </summary>
-
-                <form
-                  className="wishlistImport"
-                  onSubmit={handleSubmit}
-                  aria-label="Import Steam wishlist releases to the calendar"
-                >
-                  <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
-                  <div className="steamInputWrap">
-                    <LinkIcon />
-                    <input
-                      id="steam-id"
-                      inputMode="text"
-                      placeholder={copy.steamProfilePlaceholder}
-                      value={steamId64}
-                      onChange={(event) => setSteamId64(event.target.value)}
-                    />
-                  </div>
-                  <button disabled={isLoading} type="submit">
-                    {isLoading ? copy.importing : copy.importWishlist}
-                  </button>
-                </form>
-                {isLoading ? (
-                  <div className="notice loadingNotice" role="status">
-                    {copy.importingWishlist}
-                  </div>
-                ) : null}
-                <p className="wishlistHint">{copy.wishlistHint}</p>
-
-                {error ? <div className="notice error">{error}</div> : null}
-                {error ? (
-                  <div className="notice fallbackNotice">
-                    {errorCode === 'wishlist_private_or_unavailable'
-                      ? copy.wishlistPrivateHint
-                      : copy.wishlistGenericHint}
-                  </div>
-                ) : null}
-              </details>
             </div>
+
+            <div className="panelDivider" />
+
+            <SourceToggle
+              checked={showSteamEvents}
+              title={copy.steamEventsTitle}
+              controlsId="steam-event-options"
+              isExpanded={isSteamEventOptionsOpen}
+              onChange={setShowSteamEvents}
+              onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
+            >
+              {isSteamEventOptionsOpen ? (
+                <div className="eventOptionsPanel" id="steam-event-options">
+                  <div className="eventTypeGrid" aria-label="Steam event types">
+                    {STEAM_EVENT_CATEGORIES.map((category) => (
+                      <label className="eventTypeOption" key={category}>
+                        <input
+                          checked={steamEventCategories.includes(category)}
+                          disabled={!showSteamEvents}
+                          onChange={(event) => handleSteamEventCategoryChange(category, event.target.checked)}
+                          type="checkbox"
+                        />
+                        <span>
+                          <strong>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}</strong>
+                          <small>{STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="rangeGrid" aria-label="Steam event range">
+                    <label className="rangeControl">
+                      <span className="rangeControlHeader">
+                        <span>{copy.pastDays}</span>
+                        <output>{eventPastDays}</output>
+                      </span>
+                      <input
+                        aria-label={copy.pastDays}
+                        type="range"
+                        min="0"
+                        max={EVENT_PAST_DAYS_MAX}
+                        step="1"
+                        value={eventPastDays}
+                        onChange={(event) => setEventPastDays(clampInteger(event.target.value, 0, EVENT_PAST_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventPastDays))}
+                      />
+                    </label>
+                    <label className="rangeControl">
+                      <span className="rangeControlHeader">
+                        <span>{copy.nextDays}</span>
+                        <output>{eventFutureDays}</output>
+                      </span>
+                      <input
+                        aria-label={copy.nextDays}
+                        type="range"
+                        min="1"
+                        max={EVENT_FUTURE_DAYS_MAX}
+                        step="1"
+                        value={eventFutureDays}
+                        onChange={(event) => setEventFutureDays(clampInteger(event.target.value, 1, EVENT_FUTURE_DAYS_MAX, DEFAULT_CALENDAR_CONFIG.eventFutureDays))}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+            </SourceToggle>
+
+            <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
+              <label className="sheetSelect">
+                <span>{copy.storeRegionLabel}</span>
+                <select
+                  aria-label="Steam store region"
+                  value={effectiveStoreRegion}
+                  onChange={(event) => handleStoreRegionChange(event.target.value)}
+                >
+                  {STEAM_STORE_REGIONS.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {countryFlag(region.code)} {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
           </aside>
 
           <div className="calendarExperience" id="calendar-preview">
+            <div className="calendarActionBar">
+              <div>
+                <span>{copy.calendarReadyTitle}</span>
+                <strong>{calendarSummaryItems}</strong>
+              </div>
+              <a className="primaryCalendarCta" href={webcalUrl}>
+                <CalendarListIcon />
+                {copy.addToCalendar}
+              </a>
+            </div>
             <CalendarPreview
               events={visibleEvents}
               initialFocusDate={initialFocusDate}
@@ -2142,6 +2175,10 @@ function clampInteger(value: string, min: number, max: number, fallback: number)
   }
 
   return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function formatCountLabel(count: number, label: string, uiLanguage: UiLanguage): string {
+  return uiLanguage === 'zh' ? `${count}${label}` : `${count} ${label}`;
 }
 
 function compareSteamEventCategories(first: SteamEventCategory, second: SteamEventCategory): number {
