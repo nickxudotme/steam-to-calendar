@@ -34,7 +34,7 @@ select {
 }
 
 .appRoot {
-  --bg: #050b11;
+  --bg: #07131d;
   --panel: rgba(10, 20, 30, 0.88);
   --panel-deep: rgba(5, 11, 18, 0.96);
   --panel-soft: rgba(14, 28, 42, 0.72);
@@ -54,10 +54,7 @@ select {
   --radius: 7px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
-  background:
-    radial-gradient(circle at 10% -12%, rgba(32, 140, 255, 0.14), transparent 34%),
-    radial-gradient(circle at 72% -18%, rgba(61, 128, 190, 0.12), transparent 36%),
-    linear-gradient(180deg, #07131d, #050b11 46%, #03070d);
+  background: var(--bg);
   color: var(--fg);
   height: 100dvh;
   min-height: 0;
@@ -65,13 +62,9 @@ select {
 }
 
 .appRoot::before {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 170px),
-    linear-gradient(90deg, rgba(78, 151, 205, 0.05), transparent 44%, rgba(61, 128, 190, 0.035)),
-    radial-gradient(circle at 50% 32%, rgba(42, 118, 180, 0.08), transparent 42%);
   content: "";
+  display: none;
   inset: 0;
-  mask-image: linear-gradient(180deg, black, black 78%, transparent);
   pointer-events: none;
   position: fixed;
 }
@@ -506,10 +499,10 @@ select {
 
 .configPanel {
   display: grid;
-  gap: 12px;
+  gap: 9px;
   grid-auto-rows: min-content;
   overflow: auto;
-  padding: 20px 14px;
+  padding: 16px 14px;
 }
 
 .taskPanelHeader {
@@ -567,7 +560,7 @@ select {
 
 .setupChecklist {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   position: relative;
 }
 
@@ -607,7 +600,7 @@ select {
 
 .setupStepBody {
   display: grid;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -644,6 +637,7 @@ select {
     rgba(8, 15, 24, 0.5);
   border-color: rgba(44, 145, 255, 0.52);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(0, 0, 0, 0.18);
+  padding: 10px 12px;
 }
 
 .taskCardHeader {
@@ -659,9 +653,9 @@ select {
 }
 
 .taskCardTitleLine {
-  align-items: center;
-  display: flex;
-  gap: 8px;
+  align-items: start;
+  display: grid;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -675,13 +669,14 @@ select {
 }
 
 .taskCardTitleLine span {
+  order: -1;
   background: rgba(44, 145, 255, 0.18);
   border: 1px solid rgba(44, 145, 255, 0.34);
   border-radius: 999px;
   color: #83c8ff;
-  flex: 0 0 auto;
   font-size: 0.62rem;
   font-weight: 880;
+  justify-self: start;
   line-height: 1;
   padding: 4px 6px;
   text-transform: uppercase;
@@ -706,7 +701,7 @@ select {
   display: grid;
   gap: 10px;
   grid-template-columns: 28px minmax(0, 1fr);
-  padding: 10px 12px;
+  padding: 9px 12px;
   position: relative;
 }
 
@@ -778,7 +773,7 @@ select {
 
 .setupReadyStep p {
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 720;
   line-height: 1.35;
   margin: 2px 0 0;
@@ -803,6 +798,10 @@ select {
   font-size: 0.78rem;
   line-height: 1.34;
   margin-top: 4px;
+}
+
+.myGamesBlock {
+  padding: 10px 12px;
 }
 
 .myGamesBlock .gameSearchForm,
@@ -1235,8 +1234,8 @@ select {
 .gameSearchResults,
 .selectedGames {
   display: grid;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 5px;
+  margin-top: 8px;
 }
 
 .miniSectionTitle {
@@ -1260,21 +1259,6 @@ select {
   display: flex;
   font-size: 0.72rem;
   justify-content: space-between;
-}
-
-.selectedGamesHeader > span:last-child {
-  align-items: center;
-  background: rgba(102, 192, 244, 0.12);
-  border: 1px solid rgba(102, 192, 244, 0.24);
-  border-radius: 999px;
-  color: #cce9fb;
-  display: inline-flex;
-  font-size: 0.7rem;
-  font-weight: 850;
-  height: 20px;
-  justify-content: center;
-  min-width: 20px;
-  padding: 0 6px;
 }
 
 .gameSearchResult,
@@ -1303,33 +1287,25 @@ select {
 }
 
 .selectedGameRow {
-  background: linear-gradient(180deg, rgba(16, 32, 48, 0.64), rgba(7, 13, 22, 0.54));
-  grid-template-columns: minmax(0, 1fr);
-  min-height: 45px;
+  background: transparent;
+  border-color: transparent;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  min-height: 40px;
   overflow: hidden;
-  padding: 6px;
+  padding: 4px;
   position: relative;
   transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), transform 150ms var(--ease-soft);
 }
 
 .selectedGameRow::after {
-  background:
-    linear-gradient(90deg, rgba(11, 22, 34, 0), rgba(11, 22, 34, 0.76) 34%, rgba(11, 22, 34, 0.96));
-  content: "";
-  inset: 0 0 0 auto;
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  transition: opacity 120ms ease;
-  width: 96px;
-  z-index: 1;
+  display: none;
 }
 
 .selectedGameRow:hover,
 .selectedGameRow:focus-within {
-  background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
+  background: rgba(20, 45, 66, 0.42);
   border-color: rgba(102, 192, 244, 0.42);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -1407,7 +1383,7 @@ select {
   gap: 9px;
   grid-template-columns: 58px minmax(0, 1fr);
   justify-content: stretch;
-  min-height: 36px;
+  min-height: 34px;
   padding: 0;
   text-align: left;
   width: 100%;
@@ -1440,22 +1416,24 @@ select {
 }
 
 .selectedGameRemove {
-  font-size: 0.72rem;
+  align-self: center;
+  border-color: rgba(117, 151, 184, 0.22);
+  font-size: 1.15rem;
+  height: 30px;
   min-height: 32px;
-  opacity: 0;
-  padding: 0 9px;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translate(4px, -50%);
+  opacity: 1;
+  padding: 0;
+  position: static;
+  transform: none;
   transition: opacity 140ms var(--ease-soft), transform 140ms var(--ease-soft), border-color 140ms var(--ease-soft), background 140ms var(--ease-soft);
+  width: 30px;
   z-index: 2;
 }
 
 .selectedGameRow:hover .selectedGameRemove,
 .selectedGameRow:focus-within .selectedGameRemove {
   opacity: 1;
-  transform: translate(0, -50%);
+  transform: none;
 }
 
 .selectedGameRemove:hover,
@@ -1707,23 +1685,26 @@ select {
 }
 
 .wishlistImportDetails {
-  border-top: 1px solid rgba(117, 151, 184, 0.14);
-  margin-top: 10px;
-  padding-top: 8px;
+  border-top: 0;
+  margin-top: 8px;
+  padding-top: 0;
 }
 
 .wishlistImportDetails summary {
   align-items: center;
+  background: linear-gradient(180deg, #168dff, #0867bf);
+  border: 1px solid rgba(102, 192, 244, 0.7);
   border-radius: 5px;
-  color: #b7c8d5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   cursor: pointer;
-  display: grid;
-  font-size: 0.8rem;
-  font-weight: 820;
-  gap: 8px;
-  grid-template-columns: 16px minmax(0, 1fr) 12px;
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 860;
+  justify-content: center;
   list-style: none;
-  min-height: 32px;
+  min-height: 40px;
+  padding: 0 12px;
 }
 
 .wishlistImportDetails summary::-webkit-details-marker {
@@ -1732,22 +1713,6 @@ select {
 
 .wishlistImportDetails summary:hover {
   color: #e6f2fa;
-}
-
-.wishlistImportDetails summary::after {
-  border-bottom: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-  content: "";
-  height: 6px;
-  justify-self: end;
-  margin-right: 2px;
-  transform: rotate(45deg);
-  transition: transform 150ms ease;
-  width: 6px;
-}
-
-.wishlistImportDetails[open] summary::after {
-  transform: rotate(225deg);
 }
 
 .wishlistImportDetails .linkIcon {
@@ -1813,14 +1778,17 @@ select {
 .calendarActionBar {
   align-items: center;
   background:
-    linear-gradient(90deg, rgba(22, 134, 223, 0.14), rgba(7, 13, 21, 0.9) 50%, rgba(164, 208, 7, 0.08)),
+    linear-gradient(90deg, rgba(22, 134, 223, 0.2), rgba(7, 13, 21, 0.92) 50%, rgba(22, 134, 223, 0.14)),
     rgba(8, 15, 24, 0.92);
-  border-top: 1px solid rgba(151, 174, 191, 0.16);
+  border: 1px solid rgba(44, 145, 255, 0.38);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   display: grid;
-  gap: 14px;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
-  min-height: 58px;
-  padding: 8px 16px;
+  gap: 16px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  margin: 14px 16px 16px;
+  min-height: 78px;
+  padding: 12px 16px;
 }
 
 .calendarActionBar div {
@@ -1838,9 +1806,11 @@ select {
   display: inline-flex;
   font-size: 0.88rem;
   font-weight: 900;
-  height: 28px;
+  color: #37a9ff;
+  font-size: 1.15rem;
+  height: 36px;
   justify-content: center;
-  width: 28px;
+  width: 36px;
 }
 
 .calendarActionBar .calendarReadyTitle {
@@ -1877,11 +1847,28 @@ select {
   font-weight: 870;
   gap: 8px;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 14px;
+  min-height: 56px;
+  padding: 0 24px;
   text-decoration: none;
   transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 160ms var(--ease-soft);
   white-space: nowrap;
+}
+
+.primaryCalendarCta span {
+  display: grid;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.primaryCalendarCta strong {
+  color: #ffffff;
+  font-size: 0.96rem;
+}
+
+.primaryCalendarCta small {
+  color: rgba(214, 235, 250, 0.82);
+  font-size: 0.74rem;
+  font-weight: 650;
 }
 
 .primaryCalendarCta:hover,

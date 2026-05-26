@@ -784,26 +784,29 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <form
-                      className="wishlistImport"
-                      onSubmit={handleSubmit}
-                      aria-label="Import Steam wishlist releases to the calendar"
-                    >
-                      <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
-                      <div className="steamInputWrap">
-                        <LinkIcon />
-                        <input
-                          id="steam-id"
-                          inputMode="text"
-                          placeholder={copy.steamProfilePlaceholder}
-                          value={steamId64}
-                          onChange={(event) => setSteamId64(event.target.value)}
-                        />
-                      </div>
-                      <button disabled={isLoading} type="submit">
-                        {isLoading ? copy.importing : copy.importWishlist}
-                      </button>
-                    </form>
+                    <details className="wishlistImportDetails">
+                      <summary>{copy.connectWishlistButton}</summary>
+                      <form
+                        className="wishlistImport"
+                        onSubmit={handleSubmit}
+                        aria-label="Import Steam wishlist releases to the calendar"
+                      >
+                        <label className="srOnly" htmlFor="steam-id">{copy.steamProfilePlaceholder}</label>
+                        <div className="steamInputWrap">
+                          <LinkIcon />
+                          <input
+                            id="steam-id"
+                            inputMode="text"
+                            placeholder={copy.steamProfilePlaceholder}
+                            value={steamId64}
+                            onChange={(event) => setSteamId64(event.target.value)}
+                          />
+                        </div>
+                        <button disabled={isLoading} type="submit">
+                          {isLoading ? copy.importing : copy.importWishlistShort}
+                        </button>
+                      </form>
+                    </details>
                     {isLoading ? (
                       <div className="notice loadingNotice" role="status">
                         {copy.importingWishlist}
@@ -831,14 +834,6 @@ export default function Home() {
                         <h3>{copy.manualGamesTitle}</h3>
                         <p>{copy.manualGamesDescription}</p>
                       </div>
-                      <label className="switch">
-                        <input
-                          checked={showMyGames}
-                          onChange={(event) => setShowMyGames(event.target.checked)}
-                          type="checkbox"
-                        />
-                        <span />
-                      </label>
                     </div>
 
                     <form className="gameSearchForm" onSubmit={handleGameSearchSubmit}>
@@ -940,8 +935,7 @@ export default function Home() {
                     {selectedGames.length ? (
                       <div className="selectedGames" aria-label="Games added to calendar">
                         <div className="selectedGamesHeader">
-                          <span className="miniSectionTitle">{copy.addedToCalendar}</span>
-                          <span>{selectedGames.length}</span>
+                          <span className="miniSectionTitle">{copy.addedGamesLabel} ({selectedGames.length})</span>
                         </div>
                         {selectedGames.map((game) => (
                           <div
@@ -963,7 +957,7 @@ export default function Home() {
                               type="button"
                               onClick={() => handleRemoveSelectedGame(game.appId)}
                             >
-                              {copy.remove}
+                              ×
                             </button>
                             {selectedGameNoticeAppId === game.appId ? (
                               <div className="selectedGameNotice" role="status">
@@ -1027,7 +1021,10 @@ export default function Home() {
               </div>
               <a className="primaryCalendarCta" href={webcalUrl}>
                 <CalendarListIcon />
-                {copy.addToCalendar}
+                <span>
+                  <strong>{copy.addToCalendar}</strong>
+                  <small>{copy.calendarCtaHint}</small>
+                </span>
               </a>
             </div>
           </div>
