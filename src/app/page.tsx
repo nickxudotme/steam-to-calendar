@@ -1,5 +1,6 @@
 'use client';
 
+import { CalendarPlus } from 'lucide-react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -1594,12 +1595,7 @@ function hasGameEventImage(event: PreviewEvent) {
 }
 
 function CalendarListIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <rect x="3.8" y="4.7" width="12.4" height="11.4" rx="2" />
-      <path d="M6.8 3.2v3M13.2 3.2v3M3.8 8.4h12.4M7.2 11.5h5.6M7.2 14h3.2" />
-    </svg>
-  );
+  return <CalendarPlus aria-hidden="true" className="toolbarSvg" />;
 }
 
 function SourceToggle({
