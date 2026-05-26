@@ -1015,6 +1015,13 @@ export default function Home() {
                     <span aria-hidden="true">✓</span>
                   </div>
                   <p>{calendarSummaryItems}</p>
+                  <a className="primaryCalendarCta setupReadyCta" href={webcalUrl}>
+                    <CalendarListIcon />
+                    <span>
+                      <strong>{copy.addToCalendar}</strong>
+                      <small>{copy.calendarCtaHint}</small>
+                    </span>
+                  </a>
                 </div>
               </section>
             </div>
@@ -1053,13 +1060,6 @@ export default function Home() {
             />
             <div className="calendarActionBar">
               <CalendarLegend legendItems={calendarLegendItems(visibleEvents, copy)} />
-              <a className="primaryCalendarCta" href={webcalUrl}>
-                <CalendarListIcon />
-                <span>
-                  <strong>{copy.addToCalendar}</strong>
-                  <small>{copy.calendarCtaHint}</small>
-                </span>
-              </a>
             </div>
           </div>
 
