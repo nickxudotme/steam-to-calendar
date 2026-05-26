@@ -805,49 +805,57 @@ select {
   margin: 2px 0 0;
 }
 
-.setupReadyCta {
+.primaryCalendarCta.setupReadyCta {
+  align-items: center;
   box-shadow: 0 10px 22px rgba(22, 134, 223, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  display: grid;
   font-size: 0.84rem;
-  gap: 10px;
-  justify-content: center;
+  gap: 3px 8px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  justify-content: stretch;
   justify-self: stretch;
   margin-top: 1px;
   min-height: 58px;
   overflow: hidden;
   padding: 8px 14px;
-  text-align: left;
+  text-align: center;
   white-space: normal;
   width: 100%;
 }
 
-.setupReadyCta .toolbarSvg {
-  align-self: start;
+.primaryCalendarCta.setupReadyCta .toolbarSvg {
+  align-self: center;
+  grid-column: 1;
+  grid-row: 1;
   height: 18px;
-  margin-top: 4px;
   width: 18px;
 }
 
-.setupReadyCta span {
-  display: grid;
-  gap: 4px;
+.primaryCalendarCta.setupReadyCta span {
+  display: contents;
   line-height: 1.08;
   min-width: 0;
-  overflow: hidden;
 }
 
-.setupReadyCta strong {
+.primaryCalendarCta.setupReadyCta strong {
+  grid-column: 2;
+  grid-row: 1;
   font-size: 0.88rem;
   overflow: hidden;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.setupReadyCta small {
+.primaryCalendarCta.setupReadyCta small {
   color: rgba(214, 235, 250, 0.78);
   display: block;
   font-size: 0.68rem;
   font-weight: 650;
+  grid-column: 1 / -1;
+  grid-row: 2;
   overflow: hidden;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

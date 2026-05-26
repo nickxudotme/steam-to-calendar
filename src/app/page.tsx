@@ -1596,8 +1596,8 @@ function hasGameEventImage(event: PreviewEvent) {
 function CalendarListIcon() {
   return (
     <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <rect x="4" y="4" width="12" height="12" rx="2" />
-      <path d="M4 8.2h12M7.8 4v12M4 12.1h12" />
+      <rect x="3.8" y="4.7" width="12.4" height="11.4" rx="2" />
+      <path d="M6.8 3.2v3M13.2 3.2v3M3.8 8.4h12.4M7.2 11.5h5.6M7.2 14h3.2" />
     </svg>
   );
 }
