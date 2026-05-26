@@ -1310,28 +1310,13 @@ function CalendarPreview({
     scrollToCalendarWeek(todayWeekStart);
   }
 
-  function handleAdjacentMonth(direction: -1 | 1) {
-    const targetDate = addMonthsToMonthKey(visibleMonth, direction);
-    const targetWeekStart = weekStartForDate(`${targetDate}-01`);
-
-    pendingWeekScroll.current = targetWeekStart;
-    setCalendarView('month');
-    scrollToCalendarWeek(targetWeekStart);
-  }
-
   return (
     <section className={calendarAppClassName} aria-label="Calendar preview">
       <div className="calendarHeader">
         <h2>{formatCalendarMonthTitle(visibleMonth, uiLanguage)}</h2>
 
         <div className="calendarControls">
-          <button className="monthNavButton" type="button" aria-label="Previous month" onClick={() => handleAdjacentMonth(-1)}>
-            <ChevronLeftIcon />
-          </button>
           <button className="todayButton" disabled={!canScrollToToday} type="button" onClick={handleTodayClick}>{uiCopy.today}</button>
-          <button className="monthNavButton" type="button" aria-label="Next month" onClick={() => handleAdjacentMonth(1)}>
-            <ChevronRightIcon />
-          </button>
           <div className="viewTabs" aria-label="Calendar view">
             <button
               aria-pressed={calendarView === 'month'}
@@ -1567,35 +1552,11 @@ function hasGameEventImage(event: PreviewEvent) {
   return Boolean(isGameCalendarEvent(event) && event.imageUrl);
 }
 
-function ChevronLeftIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="m12.5 4.5-5 5.5 5 5.5" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="m7.5 4.5 5 5.5-5 5.5" />
-    </svg>
-  );
-}
-
 function CalendarListIcon() {
   return (
     <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
       <rect x="4" y="4" width="12" height="12" rx="2" />
       <path d="M4 8.2h12M7.8 4v12M4 12.1h12" />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="m10 3.4 1.9 3.8 4.2.6-3 3 0.7 4.1-3.8-2-3.8 2 .7-4.1-3-3 4.2-.6L10 3.4Z" />
     </svg>
   );
 }
@@ -1711,9 +1672,6 @@ function EventDetails({
       <div className="detailTitleBlock">
         <span>{detailKind(event, copy)}</span>
         <h2>{detailTitle(event)}</h2>
-        <button aria-label="Save event" className="detailFavoriteButton" type="button">
-          <StarIcon />
-        </button>
       </div>
       {shouldShowDetailHero ? (
         <div className="detailHero gameHero hasSteamCliImage" style={heroStyle} />
@@ -2262,12 +2220,6 @@ function formatMonth(value: string, uiLanguage: UiLanguage): string {
 
 function formatCalendarMonthTitle(value: string, uiLanguage: UiLanguage): string {
   return formatMonth(value, uiLanguage);
-}
-
-function addMonthsToMonthKey(value: string, delta: number): string {
-  const [year, month] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1 + delta, 1));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function storeRegionCurrencySymbol(regionCode: string): string {

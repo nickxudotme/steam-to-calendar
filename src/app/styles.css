@@ -1953,7 +1953,6 @@ select {
   justify-content: flex-end;
 }
 
-.monthNavButton,
 .todayButton,
 .viewTabs button {
   align-items: center;
@@ -1966,12 +1965,6 @@ select {
   font-weight: 720;
   height: 38px;
   justify-content: center;
-}
-
-.monthNavButton {
-  border-radius: 5px;
-  padding: 0;
-  width: 38px;
 }
 
 .todayButton {
@@ -2466,8 +2459,7 @@ select {
 
 .detailTitleBlock {
   align-self: end;
-  padding: 0 54px 16px 16px;
-  position: relative;
+  padding: 0 16px 16px;
 }
 
 .detailTitleBlock span {
@@ -2486,32 +2478,6 @@ select {
   line-height: 1.08;
   margin: 0;
   text-shadow: 0 12px 32px rgba(0, 0, 0, 0.62);
-}
-
-.detailFavoriteButton {
-  align-items: center;
-  background: rgba(12, 22, 34, 0.82);
-  border: 1px solid rgba(117, 151, 184, 0.28);
-  border-radius: 7px;
-  color: #b9c9d7;
-  cursor: pointer;
-  display: inline-flex;
-  height: 36px;
-  justify-content: center;
-  position: absolute;
-  right: 14px;
-  top: 0;
-  transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), color 150ms var(--ease-soft), transform 140ms var(--ease-soft);
-  width: 36px;
-}
-
-.detailFavoriteButton:hover,
-.detailFavoriteButton:focus-visible {
-  background: rgba(22, 134, 223, 0.14);
-  border-color: rgba(102, 192, 244, 0.42);
-  color: #ffffff;
-  outline: none;
-  transform: translateY(-1px);
 }
 
 .detailHero {
