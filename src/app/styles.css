@@ -76,7 +76,7 @@ select {
   margin: 0 auto;
   min-height: 0;
   overflow: hidden;
-  padding: 0 12px;
+  padding: 0 12px 16px;
   position: relative;
   z-index: 1;
 }
@@ -317,20 +317,17 @@ select {
 
 .infoButton {
   align-items: center;
-  background: rgba(15, 29, 42, 0.78);
-  border: 1px solid rgba(151, 174, 191, 0.24);
-  border-radius: 999px;
+  background: rgba(8, 18, 28, 0.72);
+  border: 1px solid rgba(124, 157, 184, 0.28);
+  border-radius: 7px;
   color: #d9e8f3;
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 0.92rem;
-  font-weight: 860;
-  height: 42px;
+  height: 36px;
   justify-content: center;
-  line-height: 1;
   transition: background 160ms var(--ease-soft), border-color 160ms var(--ease-soft), color 160ms var(--ease-soft), transform 140ms var(--ease-soft);
-  width: 42px;
+  width: 36px;
 }
 
 .infoButton:hover,
@@ -346,37 +343,15 @@ select {
   transform: translateY(1px) scale(0.98);
 }
 
-.introOverlay {
-  align-items: center;
+.introPanel {
+  background: #0b1722;
+  border: 1px solid rgba(124, 157, 184, 0.26);
+  border-radius: 8px;
   display: grid;
-  inset: 0;
-  justify-items: center;
-  padding: 24px;
-  position: fixed;
-  z-index: 80;
-}
-
-.introBackdrop {
-  background: rgba(1, 6, 12, 0.72);
-  border: 0;
-  cursor: pointer;
-  inset: 0;
-  padding: 0;
-  position: absolute;
-}
-
-.introSheet {
-  background:
-    linear-gradient(180deg, rgba(18, 32, 45, 0.98), rgba(7, 14, 23, 0.98));
-  border: 1px solid rgba(151, 174, 191, 0.22);
-  border-radius: 12px;
-  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58);
-  display: grid;
-  gap: 16px;
-  max-width: 560px;
-  padding: 28px;
+  gap: 14px;
+  margin-top: 2px;
+  padding: 16px 14px;
   position: relative;
-  width: min(100%, 560px);
 }
 
 .introKicker {
@@ -387,38 +362,37 @@ select {
   text-transform: uppercase;
 }
 
-.introSheet h2 {
+.introPanel h2 {
   color: #ffffff;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: 1.42rem;
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 1.02;
+  line-height: 1.08;
   margin: 0;
   text-wrap: balance;
 }
 
-.introSheet p {
+.introPanel p {
   color: #c6d5df;
-  font-size: 1rem;
-  line-height: 1.55;
+  font-size: 0.88rem;
+  line-height: 1.48;
   margin: 0;
-  max-width: 58ch;
 }
 
 .introPrimary {
   align-items: center;
   background: linear-gradient(180deg, #168dff, #0867bf);
   border: 1px solid rgba(102, 192, 244, 0.7);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
   font-size: 0.98rem;
   font-weight: 870;
   justify-content: center;
-  justify-self: start;
-  min-height: 46px;
-  padding: 0 18px;
+  justify-self: stretch;
+  min-height: 42px;
+  padding: 0 14px;
   transition: filter 150ms var(--ease-soft), transform 140ms var(--ease-soft), box-shadow 150ms var(--ease-soft);
 }
 
@@ -506,9 +480,17 @@ select {
 }
 
 .taskPanelHeader {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 2px 2px 4px;
+}
+
+.taskPanelTitle {
   display: grid;
   gap: 7px;
-  padding: 2px 2px 4px;
+  min-width: 0;
 }
 
 .taskPanelHeader h2 {
@@ -565,13 +547,7 @@ select {
 }
 
 .setupChecklist::before {
-  background: linear-gradient(180deg, rgba(44, 145, 255, 0.76), rgba(44, 145, 255, 0.28) 70%, rgba(44, 145, 255, 0.08));
-  content: "";
-  left: 13px;
-  position: absolute;
-  top: 12px;
-  bottom: 18px;
-  width: 1px;
+  display: none;
 }
 
 .setupStep {
@@ -579,6 +555,17 @@ select {
   gap: 10px;
   grid-template-columns: 28px minmax(0, 1fr);
   position: relative;
+}
+
+.setupStep:not(:last-child)::after {
+  background: rgba(44, 145, 255, 0.72);
+  content: "";
+  left: 13px;
+  position: absolute;
+  top: 27px;
+  bottom: -8px;
+  width: 1px;
+  z-index: 0;
 }
 
 .setupStepMarker {
@@ -609,19 +596,14 @@ select {
   padding: 1px 2px 0;
 }
 
-.trackedGamesStepHeader h3 {
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: 850;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.trackedGamesStepHeader p {
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.38;
-  margin: 0;
+.trackedGamesStepCard {
+  background:
+    linear-gradient(180deg, rgba(13, 29, 43, 0.92), rgba(8, 18, 28, 0.9));
+  border: 1px solid rgba(124, 157, 184, 0.28);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 34px rgba(0, 0, 0, 0.16);
+  gap: 10px;
+  padding: 12px;
 }
 
 .myGamesBlock,
@@ -640,35 +622,11 @@ select {
 }
 
 .taskCardHeader {
-  align-items: start;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 20px minmax(0, 1fr);
-}
-
-.taskCardHeader .linkIcon {
-  color: var(--steam-blue);
-  margin-top: 2px;
-}
-
-.taskCardTitleLine {
-  align-items: start;
   display: grid;
   gap: 10px;
-  min-width: 0;
 }
 
-.taskCardTitleLine h3 {
-  color: #ffffff;
-  font-size: 0.88rem;
-  font-weight: 860;
-  line-height: 1.18;
-  margin: 0;
-  min-width: 0;
-}
-
-.taskCardTitleLine span {
-  order: -1;
+.taskCardBadge {
   background: rgba(44, 145, 255, 0.18);
   border: 1px solid rgba(44, 145, 255, 0.34);
   border-radius: 999px;
@@ -677,15 +635,21 @@ select {
   font-weight: 880;
   justify-self: start;
   line-height: 1;
-  padding: 4px 6px;
+  padding: 4px 8px;
   text-transform: uppercase;
 }
 
-.taskCardHeader p {
-  color: #bad0df;
-  font-size: 0.74rem;
-  line-height: 1.32;
-  margin: 4px 0 0;
+.taskCardContent {
+  align-items: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.taskCardCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .wishlistTaskCard .wishlistHint {
@@ -743,13 +707,6 @@ select {
   margin-top: 10px;
 }
 
-.sourceCardMeta p {
-  color: #b5c8d8;
-  font-size: 0.78rem;
-  line-height: 1.38;
-  margin: 0;
-}
-
 .sourceStatusPill {
   align-items: center;
   background: rgba(49, 160, 75, 0.16);
@@ -787,22 +744,6 @@ select {
   background: rgba(124, 157, 184, 0.18);
   content: "";
   height: 1px;
-}
-
-.setupReadyCard strong {
-  color: #ffffff;
-  display: block;
-  font-size: 0.86rem;
-  font-weight: 850;
-  line-height: 1.25;
-}
-
-.setupReadyCard p {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 720;
-  line-height: 1.35;
-  margin: 2px 0 0;
 }
 
 .primaryCalendarCta.setupReadyCta {
@@ -875,20 +816,69 @@ select {
   margin: 0;
 }
 
+.taskCardCopy h3,
+.myGamesBlock .sourceTitleRow h3 {
+  color: var(--fg);
+  font-size: 0.96rem;
+  font-weight: 820;
+  line-height: 1.28;
+  margin: 0;
+  min-width: 0;
+}
+
+.sourceDisclosureButton h3,
+.trackedGamesStepHeader h3,
+.setupReadyCard > div strong {
+  color: #ffffff;
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.sourceCardMeta p,
+.trackedGamesStepHeader p,
+.setupReadyCard p {
+  color: #b5c8d8;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.38;
+  margin: 0;
+}
+
+.taskCardCopy p,
 .myGamesBlock .sourceTitleRow p {
+  color: #b5c8d8;
   font-size: 0.78rem;
   line-height: 1.34;
-  margin-top: 4px;
+  margin: 0;
 }
 
 .myGamesBlock {
   padding: 10px 12px;
 }
 
+.myGamesBlock .sourceTitleRow {
+  align-items: start;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  justify-content: start;
+}
+
 .myGamesBlock .gameSearchForm,
 .myGamesBlock .gameSearchResults,
 .myGamesBlock .selectedGames {
   margin-top: 6px;
+}
+
+.taskCardContent .linkIcon,
+.sourceIcon {
+  color: #168dff;
+  height: 17px;
+  margin-top: 2px;
+  width: 17px;
 }
 
 .sourceDisclosureButton {
@@ -1357,11 +1347,11 @@ select {
   background: linear-gradient(180deg, rgba(16, 32, 48, 0.72), rgba(7, 13, 22, 0.58));
   color: inherit;
   cursor: pointer;
-  grid-template-columns: 68px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   overflow: visible;
   position: relative;
   text-align: left;
-  padding: 8px;
+  padding: 6px;
   transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), transform 150ms var(--ease-soft);
   width: 100%;
   z-index: 1;
@@ -1462,7 +1452,7 @@ select {
   border-radius: 5px;
   display: block;
   object-fit: contain;
-  width: 68px;
+  width: 64px;
 }
 
 .gameSearchResult .gameThumbFallback,
@@ -1475,7 +1465,7 @@ select {
   border-color: transparent;
   display: grid;
   gap: 9px;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   justify-content: stretch;
   min-height: 34px;
   padding: 0;
@@ -1495,7 +1485,7 @@ select {
 
 .selectedGameSelect img,
 .selectedGameSelect .gameThumbFallback {
-  width: 58px;
+  width: 64px;
 }
 
 .selectedGameSelect span:not(.gameThumbFallback) {
@@ -1550,16 +1540,16 @@ select {
 
 .gameSearchResultInfo {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .gameSearchResultInfo strong {
   color: var(--fg);
   display: block;
-  font-size: 0.84rem;
-  font-weight: 830;
-  line-height: 1.18;
+  font-size: 0.78rem;
+  font-weight: 780;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2970,7 +2960,7 @@ select {
     min-width: 0;
   }
 
-  .headerControls > :not(.localeControls):not(.infoButton) {
+  .headerControls > :not(.localeControls) {
     display: none;
   }
 
@@ -2993,25 +2983,8 @@ select {
     min-width: 54px;
   }
 
-  .infoButton {
-    background: rgba(13, 24, 36, 0.9);
-    height: 42px;
-    width: 42px;
-  }
-
-  .introOverlay {
-    align-items: end;
-    padding: 12px;
-  }
-
-  .introSheet {
-    border-radius: 18px;
-    gap: 14px;
-    padding: 22px;
-  }
-
-  .introSheet h2 {
-    font-size: clamp(1.7rem, 9vw, 2.35rem);
+  .introPanel h2 {
+    font-size: 1.34rem;
   }
 
   .introPrimary {
@@ -3145,7 +3118,7 @@ select {
     margin: -10px -14px 0;
     padding: 14px 14px 10px;
     position: sticky;
-    top: 0;
+    top: -10px;
     z-index: 2;
   }
 
@@ -3576,7 +3549,7 @@ select {
     max-width: clamp(86px, 38vw, 140px);
   }
 
-  .introSheet h2 {
+  .introPanel h2 {
     font-size: 1.62rem;
     line-height: 1.08;
   }
@@ -3587,11 +3560,6 @@ select {
 
   .languageSelect {
     min-width: 50px;
-  }
-
-  .infoButton {
-    height: 40px;
-    width: 40px;
   }
 
   .mobileAddCalendar {

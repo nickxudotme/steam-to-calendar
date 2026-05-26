@@ -1,6 +1,15 @@
 'use client';
 
-import { CalendarPlus } from 'lucide-react';
+import {
+  CalendarPlus,
+  ExternalLink,
+  Info,
+  Languages,
+  Link,
+  Pencil,
+  Search,
+  Settings,
+} from 'lucide-react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -124,6 +133,26 @@ const MAX_EVENT_LANES = 12;
 const EVENT_PAST_DAYS_MAX = 180;
 const EVENT_FUTURE_DAYS_MAX = 365;
 const INTRO_STORAGE_KEY = 'steam-to-calendar-intro-seen';
+const DEFAULT_SELECTED_GAMES: SelectedGame[] = [
+  {
+    appId: '1118520',
+    name: 'Paralives',
+    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1118520/header.jpg',
+    storeUrl: 'https://store.steampowered.com/app/1118520/Paralives/',
+  },
+  {
+    appId: '3240220',
+    name: 'Grand Theft Auto V Enhanced',
+    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3240220/header.jpg',
+    storeUrl: 'https://store.steampowered.com/app/3240220/Grand_Theft_Auto_V_Enhanced/',
+  },
+  {
+    appId: '3768760',
+    name: '007 First Light',
+    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3768760/header.jpg',
+    storeUrl: 'https://store.steampowered.com/app/3768760/007_First_Light/',
+  },
+];
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -158,7 +187,7 @@ export default function Home() {
   const [gameSearchError, setGameSearchError] = useState<string | null>(null);
   const [lastGameSearchQuery, setLastGameSearchQuery] = useState('');
   const [isSearchingGames, setIsSearchingGames] = useState(false);
-  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
+  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>(DEFAULT_SELECTED_GAMES);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
   const [undoableGame, setUndoableGame] = useState<SelectedGame | null>(null);
@@ -312,7 +341,7 @@ export default function Home() {
       .slice(0, AUTO_TRACKED_GAME_COUNT)
       .map((event) => ({
         appId: event.appId as string,
-        name: detailTitle(event),
+        name: selectedGameTitle(event),
         ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
         storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
       }));
@@ -485,11 +514,56 @@ export default function Home() {
 
     const rect = element.getBoundingClientRect();
     const cardWidth = 280;
-    const cardHeight = 246;
-    const left = Math.min(rect.right + 10, window.innerWidth - cardWidth - 12);
-    const top = Math.min(Math.max(rect.top, 12), window.innerHeight - cardHeight - 12);
+    const cardHeight = 340;
+    const viewportPadding = 12;
+    const gutter = 10;
+    const preferredLeft = rect.right + gutter;
+    const fallbackLeft = rect.left - cardWidth - gutter;
+    const canPlaceRight = preferredLeft + cardWidth <= window.innerWidth - viewportPadding;
+    const left = canPlaceRight
+      ? preferredLeft
+      : Math.max(viewportPadding, fallbackLeft);
+    const maxTop = window.innerHeight - cardHeight - viewportPadding;
+    const top = Math.min(
+      Math.max(rect.top, viewportPadding),
+      Math.max(viewportPadding, maxTop),
+    );
 
     setSearchPreview({ game, left, top });
+  }
+
+  function previewGameForSelectedGame(game: SelectedGame): GameSearchResult {
+    const matchingSearchResult = gameSearchResults.find((result) => result.appId === game.appId);
+    if (matchingSearchResult) {
+      return matchingSearchResult;
+    }
+
+    const matchingEvent = preview.events.find((event) => event.appId === game.appId);
+    const discountPercent = matchingEvent?.discount?.match(/(\d+)/)?.[1];
+
+    return {
+      appId: game.appId,
+      name: game.name,
+      ...(game.imageUrl ? { imageUrl: game.imageUrl } : {}),
+      genres: matchingEvent?.genres,
+      ...(matchingEvent?.reviewCount ? { reviewCount: matchingEvent.reviewCount } : {}),
+      ...(matchingEvent?.reviewPercentage ? { reviewPercentage: matchingEvent.reviewPercentage } : {}),
+      ...(matchingEvent?.reviewSummary ? { reviewSummary: matchingEvent.reviewSummary } : {}),
+      ...(matchingEvent?.finalPrice || matchingEvent?.originalPrice || discountPercent
+        ? {
+            price: {
+              discountPercent: discountPercent ? Number(discountPercent) : 0,
+              ...(matchingEvent?.finalPrice ? { finalFormatted: matchingEvent.finalPrice } : {}),
+              ...(matchingEvent?.originalPrice ? { initialFormatted: matchingEvent.originalPrice } : {}),
+            },
+          }
+        : {}),
+      storeUrl: game.storeUrl,
+    };
+  }
+
+  function handleSelectedGamePreview(game: SelectedGame, element: HTMLElement) {
+    handleSearchResultPreview(previewGameForSelectedGame(game), element);
   }
 
   function handleAddManualGame(game: SelectedGame) {
@@ -680,24 +754,10 @@ export default function Home() {
                 </select>
               </label>
             </div>
-            <button
-              aria-label={copy.infoLabel}
-              className="infoButton"
-              type="button"
-              onClick={() => setIsIntroOpen(true)}
-            >
-              i
-            </button>
           </div>
         </header>
 
         <h1 className="srOnly">{copy.positioning}</h1>
-
-        <IntroSheet
-          copy={copy}
-          isOpen={isIntroOpen}
-          onClose={handleCloseIntro}
-        />
 
         <button
           aria-label="Close overlay"
@@ -719,16 +779,30 @@ export default function Home() {
               <button aria-label="Close settings" type="button" onClick={() => setIsMobileSettingsOpen(false)}>×</button>
             </div>
 
-            <div className="taskPanelHeader">
-              <h2>{copy.calendarSetupTitle}</h2>
-              <p>{copy.calendarSetupSubtitle}</p>
-            </div>
+            {isIntroOpen ? (
+              <IntroPanel copy={copy} onClose={handleCloseIntro} />
+            ) : (
+              <>
+                <div className="taskPanelHeader">
+                  <div className="taskPanelTitle">
+                    <h2>{copy.calendarSetupTitle}</h2>
+                    <p>{copy.calendarSetupSubtitle}</p>
+                  </div>
+                  <button
+                    aria-label={copy.infoLabel}
+                    className="infoButton"
+                    type="button"
+                    onClick={() => setIsIntroOpen(true)}
+                  >
+                    <Info aria-hidden="true" className="miniIcon" />
+                  </button>
+                </div>
 
-            {publicPreviewError ? (
-              <div className="notice error">{copy.wishlistGenericHint}</div>
-            ) : null}
+                {publicPreviewError ? (
+                  <div className="notice error">{copy.wishlistGenericHint}</div>
+                ) : null}
 
-            <div className="setupChecklist">
+                <div className="setupChecklist">
               <section className="setupStep" aria-label={copy.steamEventsTitle}>
                 <div className="setupStepMarker" aria-hidden="true">1</div>
                 <div className="setupStepBody">
@@ -736,7 +810,6 @@ export default function Home() {
                     checked={showSteamEvents}
                     description={copy.steamEventsDescription}
                     title={copy.steamEventsTitle}
-                    statusLabel={showSteamEvents ? copy.includedLabel : copy.excludedLabel}
                     controlsId="steam-event-options"
                     isExpanded={isSteamEventOptionsOpen}
                     onChange={setShowSteamEvents}
@@ -799,9 +872,9 @@ export default function Home() {
                 </div>
               </section>
 
-              <section className="setupStep" aria-label={copy.myGamesTitle}>
+              <section className="setupStep setupGamesStep" aria-label={copy.myGamesTitle}>
                 <div className="setupStepMarker" aria-hidden="true">2</div>
-                <div className="setupStepBody">
+                <div className="setupStepBody trackedGamesStepCard">
                   <div className="trackedGamesStepHeader">
                     <h3>{copy.myGamesTitle}</h3>
                     <p>{copy.trackedGamesSetupDescription}</p>
@@ -809,13 +882,13 @@ export default function Home() {
 
                   <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
                     <div className="taskCardHeader">
-                      <LinkIcon />
-                      <div>
-                        <div className="taskCardTitleLine">
+                      <span className="taskCardBadge">{copy.recommendedLabel}</span>
+                      <div className="taskCardContent">
+                        <LinkIcon />
+                        <div className="taskCardCopy">
                           <h3>{copy.connectWishlistTitle}</h3>
-                          <span>{copy.recommendedLabel}</span>
+                          <p>{copy.connectWishlistDescription}</p>
                         </div>
-                        <p>{copy.connectWishlistDescription}</p>
                       </div>
                     </div>
 
@@ -865,6 +938,7 @@ export default function Home() {
 
                   <div className="myGamesBlock">
                     <div className="sourceTitleRow">
+                      <PencilIcon />
                       <div>
                         <h3>{copy.manualGamesTitle}</h3>
                         <p>{copy.manualGamesDescription}</p>
@@ -980,8 +1054,15 @@ export default function Home() {
                             <button
                               className="selectedGameSelect"
                               type="button"
+                              onBlur={() => setSearchPreview(null)}
                               onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => handleSelectedGameClick(game.appId)}
+                              onFocus={(event) => handleSelectedGamePreview(game, event.currentTarget)}
+                              onMouseEnter={(event) => handleSelectedGamePreview(game, event.currentTarget)}
+                              onMouseLeave={() => setSearchPreview(null)}
+                              onClick={() => {
+                                setSearchPreview(null);
+                                handleSelectedGameClick(game.appId);
+                              }}
                             >
                               <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
                               <span>{game.name}</span>
@@ -1024,7 +1105,9 @@ export default function Home() {
                   </a>
                 </div>
               </section>
-            </div>
+                </div>
+              </>
+            )}
 
             <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
               <label className="sheetSelect">
@@ -1136,41 +1219,22 @@ function UndoAddToast({
   );
 }
 
-function IntroSheet({
+function IntroPanel({
   copy,
-  isOpen,
   onClose,
 }: {
   copy: typeof UI_COPY[UiLanguage];
-  isOpen: boolean;
   onClose: () => void;
 }) {
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="introOverlay" role="presentation">
-      <button
-        aria-label="Close introduction"
-        className="introBackdrop"
-        type="button"
-        onClick={onClose}
-      />
-      <section
-        aria-labelledby="intro-title"
-        aria-modal="true"
-        className="introSheet"
-        role="dialog"
-      >
-        <div className="introKicker">{copy.productName}</div>
-        <h2 id="intro-title">{copy.positioning}</h2>
-        <p>{copy.introBody}</p>
-        <button className="introPrimary" type="button" onClick={onClose}>
-          {copy.introPrimary}
-        </button>
-      </section>
-    </div>
+    <section aria-labelledby="intro-title" className="introPanel">
+      <div className="introKicker">{copy.productName}</div>
+      <h2 id="intro-title">{copy.positioning}</h2>
+      <p>{copy.introBody}</p>
+      <button className="introPrimary" type="button" onClick={onClose}>
+        {copy.introPrimary}
+      </button>
+    </section>
   );
 }
 
@@ -1584,10 +1648,16 @@ function isGameCalendarEvent(event: PreviewEvent) {
 function selectedGameFromEvent(event: PreviewEvent): SelectedGame {
   return {
     appId: event.appId as string,
-    name: detailTitle(event),
+    name: selectedGameTitle(event),
     ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
     storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
   };
+}
+
+function selectedGameTitle(event: PreviewEvent) {
+  return detailTitle(event)
+    .replace(/\s+releases?$/i, '')
+    .replace(/\s+发售$/i, '');
 }
 
 function hasGameEventImage(event: PreviewEvent) {
@@ -1860,53 +1930,27 @@ function steamStoreUrlForEvent(event: PreviewEvent): string | null {
 }
 
 function ExternalLinkIcon() {
-  return (
-    <svg aria-hidden="true" className="toolbarSvg" viewBox="0 0 20 20">
-      <path d="M8.2 5.2H5.4a2.2 2.2 0 0 0-2.2 2.2v7.2a2.2 2.2 0 0 0 2.2 2.2h7.2a2.2 2.2 0 0 0 2.2-2.2v-2.8" />
-      <path d="M11.2 3.2h5.6v5.6" />
-      <path d="m9.6 10.4 7-7" />
-    </svg>
-  );
+  return <ExternalLink aria-hidden="true" className="toolbarSvg" />;
 }
 
 function SearchIcon() {
-  return (
-    <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
-      <circle cx="8.7" cy="8.7" r="5.2" />
-      <path d="m12.4 12.4 4 4" />
-    </svg>
-  );
+  return <Search aria-hidden="true" className="miniIcon" />;
 }
 
 function SettingsIcon() {
-  return (
-    <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
-      <path d="M8.9 3.2h2.2l.5 1.8 1.3.5 1.6-.9 1.6 1.6-.9 1.6.5 1.3 1.8.5v2.2l-1.8.5-.5 1.3.9 1.6-1.6 1.6-1.6-.9-1.3.5-.5 1.8H8.9l-.5-1.8-1.3-.5-1.6.9-1.6-1.6.9-1.6-.5-1.3-1.8-.5V9.6l1.8-.5.5-1.3-.9-1.6 1.6-1.6 1.6.9 1.3-.5.5-1.8Z" />
-      <circle cx="10" cy="10.7" r="2.2" />
-    </svg>
-  );
+  return <Settings aria-hidden="true" className="miniIcon" />;
 }
 
 function LanguageIcon() {
-  return (
-    <svg aria-hidden="true" className="miniIcon" viewBox="0 0 20 20">
-      <path d="M3 4.5h8.2" />
-      <path d="M7.1 3v1.5" />
-      <path d="M5 7.1c.8 2.1 2.5 3.8 5.1 5" />
-      <path d="M10.5 4.5c-.5 3.6-2.5 6.1-6.2 7.8" />
-      <path d="M12.7 16.8 16 7.6l3.2 9.2" />
-      <path d="M13.7 14h4.5" />
-    </svg>
-  );
+  return <Languages aria-hidden="true" className="miniIcon" />;
 }
 
 function LinkIcon() {
-  return (
-    <svg aria-hidden="true" className="linkIcon" viewBox="0 0 20 20">
-      <path d="M8.2 11.8a3 3 0 0 1 0-4.2l2-2a3 3 0 1 1 4.2 4.2l-1.1 1.1" />
-      <path d="M11.8 8.2a3 3 0 0 1 0 4.2l-2 2a3 3 0 1 1-4.2-4.2l1.1-1.1" />
-    </svg>
-  );
+  return <Link aria-hidden="true" className="linkIcon" />;
+}
+
+function PencilIcon() {
+  return <Pencil aria-hidden="true" className="sourceIcon" />;
 }
 
 function buildEventWeekRange(events: PreviewEvent[], todayIso: string): { startIso: string; endIso: string } {
@@ -2439,9 +2483,9 @@ function calendarLegendItems(
   const hasPreorders = events.some((event) => event.type === 'steam_preorder');
   const hasWishlist = events.some((event) => event.type === 'wishlist_release');
   const preorderLabel = hasPreorders && hasWishlist
-    ? `${copy.preordersLegend} / ${copy.myGamesTitle}`
+    ? `${copy.preordersLegend} / ${copy.releasesLegend}`
     : hasWishlist
-      ? copy.myGamesTitle
+      ? copy.releasesLegend
       : copy.preordersLegend;
   const items = [
     { className: 'dealEvent', label: copy.dealsLegend },
