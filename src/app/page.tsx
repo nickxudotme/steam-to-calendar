@@ -1163,6 +1163,7 @@ export default function Home() {
           <GameSearchPreviewCard
             copy={copy}
             preview={searchPreview}
+            uiLanguage={uiLanguage}
           />
         </section>
 
@@ -1796,7 +1797,7 @@ function EventDetails({
 
         <p className="detailDescription">{detailDescription(event)}</p>
 
-        <DetailFacts copy={copy} event={event} />
+        <DetailFacts copy={copy} event={event} uiLanguage={uiLanguage} />
 
         {steamStoreUrl ? (
           <div className="detailActions">
@@ -1814,11 +1815,13 @@ function EventDetails({
 function DetailFacts({
   copy,
   event,
+  uiLanguage,
 }: {
   copy: typeof UI_COPY[UiLanguage];
   event: PreviewEvent;
+  uiLanguage: UiLanguage;
 }) {
-  const facts = detailFacts(event, copy);
+  const facts = detailFacts(event, copy, uiLanguage);
 
   if (!facts.length) {
     return null;
@@ -1839,9 +1842,11 @@ function DetailFacts({
 function GameSearchPreviewCard({
   copy,
   preview,
+  uiLanguage,
 }: {
   copy: typeof UI_COPY[UiLanguage];
   preview: { game: GameSearchResult; left: number; top: number } | null;
+  uiLanguage: UiLanguage;
 }) {
   if (!preview) {
     return null;
@@ -1859,7 +1864,7 @@ function GameSearchPreviewCard({
       <span className="gameSearchPreviewBody">
         <strong>{preview.game.name}</strong>
         <SearchResultPrice game={preview.game} copy={copy} />
-        <SearchPreviewFacts copy={copy} game={preview.game} />
+        <SearchPreviewFacts copy={copy} game={preview.game} uiLanguage={uiLanguage} />
       </span>
     </div>
   );
@@ -1868,9 +1873,11 @@ function GameSearchPreviewCard({
 function SearchPreviewFacts({
   copy,
   game,
+  uiLanguage,
 }: {
   copy: typeof UI_COPY[UiLanguage];
   game: GameSearchResult;
+  uiLanguage: UiLanguage;
 }) {
   const facts: Array<{ label: string; value: string }> = [];
   const genres = (game.genres ?? []).filter(Boolean).slice(0, 2);
@@ -1878,7 +1885,7 @@ function SearchPreviewFacts({
     facts.push({ label: copy.genreLabel, value: genres.join(' / ') });
   }
 
-  const rating = formatSearchReviewFact(game);
+  const rating = formatSearchReviewFact(game, uiLanguage);
   if (rating) {
     facts.push({ label: copy.ratingLabel, value: rating });
   }
@@ -2608,7 +2615,11 @@ function detailDescription(event: PreviewEvent): string {
   return description || detailTitle(event);
 }
 
-function detailFacts(event: PreviewEvent, copy: typeof UI_COPY[UiLanguage]): Array<{ label: string; value: string }> {
+function detailFacts(
+  event: PreviewEvent,
+  copy: typeof UI_COPY[UiLanguage],
+  uiLanguage: UiLanguage,
+): Array<{ label: string; value: string }> {
   if (!isGameCalendarEvent(event)) {
     return [];
   }
@@ -2619,7 +2630,7 @@ function detailFacts(event: PreviewEvent, copy: typeof UI_COPY[UiLanguage]): Arr
     facts.push({ label: copy.genreLabel, value: genres.join(' / ') });
   }
 
-  const rating = formatReviewFact(event);
+  const rating = formatReviewFact(event, uiLanguage);
   if (rating) {
     facts.push({ label: copy.ratingLabel, value: rating });
   }
@@ -2641,7 +2652,7 @@ function detailFacts(event: PreviewEvent, copy: typeof UI_COPY[UiLanguage]): Arr
   return facts.slice(0, 5);
 }
 
-function formatReviewFact(event: PreviewEvent): string | null {
+function formatReviewFact(event: PreviewEvent, uiLanguage: UiLanguage): string | null {
   const parts: string[] = [];
   if (event.reviewSummary) {
     parts.push(event.reviewSummary);
@@ -2652,13 +2663,13 @@ function formatReviewFact(event: PreviewEvent): string | null {
   }
 
   if (typeof event.reviewCount === 'number' && event.reviewCount > 0) {
-    parts.push(formatCompactCount(event.reviewCount));
+    parts.push(formatCompactCount(event.reviewCount, uiLanguage));
   }
 
   return parts.length ? parts.join(' · ') : null;
 }
 
-function formatSearchReviewFact(game: GameSearchResult): string | null {
+function formatSearchReviewFact(game: GameSearchResult, uiLanguage: UiLanguage): string | null {
   const parts: string[] = [];
   if (game.reviewSummary) {
     parts.push(game.reviewSummary);
@@ -2669,14 +2680,14 @@ function formatSearchReviewFact(game: GameSearchResult): string | null {
   }
 
   if (typeof game.reviewCount === 'number' && game.reviewCount > 0) {
-    parts.push(formatCompactCount(game.reviewCount));
+    parts.push(formatCompactCount(game.reviewCount, uiLanguage));
   }
 
   return parts.length ? parts.join(' · ') : null;
 }
 
-function formatCompactCount(value: number): string {
-  return new Intl.NumberFormat(undefined, {
+function formatCompactCount(value: number, uiLanguage: UiLanguage): string {
+  return new Intl.NumberFormat(uiLanguage === 'zh' ? 'zh-CN' : 'en-US', {
     maximumFractionDigits: value >= 10_000 ? 1 : 0,
     notation: 'compact',
   }).format(value);
