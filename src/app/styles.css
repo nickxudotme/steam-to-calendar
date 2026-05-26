@@ -2575,6 +2575,11 @@ select {
     transform: none;
   }
 
+  .selectedGameRow:hover .selectedGameRemove,
+  .selectedGameRow:focus-within .selectedGameRemove {
+    transform: none;
+  }
+
   .selectedGameRow {
     grid-template-columns: minmax(0, 1fr) auto;
     overflow: visible;
