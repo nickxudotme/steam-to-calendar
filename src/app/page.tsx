@@ -10,7 +10,20 @@ import {
   type SteamEventCategory,
 } from '@/lib/calendar-config';
 import { STEAM_EVENTS_CALENDAR_ID } from '@/lib/calendar-constants';
-import { countryFlag, STEAM_STORE_REGION_CODES, STEAM_STORE_REGIONS, steamStoreRegionName } from '@/lib/steam/regions';
+import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from '@/lib/steam/regions';
+import {
+  languageCodeFromBrowser,
+  languageOptionByCode,
+  shouldSendClientStoreRegion,
+  storeRegionFromBrowser,
+} from './browser-locale';
+import {
+  LANGUAGE_OPTIONS,
+  STEAM_EVENT_CATEGORY_LABELS,
+  UI_COPY,
+  WEEKDAY_LABELS,
+  type UiLanguage,
+} from './ui-copy';
 
 type PreviewEvent = {
   id: string;
@@ -82,16 +95,6 @@ type SelectedGame = {
 
 type CalendarView = 'month' | 'list';
 
-type UiLanguage = 'en' | 'zh';
-
-type LanguageOption = {
-  code: string;
-  label: string;
-  steamLang: string;
-  uiLang: string;
-  uiLanguage: UiLanguage;
-};
-
 type CalendarCell = {
   date: string;
   day: number;
@@ -115,57 +118,11 @@ type CalendarWeek = {
   segments: CalendarEventSegment[];
 };
 
-const WEEKDAY_LABELS = {
-  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  zh: ['日', '一', '二', '三', '四', '五', '六'],
-} satisfies Record<UiLanguage, string[]>;
 const AUTO_TRACKED_GAME_COUNT = 3;
 const MAX_EVENT_LANES = 12;
 const EVENT_PAST_DAYS_MAX = 180;
 const EVENT_FUTURE_DAYS_MAX = 365;
 const INTRO_STORAGE_KEY = 'steam-to-calendar-intro-seen';
-const LANGUAGE_OPTIONS = [
-  { code: 'en', label: 'English', steamLang: 'english', uiLang: 'en', uiLanguage: 'en' },
-  { code: 'zh-CN', label: '简体中文', steamLang: 'schinese', uiLang: 'zh-CN', uiLanguage: 'zh' },
-] as const satisfies readonly LanguageOption[];
-const STEAM_EVENT_CATEGORY_LABELS = {
-  en: {
-    seasonal: {
-      title: 'Seasonal sales',
-      description: 'Summer, Autumn, Winter, and Spring sale windows.',
-    },
-    next_fest: {
-      title: 'Next Fest',
-      description: 'Official demo festivals for upcoming games.',
-    },
-    fest: {
-      title: 'Theme fests',
-      description: 'Genre and theme events such as bullet heaven or deckbuilders.',
-    },
-    store_sale: {
-      title: 'Publisher & franchise sales',
-      description: 'Limited-time sales organized around a publisher, franchise, or partner.',
-    },
-  },
-  zh: {
-    seasonal: {
-      title: '季节促销',
-      description: '春促、夏促、秋促、冬促等官方促销窗口。',
-    },
-    next_fest: {
-      title: '新品节',
-      description: '面向即将推出游戏的官方试玩节。',
-    },
-    fest: {
-      title: '主题游戏节',
-      description: '按类型或主题组织的 Steam 活动，例如牌组构筑或弹幕天堂。',
-    },
-    store_sale: {
-      title: '发行商与系列促销',
-      description: '围绕发行商、系列作品或合作伙伴组织的限时促销。',
-    },
-  },
-} satisfies Record<UiLanguage, Record<SteamEventCategory, { description: string; title: string }>>;
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -180,161 +137,6 @@ const PUBLIC_PREVIEW: PreviewResponse = {
   },
   events: [],
 };
-
-const UI_COPY = {
-  en: {
-    productName: 'Steam to Calendar',
-    positioning: 'Track Steam deals, game launch dates, and events in your calendar.',
-    positioningShort: 'Steam deals, launches, and events in your calendar.',
-    introBody: 'Follow specific games, import a public wishlist, choose Steam sales and fests, then subscribe from Apple Calendar, Google Calendar, Outlook, or Fantastical.',
-    introPrimary: 'Start tracking',
-    infoLabel: 'About Steam to Calendar',
-    addApple: 'Add to Apple Calendar',
-    addToCalendar: 'Subscribe in Calendar',
-    calendarSources: 'Track',
-    hotDealsTitle: 'Tracked Game Deals',
-    hotDealsDescription: 'Top sellers that are currently discounted or available to preorder.',
-    itemsLabel: 'Items',
-    steamEventsTitle: 'Steam Events',
-    steamEventsDescription: 'Official sale windows, Next Fest, theme fests, and publisher events.',
-    eventTypesTitle: 'Event types',
-    eventTypesNone: 'No event types selected',
-    pastDays: 'Past days',
-    nextDays: 'Next days',
-    myGamesTitle: 'Tracked Games',
-    myGamesDescription: 'Follow specific games, then connect a public Steam wishlist when you want it to replace manual picks.',
-    languageLabel: 'Language',
-    settingsLabel: 'Settings',
-    storeRegionLabel: 'Store region',
-    storeNote: 'Store region affects prices, not language.',
-    searchPlaceholder: 'Search or paste URL',
-    searchButton: 'Search',
-    searchingButton: 'Searching...',
-    searchResultsTitle: 'Steam search results',
-    searchResultsCount: 'results',
-    noSearchResults: 'No Steam games found',
-    priceUnavailable: 'Price unavailable',
-    wishlistPrivateHint: 'Wishlist unavailable. Search or paste a game above, or keep Steam events without a wishlist.',
-    wishlistGenericHint: 'Steam did not respond. You can keep Steam events and add games manually.',
-    wishlistConnected: 'Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.',
-    syncingPreview: 'Syncing your calendar preview with Steam data...',
-    trendingNow: 'Trending now',
-    addedToCalendar: 'Added to calendar',
-    addedToast: 'Added to calendar',
-    added: 'Added',
-    add: 'Add',
-    undo: 'Undo',
-    remove: 'Remove',
-    steamProfilePlaceholder: 'Paste Steam Profile URL',
-    importing: 'Importing...',
-    importWishlist: 'Import Steam Wishlist',
-    importWishlistShort: 'Import wishlist',
-    importingWishlist: 'Reading your public Steam wishlist and preparing calendar events. This can take a moment for larger wishlists.',
-    wishlistHint: 'Connecting a public wishlist replaces manual picks and keeps future releases synced in this calendar.',
-    today: 'Today',
-    month: 'Month',
-    list: 'List',
-    syncingCalendar: 'Syncing Steam calendar data...',
-    noCalendarEvents: 'No calendar events',
-    noCalendarEventsDescription: 'Add or enable calendar items from the left panel to preview them here.',
-    watchedGamePending: 'We will keep watching this game. If Steam returns a discount or release event, it will appear on the calendar.',
-    dealsLegend: 'Deals',
-    preordersLegend: 'Preorders',
-    eventsLegend: 'Fests / Events',
-    salesLegend: 'Sales',
-    noEventsVisible: 'No events visible',
-    noEventsVisibleDescription: 'Add or enable items from the left panel to see event details.',
-    steamCliEventData: 'Steam CLI event data',
-    until: 'Until',
-    dealEndsAt: 'Deal ends',
-    developerLabel: 'Developer',
-    genreLabel: 'Type',
-    publisherLabel: 'Publisher',
-    ratingLabel: 'Reviews',
-    releaseDateLabel: 'Release',
-    viewOnSteam: 'View on Steam',
-    footerNotice: 'Steam to Calendar is not affiliated with Valve Corp.',
-    footerHowItWorks: 'How it works',
-    footerPrivacy: 'Privacy',
-    footerChangelog: 'Changelog',
-  },
-  zh: {
-    productName: 'Steam to Calendar',
-    positioning: '在系统日历里追踪 Steam 折扣、游戏发售日和活动。',
-    positioningShort: '在日历里追踪 Steam 折扣、发售和活动。',
-    introBody: '关注指定游戏、导入公开愿望单、选择 Steam 促销和活动，然后订阅到 Apple Calendar、Google Calendar、Outlook 或 Fantastical。',
-    introPrimary: '开始追踪',
-    infoLabel: '关于 Steam to Calendar',
-    addApple: '添加到 Apple 日历',
-    addToCalendar: '订阅到日历',
-    calendarSources: '追踪内容',
-    hotDealsTitle: '关注游戏折扣',
-    hotDealsDescription: '当前正在打折或可预购的热门 Steam 游戏。',
-    itemsLabel: '数量',
-    steamEventsTitle: 'Steam 活动',
-    steamEventsDescription: 'Steam 官方促销窗口、新品节、主题游戏节和发行商活动。',
-    eventTypesTitle: '活动类型',
-    eventTypesNone: '未选择活动类型',
-    pastDays: '过去天数',
-    nextDays: '未来天数',
-    myGamesTitle: '关注游戏',
-    myGamesDescription: '关注指定游戏；之后也可以关联公开 Steam 愿望单来替代手动选择。',
-    languageLabel: '语言',
-    settingsLabel: '设置',
-    storeRegionLabel: '商店地区',
-    storeNote: '商店地区影响价格，不影响界面语言。',
-    searchPlaceholder: '关键字或粘贴链接',
-    searchButton: '搜索',
-    searchingButton: '搜索中...',
-    searchResultsTitle: 'Steam 搜索结果',
-    searchResultsCount: '个结果',
-    noSearchResults: '没有找到 Steam 游戏',
-    priceUnavailable: '暂无价格',
-    wishlistPrivateHint: '愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只保留 Steam 活动。',
-    wishlistGenericHint: 'Steam 暂时没有响应。你仍然可以保留 Steam 活动并手动添加游戏。',
-    wishlistConnected: '愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。',
-    syncingPreview: '正在从 Steam 同步日历预览...',
-    trendingNow: '近期热门',
-    addedToCalendar: '已添加到日历',
-    addedToast: '已添加到日历',
-    added: '已添加',
-    add: '添加',
-    undo: '撤回',
-    remove: '移除',
-    steamProfilePlaceholder: '粘贴 Steam 个人资料链接',
-    importing: '导入中...',
-    importWishlist: '导入 Steam 愿望单',
-    importWishlistShort: '导入愿望单',
-    importingWishlist: '正在读取你的公开 Steam 愿望单并准备日历事件。愿望单较大时可能需要一点时间。',
-    wishlistHint: '关联公开愿望单后会替代手动选择，并让未来发售事件持续同步到这个日历。',
-    today: '今天',
-    month: '月',
-    list: '列表',
-    syncingCalendar: '正在同步 Steam 日历数据...',
-    noCalendarEvents: '暂无日历事件',
-    noCalendarEventsDescription: '从左侧添加或开启要显示的内容后，就可以在这里预览。',
-    watchedGamePending: '我们会持续追踪这个游戏；如果 Steam 返回促销或发售活动，就会显示在日历里。',
-    dealsLegend: '折扣',
-    preordersLegend: '预购',
-    eventsLegend: '活动',
-    salesLegend: '促销',
-    noEventsVisible: '暂无可见事件',
-    noEventsVisibleDescription: '从左侧添加或开启内容后，就会在这里显示详情。',
-    steamCliEventData: 'Steam CLI 活动数据',
-    until: '至',
-    dealEndsAt: '优惠至',
-    developerLabel: '开发商',
-    genreLabel: '类型',
-    publisherLabel: '发行商',
-    ratingLabel: '好评率',
-    releaseDateLabel: '发售日',
-    viewOnSteam: '在 Steam 查看',
-    footerNotice: 'Steam to Calendar 与 Valve Corp. 没有关联。',
-    footerHowItWorks: '工作方式',
-    footerPrivacy: '隐私',
-    footerChangelog: '更新记录',
-  },
-} satisfies Record<UiLanguage, Record<string, string>>;
 
 export default function Home() {
   const [steamId64, setSteamId64] = useState('');
@@ -2052,154 +1854,6 @@ function buildEventWeekRange(events: PreviewEvent[], todayIso: string): { startI
     startIso,
     endIso: addDays(finalWeekStart, 7),
   };
-}
-
-function languageOptionByCode(code: string): LanguageOption {
-  return LANGUAGE_OPTIONS.find((language) => language.code === code) ?? LANGUAGE_OPTIONS[0];
-}
-
-function languageCodeFromBrowser(language: string): LanguageOption {
-  const lower = language.toLowerCase();
-
-  if (lower.startsWith('zh')) {
-    return languageOptionByCode('zh-CN');
-  }
-
-  return languageOptionByCode('en');
-}
-
-function storeRegionFromBrowser(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const timeZoneRegion = storeRegionFromTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-  if (timeZoneRegion) {
-    return timeZoneRegion;
-  }
-
-  return storeRegionFromLanguages(navigator.languages?.length ? navigator.languages : [navigator.language]);
-}
-
-function storeRegionFromTimeZone(timeZone?: string): string | null {
-  if (!timeZone) {
-    return null;
-  }
-
-  const timeZoneToRegion: Record<string, string> = {
-    'Asia/Shanghai': 'CN',
-    'Asia/Hong_Kong': 'HK',
-    'Asia/Taipei': 'TW',
-    'Asia/Tokyo': 'JP',
-    'Asia/Seoul': 'KR',
-    'Asia/Singapore': 'SG',
-    'Asia/Bangkok': 'TH',
-    'Asia/Ho_Chi_Minh': 'VN',
-    'Asia/Jakarta': 'ID',
-    'Asia/Kuala_Lumpur': 'MY',
-    'Asia/Manila': 'PH',
-    'Asia/Kolkata': 'IN',
-    'Australia/Sydney': 'AU',
-    'Australia/Melbourne': 'AU',
-    'Australia/Brisbane': 'AU',
-    'Australia/Perth': 'AU',
-    'Pacific/Auckland': 'NZ',
-    'Europe/London': 'GB',
-    'Europe/Berlin': 'DE',
-    'Europe/Paris': 'FR',
-    'Europe/Rome': 'IT',
-    'Europe/Madrid': 'ES',
-    'Europe/Amsterdam': 'NL',
-    'Europe/Brussels': 'BE',
-    'Europe/Vienna': 'AT',
-    'Europe/Zurich': 'CH',
-    'Europe/Stockholm': 'SE',
-    'Europe/Oslo': 'NO',
-    'Europe/Copenhagen': 'DK',
-    'Europe/Helsinki': 'FI',
-    'Europe/Warsaw': 'PL',
-    'Europe/Prague': 'CZ',
-    'Europe/Budapest': 'HU',
-    'Europe/Bucharest': 'RO',
-    'Europe/Istanbul': 'TR',
-    'Europe/Kyiv': 'UA',
-    'America/Sao_Paulo': 'BR',
-    'America/Mexico_City': 'MX',
-    'America/Argentina/Buenos_Aires': 'AR',
-    'America/Santiago': 'CL',
-    'America/Bogota': 'CO',
-    'America/Lima': 'PE',
-    'America/Toronto': 'CA',
-    'America/Vancouver': 'CA',
-    'America/Montreal': 'CA',
-    'Africa/Johannesburg': 'ZA',
-    'Asia/Riyadh': 'SA',
-    'Asia/Dubai': 'AE',
-  };
-
-  if (timeZoneToRegion[timeZone]) {
-    return normalizeBrowserStoreRegion(timeZoneToRegion[timeZone]);
-  }
-
-  if (timeZone.startsWith('America/')) {
-    return 'US';
-  }
-
-  return null;
-}
-
-function storeRegionFromLanguages(languages: readonly string[]): string | null {
-  for (const language of languages) {
-    const regionMatch = language.match(/[-_]([a-z]{2})\b/i);
-    const explicitRegion = normalizeBrowserStoreRegion(regionMatch?.[1]);
-
-    if (explicitRegion) {
-      return explicitRegion;
-    }
-
-    const lower = language.toLowerCase();
-
-    if (lower.startsWith('zh-hk')) {
-      return 'HK';
-    }
-
-    if (lower.startsWith('zh-tw') || lower.startsWith('zh-hant')) {
-      return 'TW';
-    }
-
-    if (lower.startsWith('zh')) {
-      return 'CN';
-    }
-
-    if (lower.startsWith('ja')) {
-      return 'JP';
-    }
-
-    if (lower.startsWith('ko')) {
-      return 'KR';
-    }
-  }
-
-  return null;
-}
-
-function normalizeBrowserStoreRegion(region?: string): string | null {
-  if (!region) {
-    return null;
-  }
-
-  const upperRegion = region.toUpperCase();
-
-  return STEAM_STORE_REGION_CODES.has(upperRegion) ? upperRegion : null;
-}
-
-function shouldSendClientStoreRegion(hostname: string): boolean {
-  return hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '::1' ||
-    hostname.endsWith('.local') ||
-    hostname.startsWith('192.168.');
 }
 
 function chooseCalendarFocusDate(events: PreviewEvent[], todayIso: string): string {
