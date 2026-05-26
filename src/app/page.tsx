@@ -1703,7 +1703,7 @@ function EventDetails({
       aria-label="Selected event details"
     >
       <div className="mobileDetailHeader">
-        <h2>{copy.steamEventsTitle}</h2>
+        <h2>{copy.eventDetailsTitle}</h2>
         <button aria-label="Close details" type="button" onClick={onCloseMobile}>×</button>
       </div>
       <div className="detailTitleBlock">
