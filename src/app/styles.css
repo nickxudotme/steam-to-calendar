@@ -1313,12 +1313,12 @@ select {
 }
 
 .selectedGameRow {
-  background: transparent;
-  border-color: transparent;
+  background: linear-gradient(180deg, rgba(16, 32, 48, 0.64), rgba(7, 13, 22, 0.54));
+  border-color: rgba(117, 151, 184, 0.2);
   grid-template-columns: minmax(0, 1fr) 32px;
-  min-height: 40px;
+  min-height: 44px;
   overflow: hidden;
-  padding: 4px;
+  padding: 6px;
   position: relative;
   transition: background 150ms var(--ease-soft), border-color 150ms var(--ease-soft), box-shadow 150ms var(--ease-soft), transform 150ms var(--ease-soft);
 }
@@ -1329,9 +1329,9 @@ select {
 
 .selectedGameRow:hover,
 .selectedGameRow:focus-within {
-  background: rgba(20, 45, 66, 0.42);
+  background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
   border-color: rgba(102, 192, 244, 0.42);
-  box-shadow: none;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
   transform: translateY(-1px);
 }
 
@@ -1443,7 +1443,8 @@ select {
 
 .selectedGameRemove {
   align-self: center;
-  border-color: rgba(117, 151, 184, 0.22);
+  background: rgba(8, 15, 24, 0.42);
+  border-color: rgba(117, 151, 184, 0.26);
   font-size: 1.15rem;
   height: 30px;
   min-height: 32px;
