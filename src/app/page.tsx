@@ -9,6 +9,7 @@ import {
   Pencil,
   Search,
   Settings,
+  X,
 } from 'lucide-react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -65,6 +66,8 @@ type PreviewResponse = {
   feedPath: string;
   calendarPath: string;
   wishlistUrl: string;
+  profileName?: string | null;
+  wishlistGames?: WishlistGame[];
   locale?: {
     cc: string;
     lang: string;
@@ -78,6 +81,25 @@ type PreviewResponse = {
     steamMajorEvents: number;
   };
   events: PreviewEvent[];
+};
+
+type WishlistGame = {
+  appId: string;
+  developers?: string[];
+  genres?: string[];
+  name: string;
+  imageUrl?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+  publishers?: string[];
+  releaseDateText: string | null;
+  reviewCount?: number;
+  reviewPercentage?: number;
+  reviewSummary?: string;
+  storeUrl: string;
 };
 
 type GameSearchResult = {
@@ -98,8 +120,19 @@ type GameSearchResult = {
 
 type SelectedGame = {
   appId: string;
+  developers?: string[];
+  genres?: string[];
   name: string;
   imageUrl?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+  publishers?: string[];
+  reviewCount?: number;
+  reviewPercentage?: number;
+  reviewSummary?: string;
   storeUrl: string;
 };
 
@@ -158,6 +191,8 @@ const PUBLIC_PREVIEW: PreviewResponse = {
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
   calendarPath: `/cal/${STEAM_EVENTS_CALENDAR_ID}`,
   wishlistUrl: '',
+  profileName: null,
+  wishlistGames: [],
   stats: {
     wishlistGames: 0,
     appDetails: 0,
@@ -187,6 +222,7 @@ export default function Home() {
   const [gameSearchError, setGameSearchError] = useState<string | null>(null);
   const [lastGameSearchQuery, setLastGameSearchQuery] = useState('');
   const [isSearchingGames, setIsSearchingGames] = useState(false);
+  const [isWishlistImportOpen, setIsWishlistImportOpen] = useState(false);
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>(DEFAULT_SELECTED_GAMES);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
@@ -210,6 +246,7 @@ export default function Home() {
   const [origin, setOrigin] = useState('');
   const userSelectedRegionRef = useRef(false);
   const hasSeededDefaultGamesRef = useRef(false);
+  const publicPreviewRef = useRef<PreviewResponse>(PUBLIC_PREVIEW);
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? 'US';
@@ -281,6 +318,27 @@ export default function Home() {
       return showMyGames;
     });
   }, [showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
+  const wishlistEventAppIds = useMemo(() => (
+    new Set(
+      visibleEvents
+        .filter((event) => isGameCalendarEvent(event) && event.appId)
+        .map((event) => event.appId as string),
+    )
+  ), [visibleEvents]);
+  const connectedWishlistGames = useMemo(() => {
+    const games = preview.wishlistGames ?? [];
+
+    return [...games].sort((a, b) => {
+      const aHasEvent = wishlistEventAppIds.has(a.appId);
+      const bHasEvent = wishlistEventAppIds.has(b.appId);
+
+      if (aHasEvent !== bHasEvent) {
+        return aHasEvent ? -1 : 1;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [preview.wishlistGames, wishlistEventAppIds]);
   const trackedGameCount = hasConnectedWishlist ? preview.stats.wishlistGames : selectedGames.length;
   const calendarSummaryItems = [
     formatCountLabel(visibleEvents.length, copy.calendarSummaryEvents, uiLanguage),
@@ -289,16 +347,15 @@ export default function Home() {
       : formatCountLabel(trackedGameCount, copy.calendarSummaryGames, uiLanguage),
   ].filter(Boolean).join(' · ');
 
-  const initialFocusDate = useMemo(() => (
-    chooseCalendarFocusDate(visibleEvents, todayIso)
-  ), [todayIso, visibleEvents]);
-
   const preferredEventId = visibleEvents.find((event) => event.type === 'steam_deal')?.id ?? visibleEvents[0]?.id ?? null;
   const selectedEvent = useMemo(() => (
     visibleEvents.find((event) => event.id === selectedEventId) ??
     visibleEvents.find((event) => event.id === preferredEventId) ??
     null
   ), [preferredEventId, selectedEventId, visibleEvents]);
+  const initialFocusDate = useMemo(() => (
+    chooseCalendarFocusDate(selectedEvent ? [selectedEvent] : visibleEvents, todayIso)
+  ), [selectedEvent, todayIso, visibleEvents]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -408,6 +465,7 @@ export default function Home() {
         }
 
         if (isMounted) {
+          publicPreviewRef.current = payload;
           setPublicPreviewError(null);
           setPreview((currentPreview) => (
             currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview
@@ -540,24 +598,23 @@ export default function Home() {
 
     const matchingEvent = preview.events.find((event) => event.appId === game.appId);
     const discountPercent = matchingEvent?.discount?.match(/(\d+)/)?.[1];
+    const eventPrice = matchingEvent?.finalPrice || matchingEvent?.originalPrice || discountPercent
+      ? {
+          discountPercent: discountPercent ? Number(discountPercent) : 0,
+          ...(matchingEvent?.finalPrice ? { finalFormatted: matchingEvent.finalPrice } : {}),
+          ...(matchingEvent?.originalPrice ? { initialFormatted: matchingEvent.originalPrice } : {}),
+        }
+      : null;
 
     return {
       appId: game.appId,
       name: game.name,
       ...(game.imageUrl ? { imageUrl: game.imageUrl } : {}),
-      genres: matchingEvent?.genres,
-      ...(matchingEvent?.reviewCount ? { reviewCount: matchingEvent.reviewCount } : {}),
-      ...(matchingEvent?.reviewPercentage ? { reviewPercentage: matchingEvent.reviewPercentage } : {}),
-      ...(matchingEvent?.reviewSummary ? { reviewSummary: matchingEvent.reviewSummary } : {}),
-      ...(matchingEvent?.finalPrice || matchingEvent?.originalPrice || discountPercent
-        ? {
-            price: {
-              discountPercent: discountPercent ? Number(discountPercent) : 0,
-              ...(matchingEvent?.finalPrice ? { finalFormatted: matchingEvent.finalPrice } : {}),
-              ...(matchingEvent?.originalPrice ? { initialFormatted: matchingEvent.originalPrice } : {}),
-            },
-          }
-        : {}),
+      genres: matchingEvent?.genres ?? game.genres,
+      ...(matchingEvent?.reviewCount ?? game.reviewCount ? { reviewCount: matchingEvent?.reviewCount ?? game.reviewCount } : {}),
+      ...(matchingEvent?.reviewPercentage ?? game.reviewPercentage ? { reviewPercentage: matchingEvent?.reviewPercentage ?? game.reviewPercentage } : {}),
+      ...(matchingEvent?.reviewSummary ?? game.reviewSummary ? { reviewSummary: matchingEvent?.reviewSummary ?? game.reviewSummary } : {}),
+      ...(eventPrice ?? game.price ? { price: eventPrice ?? game.price } : {}),
       storeUrl: game.storeUrl,
     };
   }
@@ -652,7 +709,7 @@ export default function Home() {
 
       setPreview(payload);
       setShowMyGames(true);
-      setSelectedGames([]);
+      setIsWishlistImportOpen(false);
       setGameSearchResults([]);
       setGameSearchError(null);
     } catch (caught) {
@@ -660,6 +717,15 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleDisconnectWishlist() {
+    setPreview(publicPreviewRef.current);
+    setSteamId64('');
+    setError(null);
+    setErrorCode(null);
+    setIsWishlistImportOpen(false);
+    setSearchPreview(null);
   }
 
   function handleStoreRegionChange(value: string) {
@@ -892,8 +958,12 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <details className="wishlistImportDetails">
-                      <summary>{copy.connectWishlistButton}</summary>
+                    {hasConnectedWishlist ? (
+                      <button className="disconnectWishlistButton" type="button" onClick={handleDisconnectWishlist}>
+                        <XIcon />
+                        {copy.disconnectWishlist}
+                      </button>
+                    ) : isWishlistImportOpen ? (
                       <form
                         className="wishlistImport"
                         onSubmit={handleSubmit}
@@ -914,13 +984,69 @@ export default function Home() {
                           {isLoading ? copy.importing : copy.importWishlistShort}
                         </button>
                       </form>
-                    </details>
+                    ) : (
+                      <button className="connectWishlistButton" type="button" onClick={() => setIsWishlistImportOpen(true)}>
+                        {copy.connectWishlistButton}
+                      </button>
+                    )}
                     {isLoading ? (
                       <div className="notice loadingNotice" role="status">
                         {copy.importingWishlist}
                       </div>
                     ) : null}
-                    <p className="wishlistHint">{copy.wishlistHint}</p>
+                    {hasConnectedWishlist ? (
+                      <div className="connectedWishlistSummary">
+                        <p>{copy.connectedSteamUser} <strong>{preview.profileName || copy.connectedSteamUserFallback}</strong></p>
+                        <p>
+                          {formatWishlistCalendarSummary(
+                            preview.stats.wishlistGames,
+                            wishlistEventAppIds.size,
+                            copy,
+                            uiLanguage,
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="wishlistHint">{copy.wishlistHint}</p>
+                    )}
+
+                    {hasConnectedWishlist && connectedWishlistGames.length ? (
+                      <div className="selectedGames wishlistGamesList" aria-label={copy.wishlistGamesListLabel}>
+                        <div className="selectedGamesHeader">
+                          <span className="miniSectionTitle">{copy.wishlistGamesListLabel} ({connectedWishlistGames.length})</span>
+                        </div>
+                        {connectedWishlistGames.map((game) => {
+                          const matchingEvent = sortedEvents.find((event) => event.appId === game.appId);
+                          const displayGame = selectedGameFromWishlistGame(game, matchingEvent);
+
+                          return (
+                            <div className="selectedGameRow wishlistGameRow" key={game.appId}>
+                              <button
+                                className="selectedGameSelect"
+                                type="button"
+                                onBlur={() => setSearchPreview(null)}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onFocus={(event) => handleSelectedGamePreview(displayGame, event.currentTarget)}
+                                onMouseEnter={(event) => handleSelectedGamePreview(displayGame, event.currentTarget)}
+                                onMouseLeave={() => setSearchPreview(null)}
+                                onClick={() => {
+                                  setSearchPreview(null);
+                                  handleSelectedGameClick(game.appId);
+                                }}
+                              >
+                                <SteamCliImage fallbackClassName="gameThumbFallback" src={displayGame.imageUrl} />
+                                <span>{game.name}</span>
+                              </button>
+                              {selectedGameNoticeAppId === game.appId ? (
+                                <div className="selectedGameNotice" role="status">
+                                  {copy.watchedGamePending}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
 
                     {error ? <div className="notice error">{error}</div> : null}
                     {error ? (
@@ -1041,7 +1167,7 @@ export default function Home() {
                       </div>
                     ) : null}
 
-                    {selectedGames.length ? (
+                    {!hasConnectedWishlist && selectedGames.length ? (
                       <div className="selectedGames" aria-label="Games added to calendar">
                         <div className="selectedGamesHeader">
                           <span className="miniSectionTitle">{copy.addedGamesLabel} ({selectedGames.length})</span>
@@ -1654,6 +1780,22 @@ function selectedGameFromEvent(event: PreviewEvent): SelectedGame {
   };
 }
 
+function selectedGameFromWishlistGame(game: WishlistGame, event?: PreviewEvent): SelectedGame {
+  return {
+    appId: game.appId,
+    name: game.name,
+    ...(event?.imageUrl ?? game.imageUrl ? { imageUrl: event?.imageUrl ?? game.imageUrl } : {}),
+    ...(event?.genres ?? game.genres ? { genres: event?.genres ?? game.genres } : {}),
+    ...(game.developers ? { developers: game.developers } : {}),
+    ...(game.price ? { price: game.price } : {}),
+    ...(game.publishers ? { publishers: game.publishers } : {}),
+    ...(event?.reviewCount ?? game.reviewCount ? { reviewCount: event?.reviewCount ?? game.reviewCount } : {}),
+    ...(event?.reviewPercentage ?? game.reviewPercentage ? { reviewPercentage: event?.reviewPercentage ?? game.reviewPercentage } : {}),
+    ...(event?.reviewSummary ?? game.reviewSummary ? { reviewSummary: event?.reviewSummary ?? game.reviewSummary } : {}),
+    storeUrl: event?.sourceUrl ?? game.storeUrl,
+  };
+}
+
 function selectedGameTitle(event: PreviewEvent) {
   return detailTitle(event)
     .replace(/\s+releases?$/i, '')
@@ -1947,6 +2089,10 @@ function LanguageIcon() {
 
 function LinkIcon() {
   return <Link aria-hidden="true" className="linkIcon" />;
+}
+
+function XIcon() {
+  return <X aria-hidden="true" className="miniIcon" />;
 }
 
 function PencilIcon() {
@@ -2275,6 +2421,19 @@ function clampInteger(value: string, min: number, max: number, fallback: number)
 
 function formatCountLabel(count: number, label: string, uiLanguage: UiLanguage): string {
   return uiLanguage === 'zh' ? `${count}${label}` : `${count} ${label}`;
+}
+
+function formatWishlistCalendarSummary(
+  wishlistGameCount: number,
+  calendarGameCount: number,
+  copy: typeof UI_COPY[UiLanguage],
+  uiLanguage: UiLanguage,
+): string {
+  if (uiLanguage === 'zh') {
+    return `${copy.wishlistGamesPrefix}${wishlistGameCount}${copy.wishlistGamesSuffix}，其中 ${calendarGameCount} 款在日历里`;
+  }
+
+  return `${wishlistGameCount} wishlist games, ${calendarGameCount} in calendar`;
 }
 
 function compareSteamEventCategories(first: SteamEventCategory, second: SteamEventCategory): number {

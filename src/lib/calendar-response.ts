@@ -35,7 +35,7 @@ export async function buildCalendarResponse(steamInput: string, request?: Reques
       });
     }
 
-    const data = await fetchWishlistCalendarData(steamInput);
+    const data = await fetchWishlistCalendarData(steamInput, locale);
     const shouldUseWishlist = config.includeWishlist;
     const [dealEvents, steamEvents, watchedGameEvents] = await Promise.all([
       config.includeDeals ? fetchSteamDealEvents({ ...locale, count: config.dealCount }) : Promise.resolve([]),

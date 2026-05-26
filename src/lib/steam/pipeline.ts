@@ -1,9 +1,11 @@
 import {
   fetchSteamAppDetails,
+  fetchSteamProfileSummary,
   fetchSteamWishlist,
   isExactSteamReleaseDate,
   normalizeSteamProfileInput,
   type SteamAppDetails,
+  type SteamProfileSummary,
   type SteamWishlistGame,
 } from '@/lib/steam/client';
 import { STEAM_CLI_CACHE_TTL } from '@/lib/steam/cache-policy';
@@ -13,6 +15,7 @@ type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export type WishlistCalendarData = {
   steamId64: string;
+  profileName: string | null;
   wishlistUrl: string;
   wishlistGames: SteamWishlistGame[];
   appDetails: SteamAppDetails[];
@@ -24,16 +27,22 @@ const DEFAULT_CONCURRENCY = 5;
 
 export async function fetchWishlistCalendarData(
   input: string,
-  options: { fetcher?: FetchLike; appLimit?: number; concurrency?: number; timeoutMs?: number } = {},
+  options: { cc?: string; fetcher?: FetchLike; appLimit?: number; concurrency?: number; lang?: string; timeoutMs?: number; uiLang?: string } = {},
 ): Promise<WishlistCalendarData> {
   if (!options.fetcher) {
     const cliData = await fetchWishlistCalendarDataFromCli(input, options);
     if (cliData) {
-      return cliData;
+      return {
+        ...cliData,
+        profileName: await fetchSteamProfileSummaryFromCli(input, options).catch(() => null),
+      };
     }
   }
 
-  const wishlist = await fetchSteamWishlist(input, options);
+  const [wishlist, profile] = await Promise.all([
+    fetchSteamWishlist(input, options),
+    fetchSteamProfileSummary(input, options).catch(() => null),
+  ]);
   const limitedGames = wishlist.games.slice(0, options.appLimit ?? DEFAULT_APP_LIMIT);
   const appDetails = await mapWithConcurrency(
     limitedGames,
@@ -42,14 +51,21 @@ export async function fetchWishlistCalendarData(
   );
 
   const successfulDetails = appDetails.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+  const detailsByAppId = new Map(successfulDetails.map((details) => [details.appId, details]));
+  const wishlistGames = limitedGames.map((game) => {
+    const details = detailsByAppId.get(game.appId);
+
+    return details ? mergeWishlistGameDetails(game, details) : game;
+  });
   const skippedAppIds = limitedGames.flatMap((game, index) =>
     appDetails[index]?.status === 'rejected' ? [game.appId] : [],
   );
 
   return {
     steamId64: wishlist.steamId64,
+    profileName: profile?.displayName ?? null,
     wishlistUrl: wishlist.wishlistUrl,
-    wishlistGames: limitedGames,
+    wishlistGames,
     appDetails: successfulDetails,
     skippedAppIds,
   };
@@ -63,10 +79,30 @@ type SteamCliWishlist = {
   count: number;
 };
 
+type SteamCliUserProfile = SteamProfileSummary & {
+  steamid?: string;
+  steamid64: string;
+};
+
 type SteamCliWishlistItem = {
   appid: number;
   details?: {
+    developers?: string[];
+    genres?: Array<{
+      description?: string;
+      name?: string;
+    }>;
+    header_image?: string;
     name?: string;
+    price_overview?: {
+      discount_percent?: number;
+      final_formatted?: string;
+      initial_formatted?: string;
+    };
+    publishers?: string[];
+    recommendations?: {
+      total?: number;
+    };
     steam_appid?: number;
     release_date?: {
       coming_soon?: boolean;
@@ -78,7 +114,7 @@ type SteamCliWishlistItem = {
 
 async function fetchWishlistCalendarDataFromCli(
   input: string,
-  options: { appLimit?: number; timeoutMs?: number },
+  options: { appLimit?: number; cc?: string; lang?: string; timeoutMs?: number; uiLang?: string },
 ): Promise<WishlistCalendarData | null> {
   const steamInput = normalizeSteamProfileInput(input);
   const appLimit = options.appLimit ?? DEFAULT_APP_LIMIT;
@@ -86,7 +122,10 @@ async function fetchWishlistCalendarDataFromCli(
     ['wishlist', steamInput, '--count', String(appLimit)],
     {
       cacheTtlMs: STEAM_CLI_CACHE_TTL.wishlist,
+      cc: options.cc,
+      lang: options.lang,
       processTimeoutMs: options.timeoutMs,
+      uiLang: options.uiLang,
     },
   );
 
@@ -101,12 +140,14 @@ export function mapSteamCliWishlist(data: SteamCliWishlist): WishlistCalendarDat
   const wishlistGames = data.items.map((item) => {
     const appId = String(item.appid);
     const releaseDateText = item.details?.release_date?.date?.trim() || null;
+    const detailMetadata = item.details ? steamCliWishlistGameMetadata(item.details) : {};
 
     return {
       appId,
       name: item.details?.name?.trim() || `Steam app ${appId}`,
       releaseDateText,
       storeUrl: steamStoreUrl(appId),
+      ...detailMetadata,
     };
   });
 
@@ -117,6 +158,7 @@ export function mapSteamCliWishlist(data: SteamCliWishlist): WishlistCalendarDat
 
     const appId = String(item.details.steam_appid ?? item.appid);
     const releaseDateText = item.details.release_date?.date?.trim() || null;
+    const detailMetadata = steamCliWishlistGameMetadata(item.details);
 
     return [{
       appId,
@@ -124,6 +166,7 @@ export function mapSteamCliWishlist(data: SteamCliWishlist): WishlistCalendarDat
       releaseDateText,
       hasExactReleaseDate: isExactSteamReleaseDate(releaseDateText),
       storeUrl: steamStoreUrl(appId),
+      ...detailMetadata,
     }];
   });
 
@@ -133,6 +176,7 @@ export function mapSteamCliWishlist(data: SteamCliWishlist): WishlistCalendarDat
 
   return {
     steamId64: data.steamid64,
+    profileName: null,
     wishlistUrl: `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=${data.steamid64}`,
     wishlistGames,
     appDetails,
@@ -140,8 +184,76 @@ export function mapSteamCliWishlist(data: SteamCliWishlist): WishlistCalendarDat
   };
 }
 
+async function fetchSteamProfileSummaryFromCli(
+  input: string,
+  options: { cc?: string; lang?: string; timeoutMs?: number; uiLang?: string },
+): Promise<string | null> {
+  const steamInput = normalizeSteamProfileInput(input);
+  const data = await runSteamCliJson<SteamCliUserProfile>(
+    ['user', steamInput],
+    {
+      cacheTtlMs: STEAM_CLI_CACHE_TTL.wishlist,
+      cc: options.cc,
+      lang: options.lang,
+      processTimeoutMs: options.timeoutMs,
+      uiLang: options.uiLang,
+    },
+  );
+
+  return data?.steamid?.trim() || data?.displayName?.trim() || null;
+}
+
 function steamStoreUrl(appId: string): string {
   return `https://store.steampowered.com/app/${appId}/`;
+}
+
+function mergeWishlistGameDetails(
+  game: SteamWishlistGame,
+  details: SteamAppDetails,
+): SteamWishlistGame {
+  return {
+    ...game,
+    ...(details.imageUrl && !game.imageUrl ? { imageUrl: details.imageUrl } : {}),
+    ...(details.price && !game.price ? { price: details.price } : {}),
+    ...(details.genres?.length && !game.genres?.length ? { genres: details.genres } : {}),
+    ...(details.developers?.length && !game.developers?.length ? { developers: details.developers } : {}),
+    ...(details.publishers?.length && !game.publishers?.length ? { publishers: details.publishers } : {}),
+    ...(details.reviewCount && !game.reviewCount ? { reviewCount: details.reviewCount } : {}),
+    releaseDateText: game.releaseDateText ?? details.releaseDateText,
+  };
+}
+
+function steamCliWishlistGameMetadata(
+  details: NonNullable<SteamCliWishlistItem['details']>,
+): Pick<SteamWishlistGame, 'developers' | 'genres' | 'imageUrl' | 'price' | 'publishers' | 'reviewCount'> {
+  const imageUrl = details.header_image?.trim();
+  const genres = uniqueStrings((details.genres ?? []).flatMap((genre) => {
+    const value = genre.description?.trim() || genre.name?.trim();
+    return value ? [value] : [];
+  })).slice(0, 4);
+  const developers = uniqueStrings(details.developers ?? []).slice(0, 2);
+  const publishers = uniqueStrings(details.publishers ?? []).slice(0, 2);
+  const price = details.price_overview
+    ? {
+        discountPercent: details.price_overview.discount_percent ?? 0,
+        ...(details.price_overview.final_formatted ? { finalFormatted: details.price_overview.final_formatted } : {}),
+        ...(details.price_overview.initial_formatted ? { initialFormatted: details.price_overview.initial_formatted } : {}),
+      }
+    : null;
+  const reviewCount = details.recommendations?.total;
+
+  return {
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(price ? { price } : {}),
+    ...(genres.length ? { genres } : {}),
+    ...(developers.length ? { developers } : {}),
+    ...(publishers.length ? { publishers } : {}),
+    ...(reviewCount ? { reviewCount } : {}),
+  };
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
 async function mapWithConcurrency<T, U>(

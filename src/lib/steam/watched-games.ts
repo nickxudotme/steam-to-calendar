@@ -75,29 +75,51 @@ CalendarEvent,
 'developers' | 'genres' | 'publishers' | 'releaseDateText' | 'reviewCount' | 'reviewPercentage' | 'reviewSummary'
 >;
 
+export type WatchedGameSnapshot = SteamCliGameMetadata & {
+  appId: string;
+  finalPrice?: string;
+  imageUrl?: string;
+  name: string;
+  originalPrice?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+  storeUrl: string;
+  events: CalendarEvent[];
+};
+
 const WATCHED_GAME_CONCURRENCY = 3;
 
 export async function fetchWatchedGameEvents(
   appIds: string[],
   options: { cc?: string; lang?: string; today?: string; uiLang?: string } = {},
 ): Promise<CalendarEvent[]> {
+  return (await fetchWatchedGameSnapshots(appIds, options)).flatMap((snapshot) => snapshot.events);
+}
+
+export async function fetchWatchedGameSnapshots(
+  appIds: string[],
+  options: { cc?: string; lang?: string; today?: string; uiLang?: string } = {},
+): Promise<WatchedGameSnapshot[]> {
   const uniqueAppIds = [...new Set(appIds)].filter((appId) => /^\d{1,10}$/.test(appId)).slice(0, 25);
 
   const results = await mapWithConcurrency(uniqueAppIds, WATCHED_GAME_CONCURRENCY, async (appId) => {
     try {
-      return await fetchWatchedGameEvent(appId, options);
+      return await fetchWatchedGameSnapshot(appId, options);
     } catch {
-      return [];
+      return null;
     }
   });
 
-  return results.flat();
+  return results.filter((snapshot): snapshot is WatchedGameSnapshot => Boolean(snapshot));
 }
 
-async function fetchWatchedGameEvent(
+async function fetchWatchedGameSnapshot(
   appId: string,
   options: { cc?: string; lang?: string; today?: string; uiLang?: string },
-): Promise<CalendarEvent[]> {
+): Promise<WatchedGameSnapshot | null> {
   const app = await runSteamCliJson<SteamCliApp>([
     'app',
     appId,
@@ -110,10 +132,43 @@ async function fetchWatchedGameEvent(
   });
 
   if (!app) {
-    return [];
+    return null;
   }
 
-  return mapSteamCliAppToWatchedEvents(app, options);
+  return mapSteamCliAppToWatchedGameSnapshot(app, options);
+}
+
+export function mapSteamCliAppToWatchedGameSnapshot(
+  app: SteamCliApp,
+  options: { today?: string } = {},
+): WatchedGameSnapshot {
+  const appId = String(app.appid);
+  const name = app.details?.name?.trim() || `Steam app ${appId}`;
+  const bestPurchase = app.store_item?.best_purchase_option;
+  const finalPrice = bestPurchase?.formatted_final_price ?? app.details?.price_overview?.final_formatted;
+  const originalPrice = bestPurchase?.formatted_original_price ?? app.details?.price_overview?.initial_formatted;
+  const discountPercent = bestPurchase?.discount_pct ?? app.details?.price_overview?.discount_percent ?? 0;
+  const metadata = steamCliGameMetadata(app);
+
+  return {
+    appId,
+    name,
+    storeUrl: `https://store.steampowered.com/app/${appId}/`,
+    ...(app.details?.header_image ? { imageUrl: app.details.header_image } : {}),
+    ...(finalPrice ? { finalPrice } : {}),
+    ...(originalPrice ? { originalPrice } : {}),
+    ...(finalPrice || originalPrice || discountPercent > 0
+      ? {
+          price: {
+            discountPercent,
+            ...(finalPrice ? { finalFormatted: finalPrice } : {}),
+            ...(originalPrice ? { initialFormatted: originalPrice } : {}),
+          },
+        }
+      : {}),
+    ...metadata,
+    events: mapSteamCliAppToWatchedEvents(app, options),
+  };
 }
 
 export function mapSteamCliAppToWatchedEvents(

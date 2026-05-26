@@ -1,13 +1,31 @@
 export type SteamWishlistGame = {
   appId: string;
+  developers?: string[];
+  genres?: string[];
   name: string;
+  imageUrl?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+  publishers?: string[];
   releaseDateText: string | null;
+  reviewCount?: number;
+  reviewPercentage?: number;
+  reviewSummary?: string;
   storeUrl: string;
 };
 
 export type SteamAppDetails = {
   appId: string;
   name: string;
+  imageUrl?: string;
+  price?: {
+    discountPercent: number;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
   shortDescription?: string;
   releaseDateText: string | null;
   hasExactReleaseDate: boolean;
@@ -15,12 +33,18 @@ export type SteamAppDetails = {
   genres?: string[];
   developers?: string[];
   publishers?: string[];
+  reviewCount?: number;
 };
 
 export type SteamWishlistResult = {
   steamId64: string;
   wishlistUrl: string;
   games: SteamWishlistGame[];
+};
+
+export type SteamProfileSummary = {
+  steamId64: string;
+  displayName: string | null;
 };
 
 export type SteamWishlistErrorCode =
@@ -226,13 +250,19 @@ type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export async function fetchSteamAppDetails(
   appId: string,
-  options: { fetcher?: FetchLike; timeoutMs?: number } = {},
+  options: { cc?: string; fetcher?: FetchLike; lang?: string; timeoutMs?: number } = {},
 ): Promise<SteamAppDetails> {
   if (!/^\d+$/.test(appId)) {
     throw new SteamWishlistError('app_details_unavailable', 'Invalid Steam appID.');
   }
 
-  const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&filters=price_overview,release_date,basic&cc=us&l=en`;
+  const params = new URLSearchParams({
+    appids: appId,
+    filters: 'price_overview,release_date,basic',
+    cc: options.cc?.trim() || 'US',
+    l: options.lang?.trim() || 'english',
+  });
+  const url = `https://store.steampowered.com/api/appdetails?${params.toString()}`;
   const text = await fetchText(url, options);
 
   let payload: unknown;
@@ -258,21 +288,27 @@ export async function fetchSteamAppDetails(
   const data = appRecord.data as Record<string, unknown>;
   const name = readString(data, 'name') ?? `Steam app ${appId}`;
   const shortDescription = readString(data, 'short_description')?.trim();
+  const imageUrl = readString(data, 'header_image')?.trim();
   const releaseDateText = readReleaseDate(data);
   const genres = readDescribedList(data, 'genres');
   const developers = readStringList(data, 'developers');
   const publishers = readStringList(data, 'publishers');
+  const price = readPriceOverview(data);
+  const reviewCount = readRecommendationsCount(data);
 
   return {
     appId,
     name,
     ...(shortDescription ? { shortDescription } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(price ? { price } : {}),
     releaseDateText,
     hasExactReleaseDate: isExactSteamReleaseDate(releaseDateText),
     storeUrl: `https://store.steampowered.com/app/${appId}/`,
     ...(genres.length ? { genres } : {}),
     ...(developers.length ? { developers } : {}),
     ...(publishers.length ? { publishers } : {}),
+    ...(reviewCount ? { reviewCount } : {}),
   };
 }
 
@@ -301,6 +337,25 @@ export async function fetchSteamWishlist(
   }
 
   return { steamId64, wishlistUrl, games };
+}
+
+export async function fetchSteamProfileSummary(
+  input: string,
+  options: { fetcher?: FetchLike; timeoutMs?: number } = {},
+): Promise<SteamProfileSummary> {
+  const steamInput = normalizeSteamProfileInput(input);
+  const profileUrl = buildProfileXmlUrl(steamInput);
+  const xml = await fetchText(profileUrl, options);
+  const steamId64 = readXmlTag(xml, 'steamID64');
+
+  if (!steamId64 || !isSteamId64(steamId64)) {
+    throw new SteamWishlistError('invalid_steam_id', 'Could not resolve this Steam profile.');
+  }
+
+  return {
+    steamId64,
+    displayName: readXmlTag(xml, 'steamID'),
+  };
 }
 
 async function fetchText(
@@ -491,10 +546,14 @@ function normalizeStoreItemGame(appId: string, rawGame: unknown): SteamWishlistG
   const game = rawGame && typeof rawGame === 'object' ? (rawGame as Record<string, unknown>) : {};
   const name = readString(game, 'name') ?? `Steam app ${appId}`;
   const releaseDateText = readReleaseDate(game);
+  const imageUrl = readString(game, 'header_image') ?? readString(game, 'tiny_image');
+  const price = readPriceOverview(game);
 
   return {
     appId,
     name,
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(price ? { price } : {}),
     releaseDateText,
     storeUrl: `https://store.steampowered.com/app/${appId}/`,
   };
@@ -509,6 +568,8 @@ function normalizeWishlistGame(rawGame: unknown): SteamWishlistGame | null {
   const appId = readString(game, 'appid') ?? readString(game, 'app_id') ?? readString(game, 'id');
   const name = readString(game, 'name') ?? readString(game, 'title');
   const releaseDateText = readReleaseDate(game);
+  const imageUrl = readString(game, 'header_image') ?? readString(game, 'tiny_image');
+  const price = readPriceOverview(game);
 
   if (!appId || !name) {
     return null;
@@ -517,6 +578,8 @@ function normalizeWishlistGame(rawGame: unknown): SteamWishlistGame | null {
   return {
     appId,
     name,
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(price ? { price } : {}),
     releaseDateText,
     storeUrl: `https://store.steampowered.com/app/${appId}/`,
   };
@@ -534,6 +597,22 @@ function readReleaseDate(game: Record<string, unknown>): string | null {
   }
 
   return null;
+}
+
+function readXmlTag(xml: string, tagName: string): string | null {
+  const match = xml.match(new RegExp(`<${tagName}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tagName}>`));
+  const value = match?.[1]?.trim();
+
+  return value ? decodeXmlEntities(value) : null;
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'");
 }
 
 function readString(record: Record<string, unknown>, key: string): string | null {
@@ -557,6 +636,52 @@ function readStringList(record: Record<string, unknown>, key: string): string[] 
   }
 
   return uniqueStrings(value.flatMap((item) => (typeof item === 'string' ? [item] : [])));
+}
+
+function readPriceOverview(record: Record<string, unknown>): SteamWishlistGame['price'] | null {
+  const rawPrice = record.price_overview;
+  if (!rawPrice || typeof rawPrice !== 'object') {
+    return null;
+  }
+
+  const price = rawPrice as Record<string, unknown>;
+  const discountPercent = readNumber(price, 'discount_percent') ?? 0;
+  const finalFormatted = readString(price, 'final_formatted');
+  const initialFormatted = readString(price, 'initial_formatted');
+
+  if (!finalFormatted && !initialFormatted && discountPercent === 0) {
+    return null;
+  }
+
+  return {
+    discountPercent,
+    ...(finalFormatted ? { finalFormatted } : {}),
+    ...(initialFormatted ? { initialFormatted } : {}),
+  };
+}
+
+function readRecommendationsCount(record: Record<string, unknown>): number | null {
+  const recommendations = record.recommendations;
+  if (!recommendations || typeof recommendations !== 'object') {
+    return null;
+  }
+
+  return readNumber(recommendations as Record<string, unknown>, 'total');
+}
+
+function readNumber(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key];
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
 }
 
 function readDescribedList(record: Record<string, unknown>, key: string): string[] {

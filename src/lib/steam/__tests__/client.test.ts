@@ -182,9 +182,13 @@ describe('steam client', () => {
       },
     });
 
-    expect(calls).toEqual([
-      'https://store.steampowered.com/api/appdetails?appids=1962700&filters=price_overview,release_date,basic&cc=us&l=en',
-    ]);
+    expect(calls).toHaveLength(1);
+    const calledUrl = new URL(calls[0]);
+    expect(`${calledUrl.origin}${calledUrl.pathname}`).toBe('https://store.steampowered.com/api/appdetails');
+    expect(calledUrl.searchParams.get('appids')).toBe('1962700');
+    expect(calledUrl.searchParams.get('filters')).toBe('price_overview,release_date,basic');
+    expect(calledUrl.searchParams.get('cc')).toBe('US');
+    expect(calledUrl.searchParams.get('l')).toBe('english');
     expect(result).toEqual({
       appId: '1962700',
       name: 'Subnautica 2',

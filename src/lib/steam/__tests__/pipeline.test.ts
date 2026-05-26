@@ -24,11 +24,16 @@ describe('Steam wishlist pipeline', () => {
           });
         }
 
+        if (url.includes('steamcommunity.com')) {
+          return response(`<profile><steamID64>${steamId64}</steamID64><steamID>Nick Xu</steamID></profile>`);
+        }
+
         const appId = new URL(url).searchParams.get('appids') ?? 'unknown';
         return response({
           [appId]: {
             success: true,
             data: {
+              header_image: `https://cdn.example.test/${appId}.jpg`,
               name: `App ${appId}`,
               release_date: { coming_soon: false, date: 'May 14, 2026' },
             },
@@ -38,9 +43,14 @@ describe('Steam wishlist pipeline', () => {
     });
 
     expect(result.wishlistGames.map((game) => game.appId)).toEqual(['1', '2']);
+    expect(result.wishlistGames.map((game) => game.imageUrl)).toEqual([
+      'https://cdn.example.test/1.jpg',
+      'https://cdn.example.test/2.jpg',
+    ]);
     expect(result.appDetails.map((app) => app.appId)).toEqual(['1', '2']);
+    expect(result.profileName).toBe('Nick Xu');
     expect(result.skippedAppIds).toEqual([]);
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
   });
 
   it('keeps partial app details when one metadata fetch fails', async () => {
@@ -87,6 +97,7 @@ describe('Steam wishlist pipeline', () => {
         {
           appid: 1962700,
           details: {
+            header_image: 'https://cdn.example.test/subnautica-2.jpg',
             name: 'Subnautica 2',
             steam_appid: 1962700,
             release_date: { coming_soon: false, date: 'May 14, 2026' },
@@ -100,10 +111,12 @@ describe('Steam wishlist pipeline', () => {
     });
 
     expect(result.wishlistGames).toHaveLength(2);
+    expect(result.wishlistGames[0]?.imageUrl).toBe('https://cdn.example.test/subnautica-2.jpg');
     expect(result.appDetails).toEqual([
       {
         appId: '1962700',
         name: 'Subnautica 2',
+        imageUrl: 'https://cdn.example.test/subnautica-2.jpg',
         releaseDateText: 'May 14, 2026',
         hasExactReleaseDate: true,
         storeUrl: 'https://store.steampowered.com/app/1962700/',
