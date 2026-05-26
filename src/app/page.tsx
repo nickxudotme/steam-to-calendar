@@ -257,7 +257,6 @@ export default function Home() {
     hasConnectedWishlist
       ? copy.calendarSummaryWishlist
       : formatCountLabel(trackedGameCount, copy.calendarSummaryGames, uiLanguage),
-    showSteamEvents ? copy.calendarSummarySteamEvents : null,
   ].filter(Boolean).join(' · ');
 
   const initialFocusDate = useMemo(() => (
