@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import './styles.css';
 
 export const metadata: Metadata = {
-  title: 'Steam Sale Calendar',
+  title: 'Steam To Calendar',
   description: 'Track Steam deals, preorders, sales, fests, and watched games in your calendar app.',
   icons: {
     icon: [
