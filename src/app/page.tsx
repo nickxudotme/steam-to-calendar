@@ -1138,12 +1138,6 @@ function CalendarPreview({
     calendarView === 'list' ? 'isListView' : '',
   ].filter(Boolean).join(' ');
 
-  useEffect(() => {
-    if (window.matchMedia('(max-width: 700px)').matches) {
-      setCalendarView('list');
-    }
-  }, []);
-
   useLayoutEffect(() => {
     if (lastAlignedFocusDate.current !== initialFocusDate) {
       shouldAlignInitialWeek.current = true;

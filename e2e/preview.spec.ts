@@ -91,3 +91,17 @@ test('previews a Steam wishlist calendar and exposes an ICS feed URL', async ({ 
   expect(calendarResponse.ok()).toBe(true);
   expect(calendarResponse.headers()['content-type']).toContain('text/calendar');
 });
+
+test('opens the calendar month view by default on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const startTracking = page.getByRole('button', { name: 'Start tracking' });
+  if (await startTracking.isVisible()) {
+    await startTracking.click();
+  }
+
+  await expect(page.locator('.calendarApp')).not.toHaveClass(/isListView/);
+  await expect(page.getByRole('button', { name: 'Month', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.calendarScroll')).toBeVisible();
+});
