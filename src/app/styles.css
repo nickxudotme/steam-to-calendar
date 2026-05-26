@@ -100,9 +100,10 @@ select {
   align-items: center;
   color: #f5f8fa;
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   gap: 13px;
   letter-spacing: 0;
+  min-width: 0;
   text-decoration: none;
 }
 
@@ -117,6 +118,8 @@ select {
   font-size: 1.28rem;
   font-weight: 880;
   line-height: 1.08;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1522,6 +1525,9 @@ select {
   color: #ffffff;
   font-size: 1.2rem;
   font-weight: 780;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   white-space: nowrap;
 }
@@ -1535,6 +1541,7 @@ select {
 .viewTabs {
   align-items: center;
   display: flex;
+  min-width: 0;
 }
 
 .calendarControls {
@@ -2419,7 +2426,7 @@ select {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   body {
     height: 100svh;
     overflow: hidden;
@@ -2439,6 +2446,8 @@ select {
 
   .brandMark {
     font-size: 1.02rem;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .brandText {
@@ -2447,6 +2456,7 @@ select {
 
   .brandName {
     font-size: 1rem;
+    max-width: clamp(96px, 42vw, 180px);
   }
 
   .brandTagline {
@@ -2472,6 +2482,7 @@ select {
     display: flex;
     flex: 0 0 auto;
     gap: 8px;
+    min-width: 0;
   }
 
   .headerControls > :not(.localeControls):not(.infoButton) {
@@ -2953,5 +2964,60 @@ select {
 
   .siteFooter {
     display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .brandIcon {
+    height: 36px;
+    width: 36px;
+  }
+
+  .brandName {
+    max-width: clamp(86px, 38vw, 140px);
+  }
+
+  .introSheet h2 {
+    font-size: 1.62rem;
+    line-height: 1.08;
+  }
+
+  .headerControls {
+    gap: 6px;
+  }
+
+  .languageSelect {
+    min-width: 50px;
+  }
+
+  .infoButton {
+    height: 40px;
+    width: 40px;
+  }
+
+  .mobileAddCalendar {
+    font-size: 0.88rem;
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .calendarHeader {
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .calendarControls {
+    justify-content: stretch;
+  }
+
+  .todayButton,
+  .viewTabs {
+    flex: 1 1 0;
+  }
+
+  .viewTabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 8px;
   }
 }
