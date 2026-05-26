@@ -1148,7 +1148,7 @@ select {
 .steamInputWrap {
   align-items: center;
   display: grid;
-  grid-template-columns: 20px 1fr;
+  grid-template-columns: 34px minmax(0, 1fr);
   position: relative;
 }
 
@@ -1204,7 +1204,7 @@ select {
   box-shadow: none;
   font-size: 0.82rem;
   height: 42px;
-  padding-left: 35px;
+  padding-left: 34px;
 }
 
 .gameSearchForm .searchBox input:focus {
