@@ -326,6 +326,41 @@ export default function Home() {
   }, [hasConnectedWishlist, preview, selectedGames.length, showMyGames]);
 
   useEffect(() => {
+    if (!selectedGames.length || !preview.events.length) {
+      return;
+    }
+
+    const gamesByAppId = new Map(
+      preview.events
+        .filter((event) => isGameCalendarEvent(event) && event.appId)
+        .map((event) => [event.appId as string, selectedGameFromEvent(event)]),
+    );
+    let didChange = false;
+    const nextSelectedGames = selectedGames.map((game) => {
+      const localizedGame = gamesByAppId.get(game.appId);
+
+      if (!localizedGame) {
+        return game;
+      }
+
+      if (
+        game.name === localizedGame.name &&
+        game.imageUrl === localizedGame.imageUrl &&
+        game.storeUrl === localizedGame.storeUrl
+      ) {
+        return game;
+      }
+
+      didChange = true;
+      return localizedGame;
+    });
+
+    if (didChange) {
+      setSelectedGames(nextSelectedGames);
+    }
+  }, [preview.events, selectedGames]);
+
+  useEffect(() => {
     let isMounted = true;
 
     async function loadPublicPreview() {
@@ -1546,6 +1581,15 @@ function SteamCliImage({
 
 function isGameCalendarEvent(event: PreviewEvent) {
   return event.type === 'steam_deal' || event.type === 'steam_preorder' || event.type === 'wishlist_release';
+}
+
+function selectedGameFromEvent(event: PreviewEvent): SelectedGame {
+  return {
+    appId: event.appId as string,
+    name: detailTitle(event),
+    ...(event.imageUrl ? { imageUrl: event.imageUrl } : {}),
+    storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
+  };
 }
 
 function hasGameEventImage(event: PreviewEvent) {
