@@ -808,15 +808,21 @@ select {
 .setupReadyCta {
   box-shadow: 0 10px 22px rgba(22, 134, 223, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   font-size: 0.84rem;
-  justify-content: flex-start;
+  gap: 7px;
+  justify-content: center;
   justify-self: stretch;
   margin-top: 1px;
-  min-height: 48px;
+  min-height: 40px;
   overflow: hidden;
-  padding: 0 12px;
-  text-align: left;
-  white-space: normal;
+  padding: 0 14px;
+  text-align: center;
+  white-space: nowrap;
   width: 100%;
+}
+
+.setupReadyCta .toolbarSvg {
+  height: 16px;
+  width: 16px;
 }
 
 .setupReadyCta span {
@@ -824,12 +830,15 @@ select {
   overflow: hidden;
 }
 
-.setupReadyCta small {
-  display: block;
-  font-size: 0.66rem;
+.setupReadyCta strong {
+  font-size: 0.88rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.setupReadyCta small {
+  display: none;
 }
 
 .sourceTitleRow {
