@@ -581,8 +581,7 @@ select {
   position: relative;
 }
 
-.setupStepMarker,
-.setupReadyStep > span {
+.setupStepMarker {
   align-items: center;
   background: linear-gradient(180deg, #168dff, #0d65cb);
   border: 1px solid rgba(102, 192, 244, 0.62);
@@ -695,20 +694,47 @@ select {
 
 .setupReadyStep {
   align-items: start;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  padding: 0;
+  position: relative;
+}
+
+.setupReadyCard {
+  align-items: start;
   background: linear-gradient(180deg, rgba(12, 24, 36, 0.66), rgba(5, 11, 18, 0.48));
   border: 1px solid rgba(124, 157, 184, 0.2);
   border-radius: var(--radius);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 4px;
   padding: 9px 12px;
   position: relative;
 }
 
-.setupReadyStep > span {
+.setupReadyCard > div {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+}
+
+.setupReadyCard span {
+  align-items: center;
   background: rgba(49, 160, 75, 0.16);
-  border-color: rgba(118, 226, 113, 0.36);
+  border: 1px solid rgba(118, 226, 113, 0.36);
+  border-radius: 999px;
   color: #d9f78b;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 900;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
 }
 
 .sourceCardMeta {
@@ -763,7 +789,7 @@ select {
   height: 1px;
 }
 
-.setupReadyStep strong {
+.setupReadyCard strong {
   color: #ffffff;
   display: block;
   font-size: 0.86rem;
@@ -771,7 +797,7 @@ select {
   line-height: 1.25;
 }
 
-.setupReadyStep p {
+.setupReadyCard p {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 720;

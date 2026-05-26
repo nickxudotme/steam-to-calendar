@@ -972,13 +972,16 @@ export default function Home() {
                 </div>
               </section>
 
-              <div className="setupReadyStep">
-                <span aria-hidden="true">✓</span>
-                <div>
-                  <strong>{copy.calendarReadyTitle}</strong>
+              <section className="setupStep setupReadyStep" aria-label={copy.calendarReadyTitle}>
+                <div className="setupStepMarker" aria-hidden="true">3</div>
+                <div className="setupReadyCard">
+                  <div>
+                    <strong>{copy.calendarReadyTitle}</strong>
+                    <span aria-hidden="true">✓</span>
+                  </div>
                   <p>{calendarSummaryItems}</p>
                 </div>
-              </div>
+              </section>
             </div>
 
             <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>
