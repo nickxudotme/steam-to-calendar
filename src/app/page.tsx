@@ -166,26 +166,6 @@ const MAX_EVENT_LANES = 12;
 const EVENT_PAST_DAYS_MAX = 180;
 const EVENT_FUTURE_DAYS_MAX = 365;
 const INTRO_STORAGE_KEY = 'steam-to-calendar-intro-seen';
-const DEFAULT_SELECTED_GAMES: SelectedGame[] = [
-  {
-    appId: '1118520',
-    name: 'Paralives',
-    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1118520/header.jpg',
-    storeUrl: 'https://store.steampowered.com/app/1118520/Paralives/',
-  },
-  {
-    appId: '3240220',
-    name: 'Grand Theft Auto V Enhanced',
-    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3240220/header.jpg',
-    storeUrl: 'https://store.steampowered.com/app/3240220/Grand_Theft_Auto_V_Enhanced/',
-  },
-  {
-    appId: '3768760',
-    name: '007 First Light',
-    imageUrl: 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/3768760/header.jpg',
-    storeUrl: 'https://store.steampowered.com/app/3768760/007_First_Light/',
-  },
-];
 const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,
@@ -223,7 +203,7 @@ export default function Home() {
   const [lastGameSearchQuery, setLastGameSearchQuery] = useState('');
   const [isSearchingGames, setIsSearchingGames] = useState(false);
   const [isWishlistImportOpen, setIsWishlistImportOpen] = useState(false);
-  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>(DEFAULT_SELECTED_GAMES);
+  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
   const [undoableGame, setUndoableGame] = useState<SelectedGame | null>(null);
