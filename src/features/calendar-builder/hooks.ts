@@ -1,0 +1,462 @@
+"use client";
+
+import {
+  useEffect,
+  useCallback,
+  useRef,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react";
+import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
+import type { CalendarConfig } from "@/domain/calendar/config";
+import type { PreviewEvent, PreviewResponse } from "@/shared/calendar-preview";
+import { fetchPublicPreview, searchCalendarGames } from "./api";
+import {
+  languageCodeFromBrowser,
+  shouldSendClientStoreRegion,
+  storeRegionFromBrowser,
+} from "./browser-locale";
+import {
+  chooseCalendarFocusDate,
+  isGameCalendarEvent,
+  localIsoDate,
+  selectedGameFromEvent,
+} from "./calendar-utils";
+import { AUTO_TRACKED_GAME_COUNT, INTRO_STORAGE_KEY } from "./model";
+import type { GameSearchResult, SelectedGame } from "./model";
+import type { UiLanguage } from "./ui-copy";
+
+export function useBrowserDefaults({
+  setDetectedStoreRegion,
+  setHasInitializedClientLocale,
+  setIsIntroOpen,
+  setOrigin,
+  setSelectedLanguageCode,
+  setShouldSendDetectedStoreRegion,
+  setTodayIso,
+  setUiLanguage,
+}: {
+  setDetectedStoreRegion: Dispatch<SetStateAction<string | null>>;
+  setHasInitializedClientLocale: Dispatch<SetStateAction<boolean>>;
+  setIsIntroOpen: Dispatch<SetStateAction<boolean>>;
+  setOrigin: Dispatch<SetStateAction<string>>;
+  setSelectedLanguageCode: Dispatch<SetStateAction<string>>;
+  setShouldSendDetectedStoreRegion: Dispatch<SetStateAction<boolean>>;
+  setTodayIso: Dispatch<SetStateAction<string>>;
+  setUiLanguage: Dispatch<SetStateAction<UiLanguage>>;
+}) {
+  useEffect(() => {
+    // Browser-derived values live in an effect because this file is rendered by Next.js after
+    // hydration; accessing window/navigator during render would break server rendering.
+    setOrigin(window.location.origin);
+    setShouldSendDetectedStoreRegion(shouldSendClientStoreRegion(window.location.hostname));
+    try {
+      if (window.localStorage.getItem(INTRO_STORAGE_KEY) !== "1") {
+        setIsIntroOpen(true);
+      }
+    } catch {
+      setIsIntroOpen(true);
+    }
+
+    const browserLanguage = languageCodeFromBrowser(navigator.language);
+    const browserStoreRegion = storeRegionFromBrowser();
+
+    if (browserStoreRegion) {
+      setDetectedStoreRegion(browserStoreRegion);
+    }
+
+    setSelectedLanguageCode(browserLanguage.code);
+    setUiLanguage(browserLanguage.uiLanguage);
+    setTodayIso(localIsoDate());
+    setHasInitializedClientLocale(true);
+  }, [
+    setDetectedStoreRegion,
+    setHasInitializedClientLocale,
+    setIsIntroOpen,
+    setOrigin,
+    setSelectedLanguageCode,
+    setShouldSendDetectedStoreRegion,
+    setTodayIso,
+    setUiLanguage,
+  ]);
+}
+
+export function usePublicPreviewLoader({
+  calendarConfig,
+  effectiveSteamLang,
+  effectiveStoreRegion,
+  effectiveUiLang,
+  hasInitializedClientLocale,
+  publicPreviewRef,
+  setDetectedStoreRegion,
+  setIsPreviewLoading,
+  setPreview,
+  setPublicPreviewError,
+  shouldSendDetectedStoreRegion,
+  storeRegion,
+  userSelectedRegionRef,
+}: {
+  calendarConfig: CalendarConfig;
+  effectiveSteamLang: string;
+  effectiveStoreRegion: string;
+  effectiveUiLang: string;
+  hasInitializedClientLocale: boolean;
+  publicPreviewRef: MutableRefObject<PreviewResponse>;
+  setDetectedStoreRegion: Dispatch<SetStateAction<string | null>>;
+  setIsPreviewLoading: Dispatch<SetStateAction<boolean>>;
+  setPreview: Dispatch<SetStateAction<PreviewResponse>>;
+  setPublicPreviewError: Dispatch<SetStateAction<string | null>>;
+  shouldSendDetectedStoreRegion: boolean;
+  storeRegion: string | null;
+  userSelectedRegionRef: MutableRefObject<boolean>;
+}) {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPublicPreview() {
+      if (!hasInitializedClientLocale) {
+        return;
+      }
+
+      setIsPreviewLoading(true);
+
+      try {
+        const payload = await fetchPublicPreview({
+          config: calendarConfig,
+          locale: {
+            cc: effectiveStoreRegion,
+            lang: effectiveSteamLang,
+            uiLang: effectiveUiLang,
+          },
+          sendStoreRegion: Boolean(storeRegion || shouldSendDetectedStoreRegion),
+        });
+
+        if (isMounted) {
+          // publicPreviewRef is the clean fallback we restore when a user disconnects a wishlist.
+          publicPreviewRef.current = payload;
+          setPublicPreviewError(null);
+          setPreview((currentPreview) =>
+            currentPreview.steamId64 === STEAM_EVENTS_CALENDAR_ID ? payload : currentPreview,
+          );
+
+          if (!userSelectedRegionRef.current && payload.locale?.cc) {
+            setDetectedStoreRegion(payload.locale.cc);
+          }
+        }
+      } catch (caught) {
+        console.error(caught);
+        if (isMounted) {
+          setPublicPreviewError(
+            caught instanceof Error ? caught.message : "Could not load Steam events.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsPreviewLoading(false);
+        }
+      }
+    }
+
+    void loadPublicPreview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    calendarConfig,
+    effectiveSteamLang,
+    effectiveStoreRegion,
+    effectiveUiLang,
+    hasInitializedClientLocale,
+    publicPreviewRef,
+    setDetectedStoreRegion,
+    setIsPreviewLoading,
+    setPreview,
+    setPublicPreviewError,
+    shouldSendDetectedStoreRegion,
+    storeRegion,
+    userSelectedRegionRef,
+  ]);
+}
+
+export function useTimedReset<T>(value: T | null, reset: () => void, delayMs: number) {
+  useEffect(() => {
+    if (!value) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(reset, delayMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [delayMs, reset, value]);
+}
+
+export function useGameSearch({
+  hasConnectedWishlist,
+  locale,
+}: {
+  hasConnectedWishlist: boolean;
+  locale: { cc: string; lang: string; uiLang: string };
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GameSearchResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [lastQuery, setLastQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery || hasConnectedWishlist) {
+      // Manual picks and wishlist import are mutually exclusive product modes.
+      return;
+    }
+
+    setIsSearching(true);
+    setError(null);
+
+    try {
+      const nextResults = await searchCalendarGames({ locale, query: trimmedQuery });
+
+      setLastQuery(trimmedQuery);
+      setResults(nextResults);
+    } catch (caught) {
+      setLastQuery(trimmedQuery);
+      setError(caught instanceof Error ? caught.message : "Could not search Steam games.");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+
+    if (!value.trim()) {
+      clearResults();
+    }
+  }
+
+  function clearResults() {
+    setResults([]);
+    setError(null);
+    setLastQuery("");
+  }
+
+  return {
+    clearResults,
+    error,
+    handleQueryChange,
+    handleSubmit,
+    isSearching,
+    lastQuery,
+    query,
+    results,
+  };
+}
+
+export function useCalendarSelection({
+  onOpenMobileDetails,
+  onSelectFromGames,
+  todayIso,
+  visibleEvents,
+}: {
+  onOpenMobileDetails: () => void;
+  onSelectFromGames?: () => void;
+  todayIso: string;
+  visibleEvents: PreviewEvent[];
+}) {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const preferredEventId =
+    visibleEvents.find((event) => event.type === "steam_deal")?.id ?? visibleEvents[0]?.id ?? null;
+  const selectedEvent =
+    visibleEvents.find((event) => event.id === selectedEventId) ??
+    visibleEvents.find((event) => event.id === preferredEventId) ??
+    null;
+  const initialFocusDate = chooseCalendarFocusDate(
+    selectedEvent ? [selectedEvent] : visibleEvents,
+    todayIso,
+  );
+
+  useEffect(() => {
+    if (!selectedEventId || !visibleEvents.some((event) => event.id === selectedEventId)) {
+      // Keep the detail selection valid when filters hide the previous event.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedEventId(preferredEventId);
+    }
+  }, [preferredEventId, selectedEventId, visibleEvents]);
+
+  function selectEvent(eventId: string) {
+    setSelectedEventId(eventId);
+    onOpenMobileDetails();
+  }
+
+  function selectEventFromGame(eventId: string) {
+    setSelectedEventId(eventId);
+    onSelectFromGames?.();
+  }
+
+  return {
+    initialFocusDate,
+    selectedEvent,
+    selectedEventId,
+    selectEvent,
+    selectEventFromGame,
+  };
+}
+
+export function useSelectedGames({
+  hasConnectedWishlist,
+  preview,
+  showMyGames,
+}: {
+  hasConnectedWishlist: boolean;
+  preview: PreviewResponse;
+  showMyGames: boolean;
+}) {
+  const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
+  const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
+  const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
+  const [undoableGame, setUndoableGame] = useState<SelectedGame | null>(null);
+  const hasSeededDefaultGamesRef = useRef(false);
+
+  const clearRecentlyAddedAppId = useCallback(() => setRecentlyAddedAppId(null), []);
+  const clearUndoableGame = useCallback(() => setUndoableGame(null), []);
+
+  useTimedReset(recentlyAddedAppId, clearRecentlyAddedAppId, 5200);
+  useTimedReset(undoableGame, clearUndoableGame, 6000);
+
+  useEffect(() => {
+    if (
+      hasSeededDefaultGamesRef.current ||
+      hasConnectedWishlist ||
+      !showMyGames ||
+      selectedGames.length ||
+      preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID ||
+      !preview.events.length
+    ) {
+      return;
+    }
+
+    const defaultGames = preview.events
+      .filter(
+        (event) => (event.type === "steam_deal" || event.type === "steam_preorder") && event.appId,
+      )
+      .slice(0, AUTO_TRACKED_GAME_COUNT)
+      .map(selectedGameFromEvent);
+
+    if (!defaultGames.length) {
+      return;
+    }
+
+    hasSeededDefaultGamesRef.current = true;
+    // Sync default tracked games after the public preview arrives.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedGames(defaultGames);
+  }, [hasConnectedWishlist, preview, selectedGames.length, showMyGames]);
+
+  useEffect(() => {
+    if (!selectedGames.length || !preview.events.length) {
+      return;
+    }
+
+    const gamesByAppId = new Map(
+      preview.events
+        .filter((event) => isGameCalendarEvent(event) && event.appId)
+        .map((event) => [event.appId as string, selectedGameFromEvent(event)]),
+    );
+    let didChange = false;
+    const nextSelectedGames = selectedGames.map((game) => {
+      const localizedGame = gamesByAppId.get(game.appId);
+
+      if (!localizedGame) {
+        return game;
+      }
+
+      if (selectedGamesEqual(game, localizedGame)) {
+        return game;
+      }
+
+      didChange = true;
+      return localizedGame;
+    });
+
+    if (didChange) {
+      // Sync selected-game display metadata when localized preview data changes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedGames(nextSelectedGames);
+    }
+  }, [preview.events, selectedGames]);
+
+  function addGame(game: SelectedGame) {
+    if (
+      hasConnectedWishlist ||
+      selectedGames.some((selectedGame) => selectedGame.appId === game.appId)
+    ) {
+      return;
+    }
+
+    setRecentlyAddedAppId(game.appId);
+    setUndoableGame(game);
+    // Keep manual tracking compact; the preview is meant for a curated watch list, not a full
+    // wishlist replacement.
+    setSelectedGames((games) => [...games, game].slice(-10));
+  }
+
+  function removeGame(appId: string) {
+    setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+    setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setUndoableGame((currentGame) => (currentGame?.appId === appId ? null : currentGame));
+  }
+
+  function undoAddGame(appId: string) {
+    setSelectedGames((games) => games.filter((game) => game.appId !== appId));
+    setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
+    setUndoableGame(null);
+  }
+
+  function selectGame(
+    appId: string,
+    events: PreviewEvent[],
+    onGameMatched: (eventId: string) => void,
+  ) {
+    const matchingEvent = events.find((event) => event.appId === appId);
+
+    if (matchingEvent) {
+      // Clicking a tracked game should jump to its event when we have one; otherwise a notice
+      // explains that the game has no visible calendar event in the current filters.
+      setSelectedGameNoticeAppId(null);
+      onGameMatched(matchingEvent.id);
+      return true;
+    }
+
+    setSelectedGameNoticeAppId(appId);
+    return false;
+  }
+
+  function resetNotices() {
+    setSelectedGameNoticeAppId(null);
+    setUndoableGame(null);
+  }
+
+  return {
+    addGame,
+    recentlyAddedAppId,
+    removeGame,
+    resetNotices,
+    selectGame,
+    selectedGameNoticeAppId,
+    selectedGames,
+    undoableGame,
+    undoAddGame,
+  };
+}
+
+function selectedGamesEqual(first: SelectedGame, second: SelectedGame): boolean {
+  return JSON.stringify(first) === JSON.stringify(second);
+}

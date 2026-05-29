@@ -1,0 +1,332 @@
+.sourceTitleRow {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.sourceTitleRow h3 {
+  color: var(--fg);
+  font-size: 0.96rem;
+  font-weight: 820;
+  line-height: 1.28;
+  margin: 0;
+}
+
+.taskCardCopy h3,
+.myGamesBlock .sourceTitleRow h3 {
+  color: var(--fg);
+  font-size: 0.96rem;
+  font-weight: 820;
+  line-height: 1.28;
+  margin: 0;
+  min-width: 0;
+}
+
+.sourceDisclosureButton h3,
+.trackedGamesStepHeader h3,
+.setupReadyCard > div strong {
+  color: #ffffff;
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.sourceCardMeta p,
+.trackedGamesStepHeader p,
+.setupReadyCard p {
+  color: #b5c8d8;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.38;
+  margin: 0;
+}
+
+.taskCardCopy p,
+.myGamesBlock .sourceTitleRow p {
+  color: #b5c8d8;
+  font-size: 0.78rem;
+  line-height: 1.34;
+  margin: 0;
+}
+
+.myGamesBlock {
+  padding: 10px 12px;
+}
+
+.myGamesBlock .sourceTitleRow {
+  align-items: start;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  justify-content: start;
+}
+
+.myGamesBlock .gameSearchForm,
+.myGamesBlock .gameSearchResults,
+.myGamesBlock .selectedGames {
+  margin-top: 6px;
+}
+
+.taskCardContent .linkIcon,
+.sourceIcon {
+  color: #168dff;
+  height: 17px;
+  margin-top: 2px;
+  width: 17px;
+}
+
+.sourceDisclosureButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.sourceDisclosureButton h3 {
+  min-width: 0;
+}
+
+.disclosureArrow {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  color: #9eb3c2;
+  display: block;
+  height: 8px;
+  justify-self: center;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 160ms ease;
+  width: 8px;
+}
+
+.sourceDisclosureButton[aria-expanded="true"] .disclosureArrow {
+  transform: rotate(225deg) translateY(-2px);
+}
+
+.eventOptionsPanel {
+  border-top: 1px solid rgba(117, 151, 184, 0.16);
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.switch {
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding-top: 1px;
+}
+
+.switch input {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.switch span {
+  background: rgba(88, 106, 123, 0.36);
+  border: 1px solid rgba(157, 177, 194, 0.26);
+  border-radius: 999px;
+  height: 22px;
+  position: relative;
+  width: 42px;
+}
+
+.switch span::after {
+  background: #d7e4ee;
+  border-radius: 999px;
+  content: "";
+  height: 16px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+  width: 16px;
+}
+
+.switch input:checked + span {
+  background: linear-gradient(180deg, #2078c9, #1663a9);
+  border-color: rgba(102, 192, 244, 0.62);
+}
+
+.switch input:checked + span::after {
+  background: #cfeaff;
+  transform: translateX(20px);
+}
+
+.controlRow {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.controlRow > span,
+.rangeControlHeader > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.stepper {
+  align-items: center;
+  background: rgba(7, 13, 22, 0.74);
+  border: 1px solid rgba(117, 151, 184, 0.24);
+  border-radius: 5px;
+  display: inline-grid;
+  grid-template-columns: 36px 42px 36px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.stepper button {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 850;
+  height: 100%;
+}
+
+.stepper output {
+  align-items: center;
+  border-left: 1px solid rgba(117, 151, 184, 0.2);
+  border-right: 1px solid rgba(117, 151, 184, 0.2);
+  color: var(--fg);
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 850;
+  height: 100%;
+  justify-content: center;
+}
+
+.rangeGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.eventTypeGrid {
+  display: grid;
+  gap: 7px;
+}
+
+.eventTypeOption {
+  align-items: center;
+  background: rgba(7, 13, 22, 0.48);
+  border: 1px solid rgba(117, 151, 184, 0.2);
+  border-radius: 5px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 16px 1fr;
+  min-height: 42px;
+  padding: 8px;
+}
+
+.eventTypeOption:has(input:checked) {
+  background: rgba(32, 120, 201, 0.16);
+  border-color: rgba(102, 192, 244, 0.38);
+}
+
+.eventTypeOption:has(input:disabled) {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.eventTypeOption input {
+  accent-color: var(--accent);
+  height: 16px;
+  margin: 1px 0 0;
+  width: 16px;
+}
+
+.eventTypeOption span {
+  display: grid;
+  gap: 0;
+}
+
+.eventTypeOption strong {
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 810;
+  line-height: 1.2;
+}
+
+.eventTypeOption small {
+  color: var(--muted);
+  display: none;
+  font-size: 0.73rem;
+  line-height: 1.32;
+}
+
+.rangeControl {
+  display: grid;
+  gap: 8px;
+}
+
+.rangeControlHeader {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.rangeControl output {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.1);
+  border: 1px solid rgba(102, 192, 244, 0.22);
+  border-radius: 999px;
+  color: #cce9fb;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 850;
+  height: 22px;
+  justify-content: center;
+  min-width: 42px;
+  padding: 0 8px;
+}
+
+.rangeControl input[type="range"] {
+  accent-color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  height: 24px;
+  padding: 0;
+  width: 100%;
+}
+
+.rangeControl input[type="range"]:focus-visible {
+  outline: 2px solid rgba(102, 192, 244, 0.4);
+  outline-offset: 3px;
+}
+
+.rangeControl input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, rgba(102, 192, 244, 0.52), rgba(32, 120, 201, 0.26));
+  border-radius: 999px;
+  height: 6px;
+}
+
+.rangeControl input[type="range"]::-webkit-slider-thumb {
+  margin-top: -6px;
+}
+
+.rangeControl input[type="range"]::-moz-range-track {
+  background: linear-gradient(90deg, rgba(102, 192, 244, 0.52), rgba(32, 120, 201, 0.26));
+  border-radius: 999px;
+  height: 6px;
+}

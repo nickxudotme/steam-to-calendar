@@ -1,5 +1,5 @@
 {
-  "name": "wishlist-in-calendar",
+  "name": "steam-to-calendar",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,25 +8,36 @@
     "prebuild": "npm run build:steam-cli",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run src",
-    "test:e2e": "playwright test",
-    "test:watch": "vitest src"
+    "test:watch": "vitest src",
+    "test:e2e": "playwright test --grep-invert @steam-live",
+    "test:e2e:live": "playwright test --grep @steam-live",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "verify:full": "npm run verify && npm run test:e2e"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "ics": "^3.12.0",
     "lucide-react": "^1.16.0",
-    "next": "^16.2.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

@@ -1,0 +1,11 @@
+.notice {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.error {
+  background: rgba(255, 180, 168, 0.1);
+  color: #ffb4a8;
+}

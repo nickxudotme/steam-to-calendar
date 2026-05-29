@@ -1,107 +1,135 @@
-import { calendarConfigFromRecord } from '@/lib/calendar-config';
-import { SteamWishlistError, type SteamWishlistGame } from '@/lib/steam/client';
-import { fetchSteamDealEvents } from '@/lib/steam/deals';
-import { fetchSteamMajorEvents } from '@/lib/steam/events';
-import { normalizeCc, steamLocaleFromRequest } from '@/lib/steam/locale';
-import { fetchWishlistCalendarData } from '@/lib/steam/pipeline';
-import { fetchWatchedGameEvents, fetchWatchedGameSnapshots, type WatchedGameSnapshot } from '@/lib/steam/watched-games';
+import { calendarConfigFromRecord } from "@/domain/calendar/config";
+import { SteamWishlistError } from "@/integrations/steam/client";
+import { normalizeCc, steamLocaleFromRequest } from "@/integrations/steam/locale";
+import { fetchWishlistCalendarData } from "@/integrations/steam/pipeline";
+import { fetchSteamCalendarEventBundle } from "@/server/calendar/event-bundle";
+import { buildConnectedPreviewResponse } from "@/server/calendar/preview-response";
+import { isRecord, isString } from "@/shared/calendar-preview-contract";
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const body = await parsePreviewRequestBody(request);
     const config = calendarConfigFromRecord(body);
     const requestLocale = steamLocaleFromRequest(request);
     const locale = {
       ...requestLocale,
-      cc: normalizeCc(String(body.cc ?? '')) || requestLocale.cc,
+      cc: normalizeCc(String(body.cc ?? "")) || requestLocale.cc,
     };
-    const data = await fetchWishlistCalendarData(String(body.steamId64 ?? ''), {
+    const data = await fetchWishlistCalendarData(String(body.steamId64 ?? ""), {
       ...locale,
       appLimit: 100,
     });
-    const { steamId64 } = data;
     const shouldUseWishlist = config.includeWishlist;
-    const [dealEvents, steamEvents, watchedGameSnapshotsOrEvents] = await Promise.all([
-      config.includeDeals ? fetchSteamDealEvents({ ...locale, count: config.dealCount }) : Promise.resolve([]),
-      config.includeSteamEvents
-        ? fetchSteamMajorEvents({
-          ...locale,
-          categories: config.steamEventCategories,
-          futureDays: config.eventFutureDays,
-          pastDays: config.eventPastDays,
-        })
-        : Promise.resolve([]),
-      shouldUseWishlist
-        ? fetchWatchedGameSnapshots(data.wishlistGames.map((game) => game.appId), locale)
-        : config.watchedAppIds.length
-          ? fetchWatchedGameEvents(config.watchedAppIds, locale)
-          : Promise.resolve([]),
-    ]);
-    const watchedGameSnapshots = shouldUseWishlist ? watchedGameSnapshotsOrEvents as WatchedGameSnapshot[] : [];
-    const watchedGameEvents = shouldUseWishlist
-      ? watchedGameSnapshots.flatMap((snapshot) => snapshot.events)
-      : watchedGameSnapshotsOrEvents as Awaited<ReturnType<typeof fetchWatchedGameEvents>>;
-    const wishlistGames = shouldUseWishlist
-      ? mergeWishlistGamesWithSnapshots(data.wishlistGames, watchedGameSnapshots)
-      : data.wishlistGames;
-    const feedPath = `/feed/${steamId64}.ics`;
-    const calendarPath = `/cal/${steamId64}`;
-
-    return Response.json({
-      steamId64,
-      feedPath,
-      calendarPath,
-      wishlistUrl: data.wishlistUrl,
-      profileName: data.profileName,
+    // When wishlist import is enabled, the wishlist itself becomes the watched app list.
+    // Otherwise the request can still preview manually supplied app IDs.
+    const bundle = await fetchSteamCalendarEventBundle({
+      appIds: shouldUseWishlist
+        ? data.wishlistGames.map((game) => game.appId)
+        : config.watchedAppIds,
+      config,
       locale,
-      wishlistGames,
-      stats: {
-        wishlistGames: data.wishlistGames.length,
-        appDetails: data.appDetails.length,
-        skippedAppIds: data.skippedAppIds.length,
-        wishlistReleaseEvents: shouldUseWishlist ? watchedGameEvents.length : 0,
-        steamMajorEvents: steamEvents.length,
-      },
-      events: [...dealEvents, ...watchedGameEvents, ...steamEvents].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      withWatchedGameSnapshots: shouldUseWishlist,
     });
+    return Response.json(
+      buildConnectedPreviewResponse({
+        bundle,
+        data,
+        locale,
+        useWishlist: shouldUseWishlist,
+      }),
+    );
   } catch (error) {
-    const status = error instanceof SteamWishlistError && error.code === 'invalid_steam_id' ? 400 : 502;
-    const code = error instanceof SteamWishlistError ? error.code : 'unknown_error';
-    const message = error instanceof SteamWishlistError
-      ? error.message
-      : 'Could not preview this Steam wishlist.';
+    const { code, message, status } = previewErrorResponse(error);
 
     return Response.json({ code, message }, { status });
   }
 }
 
-function mergeWishlistGamesWithSnapshots(
-  games: SteamWishlistGame[],
-  snapshots: WatchedGameSnapshot[],
-): SteamWishlistGame[] {
-  const snapshotsByAppId = new Map(snapshots.map((snapshot) => [snapshot.appId, snapshot]));
+async function parsePreviewRequestBody(request: Request): Promise<Record<string, unknown>> {
+  let payload: unknown;
 
-  return games.map((game) => {
-    const snapshot = snapshotsByAppId.get(game.appId);
-    if (!snapshot) {
-      return game;
-    }
+  try {
+    payload = await request.json();
+  } catch {
+    throw new PreviewRequestError("invalid_json", "Request body must be valid JSON.");
+  }
 
+  if (!isRecord(payload)) {
+    throw new PreviewRequestError("invalid_body", "Request body must be a JSON object.");
+  }
+
+  // Validate the public shape before parsing config so bad clients get precise 400 responses
+  // instead of being silently coerced into defaults.
+  if (!isString(payload.steamId64) || !payload.steamId64.trim()) {
+    throw new PreviewRequestError("invalid_steam_id", "Steam ID or profile URL is required.");
+  }
+
+  validateOptionalString(payload, "cc");
+  validateOptionalString(payload, "apps");
+  validateOptionalString(payload, "eventTypes");
+  validateOptionalBoolean(payload, "deals");
+  validateOptionalBoolean(payload, "priceHistory");
+  validateOptionalBoolean(payload, "events");
+  validateOptionalBoolean(payload, "wishlist");
+  validateOptionalNumber(payload, "count");
+  validateOptionalNumber(payload, "pastDays");
+  validateOptionalNumber(payload, "futureDays");
+
+  return payload;
+}
+
+function validateOptionalString(payload: Record<string, unknown>, key: string) {
+  if (payload[key] !== undefined && !isString(payload[key])) {
+    throw new PreviewRequestError("invalid_request", `${key} must be a string.`);
+  }
+}
+
+function validateOptionalBoolean(payload: Record<string, unknown>, key: string) {
+  if (
+    payload[key] !== undefined &&
+    typeof payload[key] !== "boolean" &&
+    !isString(payload[key]) &&
+    typeof payload[key] !== "number"
+  ) {
+    throw new PreviewRequestError("invalid_request", `${key} must be a boolean-like value.`);
+  }
+}
+
+function validateOptionalNumber(payload: Record<string, unknown>, key: string) {
+  if (payload[key] !== undefined && typeof payload[key] !== "number" && !isString(payload[key])) {
+    throw new PreviewRequestError("invalid_request", `${key} must be a number-like value.`);
+  }
+}
+
+function previewErrorResponse(error: unknown) {
+  if (error instanceof PreviewRequestError) {
+    return { code: error.code, message: error.message, status: 400 };
+  }
+
+  if (error instanceof SteamWishlistError) {
     return {
-      ...game,
-      name: snapshot.name || game.name,
-      ...(snapshot.imageUrl ? { imageUrl: snapshot.imageUrl } : {}),
-      ...(snapshot.price ? { price: snapshot.price } : {}),
-      ...(snapshot.genres?.length ? { genres: snapshot.genres } : {}),
-      ...(snapshot.developers?.length ? { developers: snapshot.developers } : {}),
-      ...(snapshot.publishers?.length ? { publishers: snapshot.publishers } : {}),
-      ...(snapshot.reviewSummary ? { reviewSummary: snapshot.reviewSummary } : {}),
-      ...(typeof snapshot.reviewPercentage === 'number' ? { reviewPercentage: snapshot.reviewPercentage } : {}),
-      ...(typeof snapshot.reviewCount === 'number' ? { reviewCount: snapshot.reviewCount } : {}),
-      releaseDateText: game.releaseDateText ?? snapshot.releaseDateText ?? null,
+      code: error.code,
+      message: error.message,
+      status: error.code === "invalid_steam_id" ? 400 : 502,
     };
-  });
+  }
+
+  return {
+    code: "unknown_error",
+    message: "Could not preview this Steam wishlist.",
+    status: 502,
+  };
+}
+
+class PreviewRequestError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "PreviewRequestError";
+  }
 }
