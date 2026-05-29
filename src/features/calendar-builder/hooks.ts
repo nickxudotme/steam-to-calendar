@@ -578,6 +578,7 @@ export function useSelectedGames({
   showMyGames: boolean;
 }) {
   const [selectedGames, setSelectedGames] = useState<SelectedGame[]>([]);
+  const [hasEditedSelectedGames, setHasEditedSelectedGames] = useState(false);
   const [recentlyAddedAppId, setRecentlyAddedAppId] = useState<string | null>(null);
   const [selectedGameNoticeAppId, setSelectedGameNoticeAppId] = useState<string | null>(null);
   const [undoableGame, setUndoableGame] = useState<SelectedGame | null>(null);
@@ -659,6 +660,7 @@ export function useSelectedGames({
       return;
     }
 
+    setHasEditedSelectedGames(true);
     setRecentlyAddedAppId(game.appId);
     setUndoableGame(game);
     // Keep manual tracking compact; the preview is meant for a curated watch list, not a full
@@ -667,6 +669,7 @@ export function useSelectedGames({
   }
 
   function removeGame(appId: string) {
+    setHasEditedSelectedGames(true);
     setSelectedGames((games) => games.filter((game) => game.appId !== appId));
     setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
     setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
@@ -674,6 +677,7 @@ export function useSelectedGames({
   }
 
   function undoAddGame(appId: string) {
+    setHasEditedSelectedGames(true);
     setSelectedGames((games) => games.filter((game) => game.appId !== appId));
     setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
     setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
@@ -706,6 +710,7 @@ export function useSelectedGames({
 
   return {
     addGame,
+    hasEditedSelectedGames,
     recentlyAddedAppId,
     removeGame,
     resetNotices,

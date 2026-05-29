@@ -1,4 +1,8 @@
-import type { CalendarEvent } from "@/domain/calendar/event-mapper";
+import {
+  dropHistoricalLowWhenCurrencyMismatch,
+  preferActiveStoreDealPrices,
+  type CalendarEvent,
+} from "@/domain/calendar/event-mapper";
 import { STEAM_CLI_CACHE_TTL } from "@/integrations/steam/cache-policy";
 import { runSteamCliJson } from "@/integrations/steam/cli";
 import { fetchSteamHistorySaleEvents } from "@/integrations/steam/history";
@@ -184,7 +188,15 @@ async function fetchWatchedGameSnapshot(
   return {
     ...snapshot,
     events: [
-      ...historyEvents.map((event) => ({ ...event, ...steamCliGameMetadata(app) })),
+      ...preferActiveStoreDealPrices(historyEvents, {
+        finalPrice: snapshot.finalPrice,
+        originalPrice: snapshot.originalPrice,
+      }).map((event) =>
+        dropHistoricalLowWhenCurrencyMismatch(
+          { ...event, ...steamCliGameMetadata(app) },
+          options.cc,
+        ),
+      ),
       ...releaseEvents,
     ],
   };
@@ -269,7 +281,7 @@ export function mapSteamCliAppToWatchedGameSnapshot(
 
 export function mapSteamCliAppToWatchedEvents(
   app: SteamCliApp,
-  options: { today?: string } = {},
+  options: { cc?: string; today?: string } = {},
 ): CalendarEvent[] {
   const today = options.today ?? todayIsoDate();
   const appId = String(app.appid);
@@ -294,29 +306,32 @@ export function mapSteamCliAppToWatchedEvents(
     const endDate = unixSecondsToIsoDate(discountEnd);
 
     return [
-      {
-        id: `steam-app-${appId}-watched-deal`,
-        title: `-${discountPercent}% ${name}`,
-        description: [
-          shortDescription,
-          finalPrice && originalPrice ? `Price: ${finalPrice} (was ${originalPrice})` : null,
+      dropHistoricalLowWhenCurrencyMismatch(
+        {
+          id: `steam-app-${appId}-watched-deal`,
+          title: `-${discountPercent}% ${name}`,
+          description: [
+            shortDescription,
+            finalPrice && originalPrice ? `Price: ${finalPrice} (was ${originalPrice})` : null,
+            sourceUrl,
+          ]
+            .filter((part): part is string => Boolean(part))
+            .join("\n"),
+          startDate: today,
+          endDate: endDate <= today ? addDays(today, 1) : endDate,
           sourceUrl,
-        ]
-          .filter((part): part is string => Boolean(part))
-          .join("\n"),
-        startDate: today,
-        endDate: endDate <= today ? addDays(today, 1) : endDate,
-        sourceUrl,
-        type: "steam_deal",
-        dataSource: "steam_store",
-        appId,
-        discount: `-${discountPercent}%`,
-        finalPrice,
-        originalPrice,
-        ...(imageUrl ? { imageUrl } : {}),
-        discountEnd,
-        ...metadata,
-      },
+          type: "steam_deal",
+          dataSource: "steam_store",
+          appId,
+          discount: `-${discountPercent}%`,
+          finalPrice,
+          originalPrice,
+          ...(imageUrl ? { imageUrl } : {}),
+          discountEnd,
+          ...metadata,
+        },
+        options.cc,
+      ),
     ];
   }
 

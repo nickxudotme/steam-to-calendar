@@ -285,7 +285,8 @@ export function mapSteamHistorySaleEvents(
     // event instead of a zero-length span.
     const endDate =
       inferredEndDate && inferredEndDate <= sale.start ? addDays(sale.start, 1) : inferredEndDate;
-    const isActive = sale.status.toLowerCase() === "active";
+    const isActive =
+      isActiveSteamSaleStatus(sale.status) || Boolean(input.activeDiscountEnd && !sale.end);
     const originalPrice = cleanDealValue(sale.original);
     const finalPrice = cleanDealValue(sale.price);
 
@@ -319,6 +320,60 @@ export function mapSteamHistorySaleEvents(
       },
     ];
   });
+}
+
+export function preferActiveStoreDealPrices(
+  events: CalendarEvent[],
+  prices: { finalPrice?: string; originalPrice?: string },
+): CalendarEvent[] {
+  const finalPrice = cleanDealValue(prices.finalPrice);
+  const originalPrice = cleanDealValue(prices.originalPrice);
+
+  if (!finalPrice && !originalPrice) {
+    return events;
+  }
+
+  return events.map((event) => {
+    if (
+      event.type !== "steam_deal" ||
+      event.dataSource !== "steam_history" ||
+      !isActiveSteamSaleStatus(event.saleStatus)
+    ) {
+      return event;
+    }
+
+    return {
+      ...event,
+      ...(finalPrice ? { finalPrice } : {}),
+      ...(originalPrice ? { originalPrice } : {}),
+      description: replacePriceDescriptionLine(event.description, finalPrice, originalPrice),
+    };
+  });
+}
+
+export function dropHistoricalLowWhenCurrencyMismatch<T extends Partial<CalendarEvent>>(
+  event: T,
+  regionCode?: string,
+): T {
+  if (!event.historicalLowPrice) {
+    return event;
+  }
+
+  const historicalCurrency = inferCurrencyCode(event.historicalLowPrice, regionCode);
+  const currentCurrency =
+    inferCurrencyCode(event.finalPrice, regionCode) ??
+    inferCurrencyCode(event.originalPrice, regionCode);
+
+  if (!historicalCurrency || !currentCurrency || historicalCurrency === currentCurrency) {
+    return event;
+  }
+
+  const eventWithoutHistoricalLow = { ...event };
+  delete eventWithoutHistoricalLow.historicalLowDate;
+  delete eventWithoutHistoricalLow.historicalLowPrice;
+  delete eventWithoutHistoricalLow.historicalLowStore;
+
+  return eventWithoutHistoricalLow as T;
 }
 
 export function parseExactSteamReleaseDate(releaseDateText: string): string | null {
@@ -394,6 +449,127 @@ function historySaleDescription(input: {
   ]
     .filter((part): part is string => Boolean(part))
     .join("\n");
+}
+
+function replacePriceDescriptionLine(
+  description: string,
+  finalPrice: string | undefined,
+  originalPrice: string | undefined,
+): string {
+  const priceLine =
+    finalPrice && originalPrice
+      ? `Price: ${finalPrice} (was ${originalPrice})`
+      : finalPrice
+        ? `Price: ${finalPrice}`
+        : originalPrice
+          ? `Original price: ${originalPrice}`
+          : null;
+
+  if (!priceLine) {
+    return description;
+  }
+
+  const lines = description.split("\n");
+  const priceLineIndex = lines.findIndex((line) => line.startsWith("Price: "));
+
+  if (priceLineIndex >= 0) {
+    lines[priceLineIndex] = priceLine;
+    return lines.join("\n");
+  }
+
+  const sourceUrlIndex = lines.findIndex((line) => line.startsWith("https://"));
+  if (sourceUrlIndex >= 0) {
+    lines.splice(sourceUrlIndex, 0, priceLine);
+    return lines.join("\n");
+  }
+
+  return [...lines, priceLine].join("\n");
+}
+
+function isActiveSteamSaleStatus(value: string | undefined): boolean {
+  const normalizedValue = value?.trim().toLowerCase();
+
+  if (!normalizedValue) {
+    return false;
+  }
+
+  return ["active", "ongoing", "live", "进行中"].includes(normalizedValue);
+}
+
+const CURRENCY_CODE_BY_REGION: Record<string, string> = {
+  AE: "AED",
+  AU: "AUD",
+  BR: "BRL",
+  CA: "CAD",
+  CH: "CHF",
+  CL: "CLP",
+  CN: "CNY",
+  CO: "COP",
+  GB: "GBP",
+  HK: "HKD",
+  ID: "IDR",
+  IN: "INR",
+  JP: "JPY",
+  KR: "KRW",
+  MX: "MXN",
+  MY: "MYR",
+  NO: "NOK",
+  NZ: "NZD",
+  PE: "PEN",
+  PH: "PHP",
+  PL: "PLN",
+  SA: "SAR",
+  SG: "SGD",
+  TH: "THB",
+  TW: "TWD",
+  UA: "UAH",
+  US: "USD",
+  VN: "VND",
+  ZA: "ZAR",
+};
+
+const REGION_PRICE_MARKERS: Record<string, string[]> = {
+  AE: ["AED"],
+  CH: ["CHF"],
+  CL: ["CLP$"],
+  CO: ["COL$"],
+  HK: ["HK$"],
+  MX: ["Mex$", "MX$"],
+  MY: ["RM"],
+  NO: ["kr"],
+  PE: ["S/."],
+  SA: ["SR"],
+  SG: ["S$"],
+  TH: ["฿"],
+  UA: ["₴"],
+  VN: ["₫"],
+  ZA: ["R "],
+};
+
+function inferCurrencyCode(value: string | undefined, regionCode?: string): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const explicitCode = trimmed.match(/\b[A-Z]{3}\b/)?.[0];
+
+  if (explicitCode) {
+    return explicitCode;
+  }
+
+  const normalizedRegionCode = regionCode?.toUpperCase();
+  const regionCurrency = normalizedRegionCode
+    ? CURRENCY_CODE_BY_REGION[normalizedRegionCode]
+    : undefined;
+  const markers = normalizedRegionCode ? (REGION_PRICE_MARKERS[normalizedRegionCode] ?? []) : [];
+
+  if (regionCurrency && markers.some((marker) => trimmed.includes(marker))) {
+    return regionCurrency;
+  }
+
+  return null;
 }
 
 function steamStoreUrl(appId: string): string {

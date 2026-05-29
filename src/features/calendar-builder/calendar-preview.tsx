@@ -214,8 +214,8 @@ export function CalendarPreview({
         </div>
       </div>
 
-      {calendarView === "month" ? (
-        <>
+      <div className="calendarViewFrame" key={calendarView}>
+        {calendarView === "month" ? (
           <CalendarMonthView
             eventsLength={events.length}
             isLoading={isLoading}
@@ -230,15 +230,7 @@ export function CalendarPreview({
             weekRefs={weekRefs}
             weeks={weeks}
           />
-
-          <CalendarFooter
-            addToCalendarLabel={uiCopy.addToCalendar}
-            legendItems={legendItems}
-            webcalUrl={webcalUrl}
-          />
-        </>
-      ) : (
-        <>
+        ) : (
           <CalendarEventList
             events={listEvents}
             isLoading={isLoading}
@@ -248,13 +240,14 @@ export function CalendarPreview({
             uiCopy={uiCopy}
             uiLanguage={uiLanguage}
           />
-          <CalendarFooter
-            addToCalendarLabel={uiCopy.addToCalendar}
-            legendItems={legendItems}
-            webcalUrl={webcalUrl}
-          />
-        </>
-      )}
+        )}
+
+        <CalendarFooter
+          addToCalendarLabel={uiCopy.addToCalendar}
+          legendItems={legendItems}
+          webcalUrl={webcalUrl}
+        />
+      </div>
     </section>
   );
 }

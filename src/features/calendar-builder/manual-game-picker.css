@@ -278,7 +278,6 @@
   background: linear-gradient(180deg, rgba(20, 45, 66, 0.82), rgba(10, 22, 36, 0.68));
   border-color: rgba(102, 192, 244, 0.42);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
-  transform: translateY(-1px);
 }
 
 .selectedGameRow:hover::after,
@@ -294,6 +293,12 @@
   z-index: 8;
 }
 
+.gameSearchResult:not(:disabled):hover img,
+.gameSearchResult:not(:disabled):hover .gameThumbFallback {
+  filter: brightness(1.06) saturate(1.08);
+  transform: scale(1.02);
+}
+
 .gameSearchResult:focus-visible {
   border-color: rgba(102, 192, 244, 0.7);
   box-shadow: 0 0 0 2px rgba(102, 192, 244, 0.16);
@@ -302,8 +307,7 @@
   z-index: 8;
 }
 
-.gameSearchResult:not(:disabled):active,
-.selectedGameRow:active {
+.gameSearchResult:not(:disabled):active {
   transform: translateY(0) scale(0.995);
 }
 
@@ -344,6 +348,9 @@
   border-radius: 5px;
   display: block;
   object-fit: contain;
+  transition:
+    filter 180ms var(--ease-soft),
+    transform 180ms var(--ease-soft);
   width: 64px;
 }
 

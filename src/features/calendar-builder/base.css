@@ -196,35 +196,34 @@ select {
   position: relative;
 }
 
-.storeRegionControl::after {
+.storeRegionTooltip {
   background: rgba(5, 12, 20, 0.98);
   border: 1px solid rgba(117, 151, 184, 0.28);
   border-radius: 6px;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
   color: #d9e8f3;
-  content: attr(data-tooltip);
   font-size: 0.76rem;
   font-weight: 680;
-  left: 22px;
+  left: 50%;
   line-height: 1.35;
-  max-width: 220px;
+  max-width: min(260px, calc(100vw - 32px));
   opacity: 0;
   padding: 8px 10px;
   pointer-events: none;
   position: absolute;
   top: calc(100% + 10px);
-  transform: translateY(-4px);
+  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), -4px);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
+  white-space: normal;
   width: max-content;
   z-index: 10;
 }
 
-.storeRegionControl:hover::after,
-.storeRegionControl:focus-within::after {
+.storeRegionControl[data-open="true"] .storeRegionTooltip {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), 0);
 }
 
 .storeRegionIcon {
@@ -240,10 +239,10 @@ select {
   display: inline-grid;
   font-size: 0.9rem;
   font-weight: 740;
-  grid-template-columns: minmax(0, 1fr) 18px;
+  grid-template-columns: minmax(0, max-content) 18px;
   height: 46px;
-  max-width: 188px;
-  min-width: 160px;
+  max-width: min(42vw, 260px);
+  min-width: 0;
   position: relative;
 }
 
@@ -275,9 +274,9 @@ select {
   cursor: pointer;
   display: inline-grid;
   flex: 0 0 auto;
-  grid-template-columns: minmax(0, 1fr) 14px;
+  grid-template-columns: minmax(0, 1fr) 18px;
   height: 46px;
-  min-width: 52px;
+  min-width: 56px;
   position: relative;
 }
 
@@ -303,15 +302,14 @@ select {
   border: 0;
   color: transparent;
   cursor: pointer;
-  grid-column: 1 / -1;
-  grid-row: 1;
   height: 100%;
+  inset: 0;
   outline: none;
+  position: absolute;
   width: 100%;
 }
 
-.regionSelect::after,
-.languageSelect::after {
+.regionSelect::after {
   align-self: center;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
@@ -321,6 +319,18 @@ select {
   grid-row: 1;
   justify-self: center;
   pointer-events: none;
+}
+
+.languageSelect::after {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(183, 200, 213, 0.78);
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-45%);
 }
 
 .infoButton {

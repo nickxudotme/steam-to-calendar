@@ -72,15 +72,19 @@ export function EventDetails({
           <X aria-hidden="true" className="miniIcon" />
         </button>
       </div>
-      <div className="detailTitleBlock">
+      <div className="detailTitleBlock" key={`${event.id}-title`}>
         <span>{detailKind(event, copy)}</span>
         <h2>{detailTitle(event)}</h2>
       </div>
       {shouldShowDetailHero ? (
-        <div className="detailHero gameHero hasSteamCliImage" style={heroStyle} />
+        <div
+          className="detailHero gameHero hasSteamCliImage"
+          key={`${event.id}-hero`}
+          style={heroStyle}
+        />
       ) : null}
 
-      <div className="detailBody">
+      <div className="detailBody" key={`${event.id}-body`}>
         <div
           className={event.type === "steam_deal" ? "detailMeta detailMetaCallout" : "detailMeta"}
         >

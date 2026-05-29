@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  dropHistoricalLowWhenCurrencyMismatch,
   mapSteamDealEvents,
   mapSteamHistorySaleEvents,
   mapSteamMajorEvents,
   mapWishlistReleaseEvents,
   parseExactSteamReleaseDate,
+  preferActiveStoreDealPrices,
 } from "../event-mapper";
 import type { SteamAppDetails } from "@/integrations/steam/client";
 
@@ -239,5 +241,74 @@ describe("event mapper", () => {
         saleStore: "Steam",
       },
     ]);
+  });
+
+  it("keeps active history ranges but prefers live regional Steam store prices", () => {
+    const [event] = mapSteamHistorySaleEvents(
+      {
+        appId: 3240220,
+        name: "Grand Theft Auto V Enhanced",
+        activeDiscountEnd: 1780938000,
+        sales: [
+          {
+            start: "2026-05-26",
+            start_unix: 1779729723,
+            store: "Steam",
+            price: "14.99 USD",
+            original: "29.99 USD",
+            discount: "-50%",
+            status: "进行中",
+          },
+        ],
+      },
+      { today: "2026-05-29" },
+    );
+
+    expect(
+      preferActiveStoreDealPrices([event], {
+        finalPrice: "HK$ 116.50",
+        originalPrice: "HK$ 233.00",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        dataSource: "steam_history",
+        finalPrice: "HK$ 116.50",
+        originalPrice: "HK$ 233.00",
+        saleStatus: "进行中",
+        startDate: "2026-05-26",
+      }),
+    ]);
+    expect(
+      preferActiveStoreDealPrices([event], {
+        finalPrice: "HK$ 116.50",
+        originalPrice: "HK$ 233.00",
+      })[0].description,
+    ).toContain("Price: HK$ 116.50 (was HK$ 233.00)");
+  });
+
+  it("drops historical lows when ITAD falls back to another currency", () => {
+    expect(
+      dropHistoricalLowWhenCurrencyMismatch(
+        {
+          id: "steam-app-3240220-watched-deal",
+          title: "-50% Grand Theft Auto V Enhanced",
+          description: "Price: HK$ 116.50 (was HK$ 233.00)",
+          startDate: "2026-05-29",
+          type: "steam_deal",
+          finalPrice: "HK$ 116.50",
+          originalPrice: "HK$ 233.00",
+          historicalLowDate: "2019-06-14",
+          historicalLowPrice: "8.80 USD",
+          historicalLowStore: "GamesPlanet US",
+        },
+        "HK",
+      ),
+    ).toEqual(
+      expect.not.objectContaining({
+        historicalLowDate: expect.any(String),
+        historicalLowPrice: expect.any(String),
+        historicalLowStore: expect.any(String),
+      }),
+    );
   });
 });

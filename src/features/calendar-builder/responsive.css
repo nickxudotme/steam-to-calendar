@@ -63,20 +63,60 @@
     box-shadow:
       0 0 0 0 rgba(199, 242, 75, 0.65),
       0 0 30px rgba(102, 192, 244, 0.52);
-    filter: saturate(1.35) brightness(1.22);
-    transform: scale(0.96);
+    filter: saturate(1.28) brightness(1.18);
+    transform: translateY(2px) scale(0.98);
   }
 
   58% {
     box-shadow:
-      0 0 0 8px rgba(199, 242, 75, 0),
+      0 0 0 7px rgba(199, 242, 75, 0),
       0 0 20px rgba(102, 192, 244, 0.22);
-    transform: scale(1.02);
+    transform: translateY(-1px) scale(1.01);
   }
 
   100% {
     filter: none;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes detailContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes calendarViewIn {
+  from {
+    filter: blur(1px);
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes surfaceGlow {
+  0% {
+    box-shadow:
+      0 10px 24px rgba(22, 134, 223, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  100% {
+    box-shadow:
+      0 14px 30px rgba(22, 134, 223, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26);
   }
 }
 
@@ -95,6 +135,10 @@
   .skeletonButton,
   .skeletonLine,
   .skeletonThumb,
+  .detailBody,
+  .detailHero,
+  .detailTitleBlock,
+  .calendarViewFrame,
   .undoToast {
     animation: none;
   }

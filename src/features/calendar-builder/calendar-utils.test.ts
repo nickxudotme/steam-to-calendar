@@ -7,6 +7,7 @@ import {
   detailTitle,
   selectedGameFromEvent,
   eventOccursOn,
+  shouldLoadDefaultDealPreview,
   storeRegionCurrencySymbol,
 } from "./calendar-utils";
 import type { PreviewEvent } from "./model";
@@ -57,6 +58,26 @@ describe("calendar builder utilities", () => {
     ];
 
     expect(chooseCalendarFocusDate(events, "2026-05-27")).toBe("2026-05-27");
+  });
+
+  it("does not reload default deals after the user clears tracked games", () => {
+    expect(
+      shouldLoadDefaultDealPreview({
+        hasConnectedWishlist: false,
+        hasEditedSelectedGames: false,
+        selectedGameCount: 0,
+        showMyGames: true,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldLoadDefaultDealPreview({
+        hasConnectedWishlist: false,
+        hasEditedSelectedGames: true,
+        selectedGameCount: 0,
+        showMyGames: true,
+      }),
+    ).toBe(false);
   });
 
   it("maps spanning events into weekly calendar segments", () => {

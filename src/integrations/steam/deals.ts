@@ -1,6 +1,8 @@
 import {
+  dropHistoricalLowWhenCurrencyMismatch,
   mapSteamDealEvents,
   type CalendarEvent,
+  preferActiveStoreDealPrices,
   type SteamDealItem,
 } from "@/domain/calendar/event-mapper";
 import { STEAM_CLI_CACHE_TTL } from "@/integrations/steam/cache-policy";
@@ -93,10 +95,15 @@ export async function fetchSteamDealEvents(
       fetchHistoricalLowMetadata(deal.appid, options),
     ]);
     const dealEvents = historyEvents.length
-      ? historyEvents
+      ? preferActiveStoreDealPrices(historyEvents, {
+          finalPrice: deal.final,
+          originalPrice: deal.original,
+        })
       : mapSteamDealEvents([deal], { today: options.today });
 
-    return dealEvents.map((event) => ({ ...event, ...historicalLow }));
+    return dealEvents.map((event) =>
+      dropHistoricalLowWhenCurrencyMismatch({ ...event, ...historicalLow }, options.cc),
+    );
   });
 
   return events.flat();

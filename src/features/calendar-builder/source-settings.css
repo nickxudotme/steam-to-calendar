@@ -113,12 +113,50 @@
   transform: rotate(225deg) translateY(-2px);
 }
 
+.eventOptionsCollapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-5px);
+  transition:
+    grid-template-rows 220ms var(--ease-soft),
+    opacity 160ms ease,
+    transform 220ms var(--ease-soft),
+    visibility 0s linear 220ms;
+  visibility: hidden;
+}
+
+.eventOptionsCollapse[data-expanded="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition:
+    grid-template-rows 240ms var(--ease-soft),
+    opacity 180ms ease 40ms,
+    transform 240ms var(--ease-soft),
+    visibility 0s;
+  visibility: visible;
+}
+
+.eventOptionsCollapseInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .eventOptionsPanel {
   border-top: 1px solid rgba(117, 151, 184, 0.16);
   display: grid;
   gap: 10px;
   margin-top: 12px;
   padding-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eventOptionsCollapse {
+    transition: none;
+  }
 }
 
 .switch {

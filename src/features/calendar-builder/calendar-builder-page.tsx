@@ -2,7 +2,7 @@
 
 import NextLink from "next/link";
 import { Info, Languages, Settings } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   calendarConfigToSearchParams,
   DEFAULT_CALENDAR_CONFIG,
@@ -20,6 +20,7 @@ import {
   formatCountLabel,
   isGameCalendarEvent,
   localIsoDate,
+  shouldLoadDefaultDealPreview,
   storeRegionCurrencySymbol,
 } from "./calendar-utils";
 import { CalendarLegend, CalendarListIcon, CalendarPreview } from "./calendar-preview";
@@ -51,12 +52,15 @@ import { SourceToggle } from "./source-toggle";
 import { WishlistConnector } from "./wishlist-connector";
 import { useWishlistPreview } from "./wishlist-preview-hooks";
 
+const TOOLTIP_VIEWPORT_PADDING = 16;
+
 export function CalendarBuilderPage() {
   // This component is intentionally the feature composition root: it owns app-wide UI state
   // and delegates rendering/details to smaller components and hooks.
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
   const [publicPreviewError, setPublicPreviewError] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [shouldShowPreviewLoading, setShouldShowPreviewLoading] = useState(false);
   const [showSteamEvents, setShowSteamEvents] = useState(true);
   const [showMyGames, setShowMyGames] = useState(true);
   const [steamEventCategories, setSteamEventCategories] = useState<SteamEventCategory[]>(
@@ -76,8 +80,12 @@ export function CalendarBuilderPage() {
   const [shouldSendDetectedStoreRegion, setShouldSendDetectedStoreRegion] = useState(false);
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [origin, setOrigin] = useState("");
+  const [isStoreTooltipOpen, setIsStoreTooltipOpen] = useState(false);
+  const [storeTooltipShiftX, setStoreTooltipShiftX] = useState(0);
   const userSelectedRegionRef = useRef(false);
   const publicPreviewRef = useRef<PreviewResponse>(PUBLIC_PREVIEW);
+  const storeRegionControlRef = useRef<HTMLDivElement | null>(null);
+  const storeTooltipRef = useRef<HTMLSpanElement | null>(null);
   const {
     activeResizeHandle,
     configResizeHandleProps,
@@ -87,8 +95,14 @@ export function CalendarBuilderPage() {
   } = useResizableWorkbench();
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
-  const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? "US";
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${storeRegionCurrencySymbol(effectiveStoreRegion, preview.events)})`;
+  const selectedOrDetectedStoreRegion =
+    storeRegion ?? detectedStoreRegion ?? preview.locale?.cc ?? "US";
+  const effectiveStoreRegion = selectedOrDetectedStoreRegion;
+  const effectiveStoreRegionCurrency = storeRegionCurrencySymbol(
+    effectiveStoreRegion,
+    preview.locale?.cc === effectiveStoreRegion ? preview.events : [],
+  );
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrency})`;
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
   const effectiveSteamLang = selectedLanguage.steamLang;
@@ -114,8 +128,12 @@ export function CalendarBuilderPage() {
         : [],
     [hasConnectedWishlist, selectedGamesState.selectedGames, showMyGames],
   );
-  const shouldLoadDefaultDeals =
-    showMyGames && !hasConnectedWishlist && !selectedGamesState.selectedGames.length;
+  const shouldLoadDefaultDeals = shouldLoadDefaultDealPreview({
+    hasConnectedWishlist,
+    hasEditedSelectedGames: selectedGamesState.hasEditedSelectedGames,
+    selectedGameCount: selectedGamesState.selectedGames.length,
+    showMyGames,
+  });
   // The same CalendarConfig drives previews, feed URLs, and ICS generation so the UI and
   // subscribed calendar never drift apart.
   const calendarConfig = useMemo<CalendarConfig>(
@@ -164,12 +182,19 @@ export function CalendarBuilderPage() {
   const sortedEvents = useMemo(() => {
     return [...calendarEvents].sort((a, b) => a.startDate.localeCompare(b.startDate));
   }, [calendarEvents]);
+  const selectedGameAppIds = useMemo(
+    () => new Set(selectedGamesState.selectedGames.map((game) => game.appId)),
+    [selectedGamesState.selectedGames],
+  );
   const visibleEvents = useMemo(() => {
     // Filters hide events in the UI without mutating the preview payload. Keeping the raw
     // preview intact makes it cheap to toggle sources back on.
     return sortedEvents.filter((event) => {
       if (event.type === "steam_deal" || event.type === "steam_preorder") {
-        return showMyGames;
+        return (
+          showMyGames &&
+          (hasConnectedWishlist || Boolean(event.appId && selectedGameAppIds.has(event.appId)))
+        );
       }
 
       if (event.type === "steam_major_event") {
@@ -179,9 +204,21 @@ export function CalendarBuilderPage() {
         );
       }
 
-      return showMyGames;
+      return (
+        showMyGames &&
+        (hasConnectedWishlist ||
+          !isGameCalendarEvent(event) ||
+          Boolean(event.appId && selectedGameAppIds.has(event.appId)))
+      );
     });
-  }, [showMyGames, showSteamEvents, sortedEvents, steamEventCategories]);
+  }, [
+    hasConnectedWishlist,
+    selectedGameAppIds,
+    showMyGames,
+    showSteamEvents,
+    sortedEvents,
+    steamEventCategories,
+  ]);
   const wishlistEventAppIds = useMemo(
     () =>
       new Set(
@@ -218,6 +255,48 @@ export function CalendarBuilderPage() {
   ]
     .filter(Boolean)
     .join(" · ");
+  const shouldShowManualPreviewLoading =
+    shouldShowPreviewLoading && !selectedGamesState.hasEditedSelectedGames;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setShouldShowPreviewLoading(isPreviewLoading),
+      isPreviewLoading ? 450 : 0,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isPreviewLoading]);
+
+  useEffect(() => {
+    if (!isStoreTooltipOpen) {
+      return;
+    }
+
+    function updateStoreTooltipPosition() {
+      const controlRect = storeRegionControlRef.current?.getBoundingClientRect();
+      const tooltipRect = storeTooltipRef.current?.getBoundingClientRect();
+
+      if (!controlRect || !tooltipRect) {
+        return;
+      }
+
+      const centeredLeft = controlRect.width / 2 - tooltipRect.width / 2;
+      const minLeft = TOOLTIP_VIEWPORT_PADDING - controlRect.left;
+      const maxLeft =
+        window.innerWidth - TOOLTIP_VIEWPORT_PADDING - controlRect.left - tooltipRect.width;
+      const clampedLeft = Math.min(Math.max(centeredLeft, minLeft), maxLeft);
+
+      setStoreTooltipShiftX(clampedLeft - centeredLeft);
+    }
+
+    const animationFrameId = window.requestAnimationFrame(updateStoreTooltipPosition);
+    window.addEventListener("resize", updateStoreTooltipPosition);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", updateStoreTooltipPosition);
+    };
+  }, [isStoreTooltipOpen, copy.storeNote, effectiveStoreRegionLabel]);
 
   const calendarSelection = useCalendarSelection({
     onOpenMobileDetails: () => {
@@ -306,6 +385,7 @@ export function CalendarBuilderPage() {
     // Once the user picks a region manually, later server/browser hints should not override it.
     userSelectedRegionRef.current = true;
     setStoreRegion(value);
+    setDetectedStoreRegion(value);
   }
 
   function handleLanguageChange(value: string) {
@@ -351,9 +431,22 @@ export function CalendarBuilderPage() {
           </NextLink>
           <div className="headerControls" aria-hidden={isMobileSettingsOpen || undefined}>
             <div className="localeControls">
-              <div className="storeRegionControl" data-tooltip={copy.storeNote}>
+              <div
+                className="storeRegionControl"
+                data-open={isStoreTooltipOpen}
+                ref={storeRegionControlRef}
+                style={{ "--tooltip-shift-x": `${storeTooltipShiftX}px` } as CSSProperties}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsStoreTooltipOpen(false);
+                  }
+                }}
+                onFocus={() => setIsStoreTooltipOpen(true)}
+                onPointerEnter={() => setIsStoreTooltipOpen(true)}
+                onPointerLeave={() => setIsStoreTooltipOpen(false)}
+              >
                 <span className="storeRegionIcon" aria-hidden="true">
-                  {storeRegionCurrencySymbol(effectiveStoreRegion, preview.events)}
+                  {effectiveStoreRegionCurrency}
                 </span>
                 <label className="regionSelect">
                   <span className="selectDisplay">
@@ -363,6 +456,7 @@ export function CalendarBuilderPage() {
                   </span>
                   <select
                     aria-label="Steam store region"
+                    aria-describedby={isStoreTooltipOpen ? "store-region-tooltip" : undefined}
                     value={effectiveStoreRegion}
                     onChange={(event) => handleStoreRegionChange(event.target.value)}
                   >
@@ -373,6 +467,14 @@ export function CalendarBuilderPage() {
                     ))}
                   </select>
                 </label>
+                <span
+                  className="storeRegionTooltip"
+                  id="store-region-tooltip"
+                  ref={storeTooltipRef}
+                  role="tooltip"
+                >
+                  {copy.storeNote}
+                </span>
               </div>
               <label className="languageSelect" title={selectedLanguage.label}>
                 <span className="languageIconOnly" aria-hidden="true">
@@ -470,86 +572,98 @@ export function CalendarBuilderPage() {
                         onChange={setShowSteamEvents}
                         onToggleOptions={() => setIsSteamEventOptionsOpen((isOpen) => !isOpen)}
                       >
-                        {isSteamEventOptionsOpen ? (
-                          <div className="eventOptionsPanel" id="steam-event-options">
-                            <div className="eventTypeGrid" aria-label="Steam event types">
-                              {STEAM_EVENT_CATEGORIES.map((category) => (
-                                <label className="eventTypeOption" key={category}>
-                                  <input
-                                    checked={steamEventCategories.includes(category)}
-                                    disabled={!showSteamEvents}
-                                    onChange={(event) =>
-                                      handleSteamEventCategoryChange(category, event.target.checked)
-                                    }
-                                    type="checkbox"
-                                  />
-                                  <span>
-                                    <strong>
-                                      {STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}
-                                    </strong>
-                                    <small>
-                                      {
-                                        STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category]
-                                          .description
+                        <div
+                          aria-hidden={!isSteamEventOptionsOpen}
+                          className="eventOptionsCollapse"
+                          data-expanded={isSteamEventOptionsOpen}
+                          id="steam-event-options"
+                        >
+                          <div className="eventOptionsCollapseInner">
+                            <div className="eventOptionsPanel">
+                              <div className="eventTypeGrid" aria-label="Steam event types">
+                                {STEAM_EVENT_CATEGORIES.map((category) => (
+                                  <label className="eventTypeOption" key={category}>
+                                    <input
+                                      checked={steamEventCategories.includes(category)}
+                                      disabled={!showSteamEvents || !isSteamEventOptionsOpen}
+                                      onChange={(event) =>
+                                        handleSteamEventCategoryChange(
+                                          category,
+                                          event.target.checked,
+                                        )
                                       }
-                                    </small>
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
+                                      type="checkbox"
+                                    />
+                                    <span>
+                                      <strong>
+                                        {STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category].title}
+                                      </strong>
+                                      <small>
+                                        {
+                                          STEAM_EVENT_CATEGORY_LABELS[uiLanguage][category]
+                                            .description
+                                        }
+                                      </small>
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
 
-                            <div className="rangeGrid" aria-label="Steam event range">
-                              <label className="rangeControl">
-                                <span className="rangeControlHeader">
-                                  <span>{copy.pastDays}</span>
-                                  <output>{eventPastDays}</output>
-                                </span>
-                                <input
-                                  aria-label={copy.pastDays}
-                                  type="range"
-                                  min="0"
-                                  max={EVENT_PAST_DAYS_MAX}
-                                  step="1"
-                                  value={eventPastDays}
-                                  onChange={(event) =>
-                                    setEventPastDays(
-                                      clampInteger(
-                                        event.target.value,
-                                        0,
-                                        EVENT_PAST_DAYS_MAX,
-                                        DEFAULT_CALENDAR_CONFIG.eventPastDays,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </label>
-                              <label className="rangeControl">
-                                <span className="rangeControlHeader">
-                                  <span>{copy.nextDays}</span>
-                                  <output>{eventFutureDays}</output>
-                                </span>
-                                <input
-                                  aria-label={copy.nextDays}
-                                  type="range"
-                                  min="1"
-                                  max={EVENT_FUTURE_DAYS_MAX}
-                                  step="1"
-                                  value={eventFutureDays}
-                                  onChange={(event) =>
-                                    setEventFutureDays(
-                                      clampInteger(
-                                        event.target.value,
-                                        1,
-                                        EVENT_FUTURE_DAYS_MAX,
-                                        DEFAULT_CALENDAR_CONFIG.eventFutureDays,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </label>
+                              <div className="rangeGrid" aria-label="Steam event range">
+                                <label className="rangeControl">
+                                  <span className="rangeControlHeader">
+                                    <span>{copy.pastDays}</span>
+                                    <output>{eventPastDays}</output>
+                                  </span>
+                                  <input
+                                    aria-label={copy.pastDays}
+                                    disabled={!isSteamEventOptionsOpen}
+                                    type="range"
+                                    min="0"
+                                    max={EVENT_PAST_DAYS_MAX}
+                                    step="1"
+                                    value={eventPastDays}
+                                    onChange={(event) =>
+                                      setEventPastDays(
+                                        clampInteger(
+                                          event.target.value,
+                                          0,
+                                          EVENT_PAST_DAYS_MAX,
+                                          DEFAULT_CALENDAR_CONFIG.eventPastDays,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <label className="rangeControl">
+                                  <span className="rangeControlHeader">
+                                    <span>{copy.nextDays}</span>
+                                    <output>{eventFutureDays}</output>
+                                  </span>
+                                  <input
+                                    aria-label={copy.nextDays}
+                                    disabled={!isSteamEventOptionsOpen}
+                                    type="range"
+                                    min="1"
+                                    max={EVENT_FUTURE_DAYS_MAX}
+                                    step="1"
+                                    value={eventFutureDays}
+                                    onChange={(event) =>
+                                      setEventFutureDays(
+                                        clampInteger(
+                                          event.target.value,
+                                          1,
+                                          EVENT_FUTURE_DAYS_MAX,
+                                          DEFAULT_CALENDAR_CONFIG.eventFutureDays,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </label>
+                              </div>
                             </div>
                           </div>
-                        ) : null}
+                        </div>
                       </SourceToggle>
                     </div>
                   </section>
@@ -598,7 +712,7 @@ export function CalendarBuilderPage() {
                         gameSearchError={gameSearch.error}
                         gameSearchResults={gameSearch.results}
                         hasConnectedWishlist={hasConnectedWishlist}
-                        isPreviewLoading={isPreviewLoading}
+                        isPreviewLoading={shouldShowManualPreviewLoading}
                         isSearchingGames={gameSearch.isSearching}
                         lastGameSearchQuery={gameSearch.lastQuery}
                         onAddGame={handleAddSelectedGame}
@@ -666,7 +780,7 @@ export function CalendarBuilderPage() {
             <CalendarPreview
               events={visibleEvents}
               initialFocusDate={calendarSelection.initialFocusDate}
-              isLoading={isPreviewLoading}
+              isLoading={shouldShowPreviewLoading}
               onSelectEvent={calendarSelection.selectEvent}
               recentlyAddedAppId={selectedGamesState.recentlyAddedAppId}
               selectedEventId={calendarSelection.selectedEvent?.id ?? null}

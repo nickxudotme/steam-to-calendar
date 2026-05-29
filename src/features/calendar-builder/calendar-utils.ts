@@ -18,6 +18,20 @@ export function isGameCalendarEvent(event: PreviewEvent) {
   );
 }
 
+export function shouldLoadDefaultDealPreview({
+  hasConnectedWishlist,
+  hasEditedSelectedGames,
+  selectedGameCount,
+  showMyGames,
+}: {
+  hasConnectedWishlist: boolean;
+  hasEditedSelectedGames: boolean;
+  selectedGameCount: number;
+  showMyGames: boolean;
+}) {
+  return showMyGames && !hasConnectedWishlist && !hasEditedSelectedGames && selectedGameCount === 0;
+}
+
 export function selectedGameFromEvent(event: PreviewEvent): SelectedGame {
   const discountPercent = event.discount?.match(/(\d+)/)?.[1];
 

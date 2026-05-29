@@ -84,6 +84,7 @@
 .primaryCalendarCta:focus-visible,
 .drawerCalendarCta:hover,
 .drawerCalendarCta:focus-visible {
+  animation: surfaceGlow 520ms var(--ease-soft) alternate infinite;
   filter: brightness(1.06);
   outline: none;
   transform: translateY(-1px);
@@ -107,6 +108,14 @@
 
 .calendarApp.isListView {
   grid-template-rows: 64px minmax(0, 1fr);
+}
+
+.calendarViewFrame {
+  animation: calendarViewIn 220ms var(--ease-out) both;
+  display: grid;
+  grid-row: 2 / -1;
+  grid-template-rows: subgrid;
+  min-height: 0;
 }
 
 .calendarHeader {
@@ -162,6 +171,11 @@
   font-weight: 720;
   height: 38px;
   justify-content: center;
+  transition:
+    background 150ms var(--ease-soft),
+    border-color 150ms var(--ease-soft),
+    color 150ms var(--ease-soft),
+    transform 140ms var(--ease-soft);
 }
 
 .todayButton {
@@ -172,6 +186,22 @@
 .todayButton:disabled {
   cursor: default;
   opacity: 0.48;
+}
+
+.todayButton:not(:disabled):hover,
+.todayButton:not(:disabled):focus-visible,
+.viewTabs button:hover,
+.viewTabs button:focus-visible {
+  background: rgba(22, 43, 62, 0.82);
+  border-color: rgba(102, 192, 244, 0.4);
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.todayButton:not(:disabled):active,
+.viewTabs button:active {
+  transform: translateY(0) scale(0.99);
 }
 
 .viewTabs {
@@ -477,6 +507,12 @@
   transform: translateY(-1px);
 }
 
+.eventListItem:hover img,
+.eventListItem:hover .eventListThumbFallback {
+  filter: brightness(1.06) saturate(1.06);
+  transform: scale(1.015);
+}
+
 .eventListItem.isSelected {
   border-color: rgba(102, 192, 244, 0.62);
   box-shadow:
@@ -521,6 +557,9 @@
   border-radius: 5px;
   display: block;
   object-fit: contain;
+  transition:
+    filter 180ms var(--ease-soft),
+    transform 180ms var(--ease-soft);
   width: 76px;
 }
 
@@ -621,6 +660,9 @@
   position: absolute;
   top: 14px;
   transform: translateX(-50%);
+  transition:
+    opacity 160ms var(--ease-soft),
+    transform 160ms var(--ease-soft);
   z-index: 20;
 }
 
