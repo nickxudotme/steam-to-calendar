@@ -30,6 +30,7 @@ import {
   useCalendarSelection,
   useGameSearch,
   usePublicPreviewLoader,
+  useResizableWorkbench,
   useSelectedGames,
 } from "./hooks";
 import { ManualGamePicker } from "./manual-game-picker";
@@ -77,6 +78,13 @@ export function CalendarBuilderPage() {
   const [origin, setOrigin] = useState("");
   const userSelectedRegionRef = useRef(false);
   const publicPreviewRef = useRef<PreviewResponse>(PUBLIC_PREVIEW);
+  const {
+    activeResizeHandle,
+    configResizeHandleProps,
+    detailResizeHandleProps,
+    workbenchRef,
+    workbenchStyle,
+  } = useResizableWorkbench();
   const selectedLanguage = languageOptionByCode(selectedLanguageCode);
   const copy = UI_COPY[uiLanguage];
   const effectiveStoreRegion = storeRegion ?? preview.locale?.cc ?? detectedStoreRegion ?? "US";
@@ -399,7 +407,14 @@ export function CalendarBuilderPage() {
           type="button"
         />
 
-        <section className="calendarWorkbench" aria-label={`${copy.productName} workbench`}>
+        <section
+          className={["calendarWorkbench", activeResizeHandle ? "isResizing" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          aria-label={`${copy.productName} workbench`}
+          ref={workbenchRef}
+          style={workbenchStyle}
+        >
           <aside
             className={["configPanel", isMobileSettingsOpen ? "isMobileOpen" : ""]
               .filter(Boolean)
@@ -645,6 +660,8 @@ export function CalendarBuilderPage() {
             </div>
           </aside>
 
+          <div {...configResizeHandleProps} />
+
           <div className="calendarExperience" id="calendar-preview">
             <CalendarPreview
               events={visibleEvents}
@@ -663,6 +680,8 @@ export function CalendarBuilderPage() {
               <span className="calendarNotice">{copy.footerNotice}</span>
             </div>
           </div>
+
+          <div {...detailResizeHandleProps} />
 
           <EventDetails
             event={calendarSelection.selectedEvent}

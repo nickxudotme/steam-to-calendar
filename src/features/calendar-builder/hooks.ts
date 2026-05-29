@@ -3,11 +3,16 @@
 import {
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type Dispatch,
   type FormEvent,
+  type KeyboardEvent,
   type MutableRefObject,
+  type PointerEvent,
+  type RefObject,
   type SetStateAction,
 } from "react";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
@@ -28,6 +33,97 @@ import {
 import { AUTO_TRACKED_GAME_COUNT, INTRO_STORAGE_KEY } from "./model";
 import type { GameSearchResult, SelectedGame } from "./model";
 import type { UiLanguage } from "./ui-copy";
+
+const WORKBENCH_LAYOUT_STORAGE_KEY = "steam-to-calendar-workbench-layout";
+const WORKBENCH_HANDLE_SPACE = 40;
+const WORKBENCH_COLUMN_LIMITS = {
+  config: { min: 240, max: 460, step: 24 },
+  detail: { min: 260, max: 480, step: 24 },
+  calendar: { min: 420 },
+} as const;
+
+type WorkbenchColumn = "config" | "detail";
+type WorkbenchLayout = Record<WorkbenchColumn, number>;
+type WorkbenchResizeHandleProps = {
+  "aria-label": string;
+  "aria-orientation": "vertical";
+  "aria-valuemax": number;
+  "aria-valuemin": number;
+  "aria-valuenow": number;
+  className: string;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
+  role: "separator";
+  tabIndex: number;
+};
+
+const DEFAULT_WORKBENCH_LAYOUT: WorkbenchLayout = {
+  config: 320,
+  detail: 360,
+};
+
+function clampWorkbenchColumn(value: number, column: WorkbenchColumn) {
+  const limits = WORKBENCH_COLUMN_LIMITS[column];
+
+  return Math.round(Math.min(Math.max(value, limits.min), limits.max));
+}
+
+function readStoredWorkbenchLayout(): WorkbenchLayout | null {
+  try {
+    const storedValue = window.localStorage.getItem(WORKBENCH_LAYOUT_STORAGE_KEY);
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(storedValue) as Partial<WorkbenchLayout>;
+
+    if (typeof parsedValue.config !== "number" || typeof parsedValue.detail !== "number") {
+      return null;
+    }
+
+    return {
+      config: clampWorkbenchColumn(parsedValue.config, "config"),
+      detail: clampWorkbenchColumn(parsedValue.detail, "detail"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredWorkbenchLayout(layout: WorkbenchLayout) {
+  try {
+    window.localStorage.setItem(WORKBENCH_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+  } catch {
+    // Persisting the layout is a convenience, so private browsing or quota failures can be ignored.
+  }
+}
+
+function fitWorkbenchLayoutToWidth(layout: WorkbenchLayout, totalWidth: number): WorkbenchLayout {
+  const availableSideWidth =
+    totalWidth - WORKBENCH_COLUMN_LIMITS.calendar.min - WORKBENCH_HANDLE_SPACE;
+
+  if (
+    availableSideWidth <=
+    WORKBENCH_COLUMN_LIMITS.config.min + WORKBENCH_COLUMN_LIMITS.detail.min
+  ) {
+    return {
+      config: WORKBENCH_COLUMN_LIMITS.config.min,
+      detail: WORKBENCH_COLUMN_LIMITS.detail.min,
+    };
+  }
+
+  const config = clampWorkbenchColumn(layout.config, "config");
+  const detailMax = Math.min(
+    WORKBENCH_COLUMN_LIMITS.detail.max,
+    availableSideWidth - WORKBENCH_COLUMN_LIMITS.config.min,
+  );
+  const detail = Math.round(
+    Math.min(Math.max(layout.detail, WORKBENCH_COLUMN_LIMITS.detail.min), detailMax),
+  );
+
+  return { config, detail };
+}
 
 export function useBrowserDefaults({
   setDetectedStoreRegion,
@@ -82,6 +178,170 @@ export function useBrowserDefaults({
     setTodayIso,
     setUiLanguage,
   ]);
+}
+
+export function useResizableWorkbench(): {
+  activeResizeHandle: WorkbenchColumn | null;
+  configResizeHandleProps: WorkbenchResizeHandleProps;
+  detailResizeHandleProps: WorkbenchResizeHandleProps;
+  workbenchRef: RefObject<HTMLElement | null>;
+  workbenchStyle: CSSProperties & {
+    "--config-panel-width": string;
+    "--detail-panel-width": string;
+  };
+} {
+  const workbenchRef = useRef<HTMLElement | null>(null);
+  const [layout, setLayout] = useState<WorkbenchLayout>(DEFAULT_WORKBENCH_LAYOUT);
+  const [activeResizeHandle, setActiveResizeHandle] = useState<WorkbenchColumn | null>(null);
+
+  useEffect(() => {
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const storedLayout = readStoredWorkbenchLayout();
+
+      if (storedLayout) {
+        const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
+        setLayout(totalWidth ? fitWorkbenchLayoutToWidth(storedLayout, totalWidth) : storedLayout);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  const updateLayout = useCallback(
+    (updater: (currentLayout: WorkbenchLayout) => WorkbenchLayout) => {
+      setLayout((currentLayout) => {
+        const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
+        const nextLayout = totalWidth
+          ? fitWorkbenchLayoutToWidth(updater(currentLayout), totalWidth)
+          : updater(currentLayout);
+
+        writeStoredWorkbenchLayout(nextLayout);
+
+        return nextLayout;
+      });
+    },
+    [],
+  );
+
+  const resizeColumn = useCallback(
+    (column: WorkbenchColumn, nextValue: number) => {
+      updateLayout((currentLayout) => {
+        const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
+        const otherColumn = column === "config" ? "detail" : "config";
+        const availableForColumn = totalWidth
+          ? totalWidth -
+            currentLayout[otherColumn] -
+            WORKBENCH_COLUMN_LIMITS.calendar.min -
+            WORKBENCH_HANDLE_SPACE
+          : WORKBENCH_COLUMN_LIMITS[column].max;
+        const columnMax = Math.min(WORKBENCH_COLUMN_LIMITS[column].max, availableForColumn);
+
+        return {
+          ...currentLayout,
+          [column]: Math.round(
+            Math.min(
+              Math.max(nextValue, WORKBENCH_COLUMN_LIMITS[column].min),
+              Math.max(WORKBENCH_COLUMN_LIMITS[column].min, columnMax),
+            ),
+          ),
+        };
+      });
+    },
+    [updateLayout],
+  );
+
+  const createResizeHandleProps = useCallback(
+    (column: WorkbenchColumn) => {
+      const limits = WORKBENCH_COLUMN_LIMITS[column];
+      const label = column === "config" ? "Resize build panel" : "Resize details panel";
+
+      return {
+        "aria-label": label,
+        "aria-orientation": "vertical" as const,
+        "aria-valuemax": limits.max,
+        "aria-valuemin": limits.min,
+        "aria-valuenow": layout[column],
+        className: [
+          "workbenchResizeHandle",
+          `workbenchResizeHandle-${column}`,
+          activeResizeHandle === column ? "isDragging" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+            return;
+          }
+
+          event.preventDefault();
+
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          const detailDirection = column === "detail" ? -direction : direction;
+
+          resizeColumn(
+            column,
+            layout[column] + detailDirection * WORKBENCH_COLUMN_LIMITS[column].step,
+          );
+        },
+        onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+          if (event.button !== 0) {
+            return;
+          }
+
+          const workbench = workbenchRef.current;
+
+          if (!workbench) {
+            return;
+          }
+
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setActiveResizeHandle(column);
+
+          const handlePointerMove = (moveEvent: globalThis.PointerEvent) => {
+            const bounds = workbench.getBoundingClientRect();
+            const pointerX = moveEvent.clientX - bounds.left;
+            const nextValue = column === "config" ? pointerX : bounds.width - pointerX;
+
+            resizeColumn(column, nextValue);
+          };
+          const handlePointerUp = () => {
+            setActiveResizeHandle(null);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
+          };
+
+          window.addEventListener("pointermove", handlePointerMove);
+          window.addEventListener("pointerup", handlePointerUp);
+          window.addEventListener("pointercancel", handlePointerUp);
+        },
+        role: "separator" as const,
+        tabIndex: 0,
+      };
+    },
+    [activeResizeHandle, layout, resizeColumn],
+  );
+
+  const configResizeHandleProps = useMemo(
+    () => createResizeHandleProps("config"),
+    [createResizeHandleProps],
+  );
+  const detailResizeHandleProps = useMemo(
+    () => createResizeHandleProps("detail"),
+    [createResizeHandleProps],
+  );
+
+  return {
+    activeResizeHandle,
+    configResizeHandleProps,
+    detailResizeHandleProps,
+    workbenchRef,
+    workbenchStyle: {
+      "--config-panel-width": `${layout.config}px`,
+      "--detail-panel-width": `${layout.detail}px`,
+    },
+  };
 }
 
 export function usePublicPreviewLoader({
