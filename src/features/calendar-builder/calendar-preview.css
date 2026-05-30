@@ -69,47 +69,44 @@
 }
 
 .calendarIconTooltip {
+  align-items: center;
+  animation: calendarIconTooltipIn 140ms ease both;
   background: rgba(5, 12, 20, 0.98);
   border: 1px solid rgba(117, 151, 184, 0.28);
   border-radius: 6px;
+  box-sizing: border-box;
   bottom: calc(100% + 10px);
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
   color: #d9e8f3;
+  display: inline-flex;
   font-size: 0.76rem;
   font-weight: 680;
-  left: 50%;
+  left: var(--tooltip-left);
   line-height: 1.35;
-  opacity: 0;
+  min-height: 34px;
   padding: 8px 10px;
   pointer-events: none;
-  position: absolute;
-  transform: translate(-50%, 4px);
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
+  position: fixed;
+  top: var(--tooltip-top);
+  transform: translate(-50%, -100%);
   white-space: nowrap;
-  z-index: 30;
-}
-
-.calendarIconLinks a:hover .calendarIconTooltip,
-.calendarIconLinks a:focus-visible .calendarIconTooltip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.calendarIconLinks a:last-child .calendarIconTooltip {
-  left: auto;
-  right: 0;
-  transform: translateY(4px);
-}
-
-.calendarIconLinks a:last-child:hover .calendarIconTooltip,
-.calendarIconLinks a:last-child:focus-visible .calendarIconTooltip {
-  transform: translateY(0);
+  z-index: 1000;
 }
 
 .calendarExperience .calendarFooter {
   display: none;
+}
+
+@keyframes calendarIconTooltipIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
 }
 
 .primaryCalendarCta,

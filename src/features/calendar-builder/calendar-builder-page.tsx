@@ -2,6 +2,7 @@
 
 import NextLink from "next/link";
 import { Coffee, Info, Languages, Settings } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
@@ -75,6 +76,12 @@ export function CalendarBuilderPage({
   const [origin, setOrigin] = useState("");
   const [isStoreTooltipOpen, setIsStoreTooltipOpen] = useState(false);
   const [storeTooltipShiftX, setStoreTooltipShiftX] = useState(0);
+  const [projectTooltip, setProjectTooltip] = useState<{
+    id: string;
+    label: string;
+    left: number;
+    top: number;
+  } | null>(null);
   const userSelectedRegionRef = useRef(false);
   const publicPreviewRef = useRef<PreviewResponse>(PUBLIC_PREVIEW);
   const storeRegionControlRef = useRef<HTMLDivElement | null>(null);
@@ -397,6 +404,18 @@ export function CalendarBuilderPage({
     } catch {
       // localStorage may be unavailable in private browsing; closing should still work.
     }
+  }
+
+  function showProjectTooltip(id: string, label: string, target: HTMLElement) {
+    const rect = target.getBoundingClientRect();
+    const nextTooltip = {
+      id,
+      label,
+      left: rect.left + rect.width / 2,
+      top: rect.top - 10,
+    };
+
+    setProjectTooltip(nextTooltip);
   }
 
   return (
@@ -788,11 +807,24 @@ export function CalendarBuilderPage({
                   href={GITHUB_REPOSITORY_URL}
                   rel="noreferrer"
                   target="_blank"
+                  onBlur={() => setProjectTooltip(null)}
+                  onFocus={(event) =>
+                    showProjectTooltip(
+                      "github-link-tooltip",
+                      copy.githubLinkLabel,
+                      event.currentTarget,
+                    )
+                  }
+                  onPointerEnter={(event) =>
+                    showProjectTooltip(
+                      "github-link-tooltip",
+                      copy.githubLinkLabel,
+                      event.currentTarget,
+                    )
+                  }
+                  onPointerLeave={() => setProjectTooltip(null)}
                 >
                   <GitHubMark />
-                  <span className="calendarIconTooltip" id="github-link-tooltip" role="tooltip">
-                    {copy.githubLinkLabel}
-                  </span>
                 </a>
                 <a
                   aria-describedby="donate-link-tooltip"
@@ -800,11 +832,24 @@ export function CalendarBuilderPage({
                   href={DONATE_URL}
                   rel="noreferrer"
                   target="_blank"
+                  onBlur={() => setProjectTooltip(null)}
+                  onFocus={(event) =>
+                    showProjectTooltip(
+                      "donate-link-tooltip",
+                      copy.donateLinkLabel,
+                      event.currentTarget,
+                    )
+                  }
+                  onPointerEnter={(event) =>
+                    showProjectTooltip(
+                      "donate-link-tooltip",
+                      copy.donateLinkLabel,
+                      event.currentTarget,
+                    )
+                  }
+                  onPointerLeave={() => setProjectTooltip(null)}
                 >
                   <Coffee aria-hidden="true" />
-                  <span className="calendarIconTooltip" id="donate-link-tooltip" role="tooltip">
-                    {copy.donateLinkLabel}
-                  </span>
                 </a>
               </nav>
             </div>
@@ -850,6 +895,24 @@ export function CalendarBuilderPage({
           </button>
         </nav>
       </div>
+      {projectTooltip
+        ? createPortal(
+            <span
+              className="calendarIconTooltip"
+              id={projectTooltip.id}
+              role="tooltip"
+              style={
+                {
+                  "--tooltip-left": `${projectTooltip.left}px`,
+                  "--tooltip-top": `${projectTooltip.top}px`,
+                } as CSSProperties
+              }
+            >
+              {projectTooltip.label}
+            </span>,
+            document.body,
+          )
+        : null}
     </main>
   );
 }
