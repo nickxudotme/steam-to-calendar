@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import type { ReactNode } from "react";
 import { languageCodeFromAcceptLanguage } from "@/features/calendar-builder/browser-locale";
 import "@/features/calendar-builder/styles.css";
@@ -21,6 +22,45 @@ export const metadata: Metadata = {
   },
 };
 
+const workbenchLayoutScript = `
+(() => {
+  try {
+    const storedValue = window.localStorage.getItem("steam-to-calendar-workbench-layout");
+    if (!storedValue) {
+      return;
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+    if (typeof parsedValue.config !== "number" || typeof parsedValue.detail !== "number") {
+      return;
+    }
+
+    const clamp = (value, min, max) => Math.round(Math.min(Math.max(value, min), max));
+    const viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+    const availableSideWidth = viewportWidth ? viewportWidth - 420 - 40 : Infinity;
+    let config = clamp(parsedValue.config, 240, 460);
+    let detail = clamp(parsedValue.detail, 260, 480);
+
+    if (availableSideWidth <= 500) {
+      config = 240;
+      detail = 260;
+    } else if (config + detail > availableSideWidth) {
+      let excess = config + detail - availableSideWidth;
+      const detailShrink = Math.min(excess, detail - 260);
+      detail -= detailShrink;
+      excess -= detailShrink;
+      if (excess > 0) {
+        config -= Math.min(excess, config - 240);
+      }
+    }
+
+    document.documentElement.style.setProperty("--config-panel-width", config + "px");
+    document.documentElement.style.setProperty("--detail-panel-width", detail + "px");
+  } catch {
+  }
+})();
+`;
+
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   const requestHeaders = await headers();
   const initialLanguage = languageCodeFromAcceptLanguage(requestHeaders.get("accept-language"));
@@ -28,6 +68,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang={initialLanguage.uiLang}>
       <body>
+        <Script
+          id="workbench-layout-vars"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: workbenchLayoutScript }}
+        />
         {children}
         <Analytics />
         <SpeedInsights />

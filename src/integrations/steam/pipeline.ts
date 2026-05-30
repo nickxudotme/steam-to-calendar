@@ -10,6 +10,7 @@ import {
 } from "@/integrations/steam/client";
 import { STEAM_CLI_CACHE_TTL } from "@/integrations/steam/cache-policy";
 import { runSteamCliJson } from "@/integrations/steam/cli";
+import { mapSettledWithConcurrency } from "@/integrations/steam/concurrency";
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -55,7 +56,7 @@ export async function fetchWishlistCalendarData(
   ]);
   const limitedGames = wishlist.games.slice(0, options.appLimit ?? DEFAULT_APP_LIMIT);
   // App details are best-effort enrichment; one failed app should not break the whole wishlist.
-  const appDetails = await mapWithConcurrency(
+  const appDetails = await mapSettledWithConcurrency(
     limitedGames,
     options.concurrency ?? DEFAULT_CONCURRENCY,
     async (game) => fetchSteamAppDetails(game.appId, options),
@@ -281,31 +282,4 @@ function steamCliWishlistGameMetadata(
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
-async function mapWithConcurrency<T, U>(
-  items: T[],
-  concurrency: number,
-  mapper: (item: T) => Promise<U>,
-): Promise<PromiseSettledResult<U>[]> {
-  // Small concurrency keeps Steam calls polite and avoids local CLI bursts, while preserving
-  // result order so skipped IDs line up with the original wishlist.
-  const results: PromiseSettledResult<U>[] = new Array(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-
-      try {
-        results[currentIndex] = { status: "fulfilled", value: await mapper(items[currentIndex]) };
-      } catch (reason) {
-        results[currentIndex] = { status: "rejected", reason };
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
-  return results;
 }

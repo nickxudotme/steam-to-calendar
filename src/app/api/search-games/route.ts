@@ -1,6 +1,6 @@
-import { SteamWishlistError } from "@/integrations/steam/client";
 import { normalizeCc, steamLocaleFromRequest } from "@/integrations/steam/locale";
 import { searchSteamGames } from "@/integrations/steam/search";
+import { steamApiErrorResponse } from "@/server/steam-api-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,10 +15,6 @@ export async function GET(request: Request) {
 
     return Response.json({ results });
   } catch (error) {
-    const code = error instanceof SteamWishlistError ? error.code : "unknown_error";
-    const message =
-      error instanceof SteamWishlistError ? error.message : "Could not search Steam games.";
-
-    return Response.json({ code, message }, { status: 502 });
+    return steamApiErrorResponse(error, "Could not search Steam games.");
   }
 }

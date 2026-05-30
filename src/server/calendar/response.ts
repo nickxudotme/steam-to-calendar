@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { calendarConfigFromRequest, DEFAULT_CALENDAR_CONFIG } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import { calendarContentType, generateCalendar } from "@/domain/calendar/ics";
@@ -53,14 +54,25 @@ export async function buildCalendarResponse(
         ? `${error.code}: ${error.message}`
         : "unknown_error: Could not generate Steam wishlist calendar.";
 
-    return new Response(message, {
-      status: error instanceof SteamWishlistError && error.code === "invalid_steam_id" ? 400 : 502,
-      headers: {
-        "content-type": "text/plain; charset=utf-8",
-        "cache-control": "no-store",
-      },
-    });
+    return calendarErrorResponse(error, message);
   }
+}
+
+export function buildCalendarHeadResponse(steamInput: string): Response {
+  return new Response(null, {
+    status: 200,
+    headers: calendarHeaders(steamInput || STEAM_EVENTS_CALENDAR_ID),
+  });
+}
+
+export function calendarErrorResponse(error: unknown, message: string): Response {
+  return new Response(message, {
+    status: error instanceof SteamWishlistError && error.code === "invalid_steam_id" ? 400 : 502,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
 }
 
 function defaultSteamLocale(): SteamLocaleOptions {
@@ -75,7 +87,7 @@ export function calendarHeaders(steamId64: string): HeadersInit {
   const filename =
     steamId64 === STEAM_EVENTS_CALENDAR_ID
       ? "steam-to-calendar.ics"
-      : `steam-to-calendar-wishlist-${steamId64}.ics`;
+      : "steam-to-calendar-wishlist.ics";
 
   return {
     "content-type": calendarContentType(),
@@ -87,26 +99,38 @@ export function calendarHeaders(steamId64: string): HeadersInit {
 export function logCalendarRequest(
   request: Request,
   response: Response,
-  details: { route: string; steamId64?: string },
+  details: { durationMs?: number; route: string; steamId64?: string },
 ) {
   const contentLength = response.headers.get("content-length") ?? "chunked";
   const contentType = response.headers.get("content-type") ?? "unknown";
   const userAgent = request.headers.get("user-agent") ?? "unknown";
   const accept = request.headers.get("accept") ?? "unknown";
+  const url = new URL(request.url);
 
-  console.log(
-    [
-      "[calendar-request]",
-      new Date().toISOString(),
-      `route=${details.route}`,
-      `method=${request.method}`,
-      `status=${response.status}`,
-      `steamId64=${details.steamId64 ?? "unknown"}`,
-      `url=${request.url}`,
-      `contentType=${contentType}`,
-      `contentLength=${contentLength}`,
-      `accept=${JSON.stringify(accept)}`,
-      `userAgent=${JSON.stringify(userAgent)}`,
-    ].join(" "),
-  );
+  console.log("[calendar-request]", {
+    accept,
+    contentLength,
+    contentType,
+    durationMs: details.durationMs,
+    method: request.method,
+    path: redactedPath(url.pathname, details.steamId64),
+    queryKeys: [...url.searchParams.keys()].sort(),
+    route: details.route,
+    status: response.status,
+    steamIdHash: details.steamId64 ? hashLogValue(details.steamId64) : "unknown",
+    timestamp: new Date().toISOString(),
+    userAgent,
+  });
+}
+
+function hashLogValue(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 12);
+}
+
+function redactedPath(pathname: string, steamId64: string | undefined): string {
+  if (!steamId64) {
+    return pathname;
+  }
+
+  return pathname.replace(steamId64, "[steam-id]");
 }

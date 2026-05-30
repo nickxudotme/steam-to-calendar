@@ -3,6 +3,8 @@ import {
   buildContinuousCalendarWeeks,
   buildEventWeekRange,
   chooseCalendarFocusDate,
+  chooseCurrentGameEvent,
+  chooseEventFocusDate,
   detailFacts,
   detailTitle,
   selectedGameFromEvent,
@@ -59,6 +61,77 @@ describe("calendar builder utilities", () => {
     ];
 
     expect(chooseCalendarFocusDate(events, "2026-05-27")).toBe("2026-05-27");
+  });
+
+  it("selects the current game event before older events", () => {
+    const events = [
+      previewEvent({
+        appId: "620",
+        id: "past-deal",
+        startDate: "2026-04-10",
+        title: "-20% Portal 2",
+        type: "steam_deal",
+      }),
+      previewEvent({
+        appId: "620",
+        id: "upcoming-deal",
+        startDate: "2026-06-10",
+        title: "-80% Portal 2",
+        type: "steam_deal",
+      }),
+      previewEvent({
+        appId: "264710",
+        id: "other-game",
+        startDate: "2026-05-31",
+        title: "-50% Subnautica",
+        type: "steam_deal",
+      }),
+    ];
+
+    expect(chooseCurrentGameEvent(events, "620", "2026-05-30")?.id).toBe("upcoming-deal");
+  });
+
+  it("selects an active game event before a future event", () => {
+    const events = [
+      previewEvent({
+        appId: "620",
+        endDate: "2026-06-03",
+        id: "active-deal",
+        startDate: "2026-05-28",
+        title: "-20% Portal 2",
+        type: "steam_deal",
+      }),
+      previewEvent({
+        appId: "620",
+        id: "future-deal",
+        startDate: "2026-06-10",
+        title: "-80% Portal 2",
+        type: "steam_deal",
+      }),
+    ];
+
+    expect(chooseCurrentGameEvent(events, "620", "2026-05-30")?.id).toBe("active-deal");
+  });
+
+  it("focuses selected past events on their actual start date", () => {
+    expect(
+      chooseEventFocusDate(
+        previewEvent({
+          endDate: "2026-05-01",
+          startDate: "2026-04-30",
+        }),
+        "2026-05-30",
+      ),
+    ).toBe("2026-04-30");
+    expect(
+      chooseEventFocusDate(
+        previewEvent({
+          endDate: "2026-06-03",
+          startDate: "2026-05-28",
+        }),
+        "2026-05-30",
+      ),
+    ).toBe("2026-05-30");
   });
 
   it("does not reload default deals after the user clears tracked games", () => {

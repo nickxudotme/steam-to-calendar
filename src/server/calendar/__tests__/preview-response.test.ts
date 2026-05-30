@@ -10,6 +10,7 @@ const emptyBundle: SteamCalendarEventBundle = {
   events: [],
   stats: {
     priceHistoryEvents: 0,
+    skippedWatchedAppIds: 0,
     steamMajorEvents: 0,
     storeFallbackEvents: 0,
     watchedGameEvents: 0,
@@ -23,6 +24,7 @@ describe("preview response builders", () => {
         ...emptyBundle,
         stats: {
           priceHistoryEvents: 1,
+          skippedWatchedAppIds: 5,
           steamMajorEvents: 2,
           storeFallbackEvents: 3,
           watchedGameEvents: 4,
@@ -44,6 +46,7 @@ describe("preview response builders", () => {
         wishlistReleaseEvents: 4,
         steamMajorEvents: 2,
         priceHistoryEvents: 1,
+        skippedWatchedAppIds: 5,
         storeFallbackEvents: 3,
       },
       events: [],

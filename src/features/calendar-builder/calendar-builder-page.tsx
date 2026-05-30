@@ -1,26 +1,18 @@
 "use client";
 
 import NextLink from "next/link";
-import { Info, Languages, Settings } from "lucide-react";
+import { Coffee, Info, Languages, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import {
-  calendarConfigToSearchParams,
-  DEFAULT_CALENDAR_CONFIG,
-  STEAM_EVENT_CATEGORIES,
-  type CalendarConfig,
-  type SteamEventCategory,
-} from "@/domain/calendar/config";
+import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
 import { languageOptionByCode } from "./browser-locale";
 import {
   calendarLegendItems,
   clampInteger,
-  compareSteamEventCategories,
   formatCountLabel,
   isGameCalendarEvent,
   localIsoDate,
-  shouldLoadDefaultDealPreview,
   storeRegionCurrencySymbol,
 } from "./calendar-utils";
 import { CalendarLegend, CalendarListIcon, CalendarPreview } from "./calendar-preview";
@@ -28,16 +20,18 @@ import { EventDetails } from "./event-details";
 import { GameSearchPreviewCard } from "./game-search-preview-card";
 import {
   useBrowserDefaults,
+  useCalendarConfig,
   useCalendarSelection,
+  useCalendarSourceState,
   useGameSearch,
   usePublicPreviewLoader,
   useResizableWorkbench,
   useSelectedGames,
+  useSubscriptionUrls,
 } from "./hooks";
 import { ManualGamePicker } from "./manual-game-picker";
 import { LANGUAGE_OPTIONS, STEAM_EVENT_CATEGORY_LABELS, UI_COPY, type UiLanguage } from "./ui-copy";
 import {
-  AUTO_TRACKED_GAME_COUNT,
   EVENT_FUTURE_DAYS_MAX,
   EVENT_PAST_DAYS_MAX,
   INTRO_STORAGE_KEY,
@@ -53,6 +47,8 @@ import { WishlistConnector } from "./wishlist-connector";
 import { useWishlistPreview } from "./wishlist-preview-hooks";
 
 const TOOLTIP_VIEWPORT_PADDING = 16;
+const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar";
+const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
 
 export function CalendarBuilderPage({
   initialLanguageCode = "en",
@@ -65,14 +61,6 @@ export function CalendarBuilderPage({
   const [publicPreviewError, setPublicPreviewError] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [shouldShowPreviewLoading, setShouldShowPreviewLoading] = useState(false);
-  const [showSteamEvents, setShowSteamEvents] = useState(true);
-  const [showMyGames, setShowMyGames] = useState(true);
-  const [steamEventCategories, setSteamEventCategories] = useState<SteamEventCategory[]>(
-    DEFAULT_CALENDAR_CONFIG.steamEventCategories,
-  );
-  const [isSteamEventOptionsOpen, setIsSteamEventOptionsOpen] = useState(false);
-  const [eventPastDays, setEventPastDays] = useState(DEFAULT_CALENDAR_CONFIG.eventPastDays);
-  const [eventFutureDays, setEventFutureDays] = useState(DEFAULT_CALENDAR_CONFIG.eventFutureDays);
   const [isIntroOpen, setIsIntroOpen] = useState(false);
   const [storeRegion, setStoreRegion] = useState<string | null>(null);
   const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
@@ -96,6 +84,7 @@ export function CalendarBuilderPage({
     configResizeHandleProps,
     detailResizeHandleProps,
     hasRestoredWorkbenchLayout,
+    hasUserResizedWorkbench,
     workbenchRef,
     workbenchStyle,
   } = useResizableWorkbench();
@@ -119,6 +108,20 @@ export function CalendarBuilderPage({
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
+  const {
+    eventFutureDays,
+    eventPastDays,
+    handleSteamEventCategoryChange,
+    isSteamEventOptionsOpen,
+    setEventFutureDays,
+    setEventPastDays,
+    setIsSteamEventOptionsOpen,
+    setShowMyGames,
+    setShowSteamEvents,
+    showMyGames,
+    showSteamEvents,
+    steamEventCategories,
+  } = useCalendarSourceState();
   const gameSearch = useGameSearch({
     hasConnectedWishlist,
     locale: {
@@ -132,61 +135,25 @@ export function CalendarBuilderPage({
     preview,
     showMyGames,
   });
-  const watchedAppIds = useMemo(
-    () =>
-      showMyGames && !hasConnectedWishlist
-        ? selectedGamesState.selectedGames.map((game) => game.appId)
-        : [],
-    [hasConnectedWishlist, selectedGamesState.selectedGames, showMyGames],
-  );
-  const shouldLoadDefaultDeals = shouldLoadDefaultDealPreview({
+  const { calendarConfig } = useCalendarConfig({
+    eventFutureDays,
+    eventPastDays,
     hasConnectedWishlist,
     hasEditedSelectedGames: selectedGamesState.hasEditedSelectedGames,
-    selectedGameCount: selectedGamesState.selectedGames.length,
+    selectedGames: selectedGamesState.selectedGames,
     showMyGames,
+    showSteamEvents,
+    steamEventCategories,
   });
-  // The same CalendarConfig drives previews, feed URLs, and ICS generation so the UI and
-  // subscribed calendar never drift apart.
-  const calendarConfig = useMemo<CalendarConfig>(
-    () => ({
-      includeDeals: shouldLoadDefaultDeals,
-      includePriceHistory: DEFAULT_CALENDAR_CONFIG.includePriceHistory,
-      includeSteamEvents: showSteamEvents,
-      includeWishlist: showMyGames,
-      watchedAppIds,
-      steamEventCategories,
-      dealCount: AUTO_TRACKED_GAME_COUNT,
-      eventPastDays,
-      eventFutureDays,
-    }),
-    [
-      eventFutureDays,
-      eventPastDays,
-      shouldLoadDefaultDeals,
-      showMyGames,
-      showSteamEvents,
-      steamEventCategories,
-      watchedAppIds,
-    ],
-  );
 
-  const calendarQuery = useMemo(() => {
-    const params = calendarConfigToSearchParams(calendarConfig);
-
-    params.set("cc", effectiveStoreRegion);
-    params.set("lang", effectiveSteamLang);
-    params.set("uiLang", effectiveUiLang);
-
-    return params.toString();
-  }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang]);
-
-  const webcalUrl = useMemo(() => {
-    const calendarUrl = origin
-      ? `${origin}${preview.calendarPath}?${calendarQuery}`
-      : `${preview.calendarPath}?${calendarQuery}`;
-
-    return calendarUrl.replace(/^https?:\/\//, "webcal://");
-  }, [calendarQuery, origin, preview]);
+  const { webcalUrl } = useSubscriptionUrls({
+    calendarConfig,
+    effectiveSteamLang,
+    effectiveStoreRegion,
+    effectiveUiLang,
+    origin,
+    preview,
+  });
 
   const calendarEvents = preview.events;
 
@@ -396,6 +363,7 @@ export function CalendarBuilderPage({
     const didSelectGameEvent = selectedGamesState.selectGame(
       appId,
       sortedEvents,
+      todayIso,
       calendarSelection.selectEventFromGame,
     );
 
@@ -415,14 +383,6 @@ export function CalendarBuilderPage({
     const language = languageOptionByCode(value);
     setSelectedLanguageCode(language.code);
     setUiLanguage(language.uiLanguage);
-  }
-
-  function handleSteamEventCategoryChange(category: SteamEventCategory, checked: boolean) {
-    setSteamEventCategories((categories) =>
-      checked
-        ? [...categories, category].sort(compareSteamEventCategories)
-        : categories.filter((currentCategory) => currentCategory !== category),
-    );
   }
 
   function handleCloseMobileOverlays() {
@@ -537,6 +497,7 @@ export function CalendarBuilderPage({
             "calendarWorkbench",
             activeResizeHandle ? "isResizing" : "",
             hasRestoredWorkbenchLayout ? "hasRestoredLayout" : "",
+            hasUserResizedWorkbench ? "hasUserResized" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -801,6 +762,8 @@ export function CalendarBuilderPage({
                 </select>
               </label>
             </div>
+
+            <p className="buildPanelNotice">{copy.footerNotice}</p>
           </aside>
 
           <div {...configResizeHandleProps} />
@@ -820,7 +783,26 @@ export function CalendarBuilderPage({
             />
             <div className="calendarActionBar">
               <CalendarLegend legendItems={calendarLegendItems(visibleEvents, copy)} />
-              <span className="calendarNotice">{copy.footerNotice}</span>
+              <nav className="calendarIconLinks" aria-label="Project links">
+                <a
+                  aria-label="GitHub repository"
+                  href={GITHUB_REPOSITORY_URL}
+                  rel="noreferrer"
+                  target="_blank"
+                  title="GitHub"
+                >
+                  <GitHubMark />
+                </a>
+                <a
+                  aria-label="Buy me a coffee"
+                  href={DONATE_URL}
+                  rel="noreferrer"
+                  target="_blank"
+                  title="Buy me a coffee"
+                >
+                  <Coffee aria-hidden="true" />
+                </a>
+              </nav>
             </div>
           </div>
 
@@ -865,6 +847,19 @@ export function CalendarBuilderPage({
         </nav>
       </div>
     </main>
+  );
+}
+
+function GitHubMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16">
+      <path
+        clipRule="evenodd"
+        d="M8 0.4C3.78 0.4 0.36 3.82 0.36 8.04c0 3.38 2.19 6.24 5.23 7.26 0.38 0.07 0.52-0.17 0.52-0.37 0-0.18-0.01-0.79-0.01-1.43-2.13 0.46-2.58-0.91-2.58-0.91-0.35-0.89-0.85-1.12-0.85-1.12-0.7-0.48 0.05-0.47 0.05-0.47 0.77 0.05 1.18 0.79 1.18 0.79 0.68 1.17 1.79 0.83 2.23 0.64 0.07-0.49 0.27-0.83 0.49-1.02-1.7-0.19-3.49-0.85-3.49-3.79 0-0.84 0.3-1.52 0.79-2.06-0.08-0.19-0.34-0.97 0.08-2.03 0 0 0.64-0.2 2.1 0.79 0.61-0.17 1.26-0.25 1.91-0.25s1.3 0.09 1.91 0.25c1.45-0.99 2.1-0.79 2.1-0.79 0.42 1.06 0.16 1.84 0.08 2.03 0.49 0.54 0.79 1.22 0.79 2.06 0 2.95-1.79 3.6-3.5 3.79 0.28 0.24 0.52 0.71 0.52 1.43 0 1.03-0.01 1.86-0.01 2.11 0 0.21 0.14 0.45 0.53 0.37 3.03-1.02 5.22-3.88 5.22-7.26C15.64 3.82 12.22 0.4 8 0.4Z"
+        fill="currentColor"
+        fillRule="evenodd"
+      />
+    </svg>
   );
 }
 

@@ -71,6 +71,7 @@ export type PreviewResponse = {
     wishlistReleaseEvents: number;
     steamMajorEvents: number;
     priceHistoryEvents?: number;
+    skippedWatchedAppIds?: number;
     storeFallbackEvents?: number;
   };
   events: PreviewEvent[];

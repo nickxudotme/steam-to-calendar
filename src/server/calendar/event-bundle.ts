@@ -17,11 +17,14 @@ export type SteamCalendarEventBundle = {
   events: CalendarEvent[];
   stats: {
     priceHistoryEvents: number;
+    skippedWatchedAppIds: number;
     steamMajorEvents: number;
     storeFallbackEvents: number;
     watchedGameEvents: number;
   };
 };
+
+const DEFAULT_WATCHED_APP_BUDGET = 25;
 
 export async function fetchSteamCalendarEventBundle({
   appIds,
@@ -34,6 +37,13 @@ export async function fetchSteamCalendarEventBundle({
   locale: SteamLocaleOptions;
   withWatchedGameSnapshots?: boolean;
 }): Promise<SteamCalendarEventBundle> {
+  const watchedAppBudget = readPositiveIntegerEnv(
+    "STEAM_CALENDAR_WATCHED_APP_BUDGET",
+    DEFAULT_WATCHED_APP_BUDGET,
+  );
+  const budgetedAppIds = appIds.slice(0, watchedAppBudget);
+  const skippedWatchedAppIds = Math.max(0, appIds.length - budgetedAppIds.length);
+
   // Fetch independent event sources in parallel; each integration returns domain CalendarEvent
   // objects so the rest of the app can stay Steam-API-agnostic.
   const [dealEvents, steamEvents, watchedGames] = await Promise.all([
@@ -53,8 +63,8 @@ export async function fetchSteamCalendarEventBundle({
           pastDays: config.eventPastDays,
         })
       : Promise.resolve([]),
-    appIds.length
-      ? fetchWatchedGames(appIds, config, locale, withWatchedGameSnapshots)
+    budgetedAppIds.length
+      ? fetchWatchedGames(budgetedAppIds, config, locale, withWatchedGameSnapshots)
       : Promise.resolve({ events: [], snapshots: [] }),
   ]);
   // Keep ordering deterministic for UI lists, previews, and generated ICS snapshots.
@@ -70,6 +80,7 @@ export async function fetchSteamCalendarEventBundle({
     events,
     stats: {
       priceHistoryEvents: events.filter((event) => event.dataSource === "steam_history").length,
+      skippedWatchedAppIds,
       steamMajorEvents: steamEvents.length,
       storeFallbackEvents: events.filter((event) => event.dataSource === "steam_store").length,
       watchedGameEvents: watchedGames.events.length,
@@ -103,6 +114,11 @@ async function fetchWatchedGames(
     events: await fetchWatchedGameEvents(appIds, options),
     snapshots: [],
   };
+}
+
+function readPositiveIntegerEnv(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 function compareCalendarEvents(first: CalendarEvent, second: CalendarEvent): number {

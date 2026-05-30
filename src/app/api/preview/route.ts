@@ -4,6 +4,7 @@ import { normalizeCc, steamLocaleFromRequest } from "@/integrations/steam/locale
 import { fetchWishlistCalendarData } from "@/integrations/steam/pipeline";
 import { fetchSteamCalendarEventBundle } from "@/server/calendar/event-bundle";
 import { buildConnectedPreviewResponse } from "@/server/calendar/preview-response";
+import { steamApiErrorPayload, steamApiErrorStatus } from "@/server/steam-api-error";
 import { isRecord, isString } from "@/shared/calendar-preview-contract";
 
 export const dynamic = "force-dynamic";
@@ -110,10 +111,11 @@ function previewErrorResponse(error: unknown) {
   }
 
   if (error instanceof SteamWishlistError) {
+    const payload = steamApiErrorPayload(error, "Could not preview this Steam wishlist.");
+
     return {
-      code: error.code,
-      message: error.message,
-      status: error.code === "invalid_steam_id" ? 400 : 502,
+      ...payload,
+      status: steamApiErrorStatus(payload.code),
     };
   }
 

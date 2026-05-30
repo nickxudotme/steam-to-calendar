@@ -1,11 +1,9 @@
 .calendarWorkbench {
-  --config-panel-width: clamp(300px, 23vw, 340px);
-  --detail-panel-width: clamp(320px, 24vw, 380px);
   display: grid;
   column-gap: 4px;
   grid-template-columns:
-    var(--config-panel-width) 8px minmax(420px, 1fr) 8px
-    var(--detail-panel-width);
+    var(--config-panel-width, clamp(280px, 22vw, 380px)) 8px minmax(420px, 1fr) 8px
+    var(--detail-panel-width, clamp(300px, 24vw, 420px));
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -17,7 +15,7 @@
   user-select: none;
 }
 
-.calendarWorkbench.hasRestoredLayout:not(.isResizing) {
+.calendarWorkbench.hasRestoredLayout.hasUserResized:not(.isResizing) {
   transition: grid-template-columns 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

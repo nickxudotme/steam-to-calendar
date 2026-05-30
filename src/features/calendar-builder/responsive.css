@@ -276,6 +276,7 @@
   }
 
   .shell {
+    grid-template-rows: auto minmax(0, 1fr);
     height: 100svh;
     overflow: hidden;
     padding: 0 10px calc(92px + env(safe-area-inset-bottom));
@@ -696,7 +697,7 @@
     padding: 0 12px;
   }
 
-  .calendarNotice {
+  .calendarIconLinks {
     display: none;
   }
 

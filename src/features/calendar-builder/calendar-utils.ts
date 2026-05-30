@@ -233,6 +233,38 @@ export function chooseCalendarFocusDate(events: PreviewEvent[], todayIso: string
   return todayIso;
 }
 
+export function chooseEventFocusDate(event: PreviewEvent, todayIso: string): string {
+  return eventOccursOn(event, todayIso) ? todayIso : event.startDate;
+}
+
+export function chooseCurrentGameEvent(
+  events: PreviewEvent[],
+  appId: string,
+  todayIso: string,
+): PreviewEvent | null {
+  const matchingEvents = events.filter((event) => event.appId === appId);
+
+  if (!matchingEvents.length) {
+    return null;
+  }
+
+  const activeToday = matchingEvents.find((event) => eventOccursOn(event, todayIso));
+
+  if (activeToday) {
+    return activeToday;
+  }
+
+  const upcoming = matchingEvents
+    .filter((event) => event.startDate >= todayIso)
+    .sort(compareEventsForList)[0];
+
+  if (upcoming) {
+    return upcoming;
+  }
+
+  return [...matchingEvents].sort((a, b) => compareEventsForList(b, a))[0];
+}
+
 export function buildContinuousCalendarWeeks(
   events: PreviewEvent[],
   gridStartIso: string,

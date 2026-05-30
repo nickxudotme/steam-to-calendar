@@ -18,12 +18,25 @@ npm install
 npm run dev
 ```
 
+`npm run dev` uses the webpack dev server because the current Next.js 16
+Turbopack dev server can repeatedly reload this app after HMR panics. Use
+`npm run dev:turbopack` only when intentionally checking whether that upstream
+behavior has improved. If local dev state gets strange, clear only the Next
+dev cache:
+
+```bash
+npm run dev:clean
+```
+
 The default setup builds and uses the bundled CLI at `bin/steam-cli`:
 
 ```bash
 npm run build:steam-cli
 STEAM_CLI_PATH=bin/steam-cli
 ```
+
+Production builds run `build:steam-cli` automatically. For local checks that do
+not need the binary rebuild, set `SKIP_STEAM_CLI_BUILD=1` before `npm run build`.
 
 ## Project Structure
 
@@ -71,3 +84,11 @@ npm run test:e2e:live
 
 The project vendors the Steam CLI source as `vendor/steam-cli` and builds a
 local binary into `bin/steam-cli`. Generated binaries are ignored by git.
+
+Useful runtime knobs:
+
+- `STEAM_CLI_CACHE_MAX_ENTRIES` caps in-memory CLI cache entries.
+- `STEAM_CLI_CACHE_STALE_TTL_MS` controls how long expired successful CLI
+  responses can be used when a refresh fails.
+- `STEAM_CALENDAR_WATCHED_APP_BUDGET` caps watched-app lookups per calendar
+  request.

@@ -5,6 +5,7 @@ import {
 } from "@/domain/calendar/event-mapper";
 import { STEAM_CLI_CACHE_TTL } from "@/integrations/steam/cache-policy";
 import { runSteamCliJson } from "@/integrations/steam/cli";
+import { mapWithConcurrency } from "@/integrations/steam/concurrency";
 import { fetchSteamHistorySaleEvents } from "@/integrations/steam/history";
 
 type SteamCliApp = {
@@ -374,27 +375,6 @@ export function mapSteamCliAppToWatchedEvents(
   }
 
   return [];
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  mapper: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      results[currentIndex] = await mapper(items[currentIndex]);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
-
-  return results;
 }
 
 function unixSecondsToIsoDate(value: number): string {

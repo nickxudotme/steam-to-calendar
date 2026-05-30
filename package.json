@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "dev:clean": "rm -rf .next/dev",
     "dev:turbopack": "next dev",
     "build:steam-cli": "node scripts/build-steam-cli.mjs",
     "prebuild": "npm run build:steam-cli",
@@ -15,8 +16,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run src",
     "test:watch": "vitest src",
-    "test:e2e": "playwright test --grep-invert @steam-live",
-    "test:e2e:live": "playwright test --grep @steam-live",
+    "test:e2e": "env -u NO_COLOR FORCE_COLOR=0 NODE_OPTIONS=--disable-warning=DEP0205 playwright test --grep-invert @steam-live",
+    "test:e2e:live": "env -u NO_COLOR FORCE_COLOR=0 NODE_OPTIONS=--disable-warning=DEP0205 playwright test --grep @steam-live",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "verify:full": "npm run verify && npm run test:e2e"
   },

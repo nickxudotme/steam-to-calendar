@@ -6,6 +6,7 @@ import {
   buildContinuousCalendarWeeks,
   buildEventWeekRange,
   calendarLegendItems,
+  chooseEventFocusDate,
   compareEventsForList,
   formatCalendarMonthTitle,
   inferVisibleMonthFromWeek,
@@ -62,6 +63,9 @@ export function CalendarPreview({
   const calendarAppClassName = ["calendarApp", calendarView === "list" ? "isListView" : ""]
     .filter(Boolean)
     .join(" ");
+  const selectedEvent = selectedEventId
+    ? events.find((event) => event.id === selectedEventId)
+    : null;
 
   useLayoutEffect(() => {
     if (lastAlignedFocusDate.current !== initialFocusDate) {
@@ -151,6 +155,23 @@ export function CalendarPreview({
       }
     };
   }, [initialWeekStart, weeks]);
+
+  useEffect(() => {
+    if (!selectedEvent) {
+      return;
+    }
+
+    const focusDate = chooseEventFocusDate(selectedEvent, todayIso);
+    const selectedEventWeekStart = weekStartForDate(focusDate);
+
+    pendingWeekScroll.current = selectedEventWeekStart;
+
+    if (calendarView !== "month") {
+      return;
+    }
+
+    scrollToCalendarWeek(selectedEventWeekStart);
+  }, [calendarView, selectedEvent, todayIso]);
 
   function scrollToCalendarWeek(weekStartIso: string, behavior: ScrollBehavior = "smooth") {
     const scrollElement = scrollRef.current;

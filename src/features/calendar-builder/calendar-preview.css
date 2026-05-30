@@ -24,14 +24,52 @@
   min-height: 38px;
 }
 
-.calendarNotice {
+.calendarIconLinks {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: end;
+}
+
+.calendarIconLinks a {
+  align-items: center;
+  background: rgba(18, 33, 48, 0.72);
+  border: 1px solid rgba(117, 151, 184, 0.22);
+  border-radius: 999px;
+  color: rgba(213, 230, 243, 0.9);
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  text-decoration: none;
+  transition:
+    background 140ms var(--ease-soft),
+    border-color 140ms var(--ease-soft),
+    color 140ms var(--ease-soft),
+    transform 140ms var(--ease-soft);
+  width: 30px;
+}
+
+.calendarIconLinks a:hover,
+.calendarIconLinks a:focus-visible {
+  background: rgba(28, 54, 77, 0.82);
+  border-color: rgba(102, 192, 244, 0.46);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.calendarIconLinks svg {
+  height: 15px;
+  width: 15px;
+}
+
+.buildPanelNotice {
+  align-self: end;
   color: rgba(155, 174, 189, 0.76);
   font-size: 0.72rem;
   font-weight: 650;
-  justify-self: end;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  margin: auto 2px 0;
+  text-align: center;
 }
 
 .calendarExperience .calendarFooter {

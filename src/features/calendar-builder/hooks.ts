@@ -3,6 +3,7 @@
 import {
   useEffect,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -15,8 +16,13 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
+import {
+  calendarConfigToSearchParams,
+  DEFAULT_CALENDAR_CONFIG,
+  type CalendarConfig,
+  type SteamEventCategory,
+} from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
-import type { CalendarConfig } from "@/domain/calendar/config";
 import type { PreviewEvent, PreviewResponse } from "@/shared/calendar-preview";
 import { fetchPublicPreview, searchCalendarGames } from "./api";
 import {
@@ -26,9 +32,12 @@ import {
 } from "./browser-locale";
 import {
   chooseCalendarFocusDate,
+  chooseCurrentGameEvent,
+  compareSteamEventCategories,
   isGameCalendarEvent,
   localIsoDate,
   selectedGameFromEvent,
+  shouldLoadDefaultDealPreview,
 } from "./calendar-utils";
 import { AUTO_TRACKED_GAME_COUNT, INTRO_STORAGE_KEY } from "./model";
 import type { GameSearchResult, SelectedGame } from "./model";
@@ -40,6 +49,14 @@ const WORKBENCH_COLUMN_LIMITS = {
   config: { min: 240, max: 460, step: 24 },
   detail: { min: 260, max: 480, step: 24 },
   calendar: { min: 420 },
+} as const;
+const WORKBENCH_DEFAULT_RATIOS = {
+  config: 0.22,
+  detail: 0.24,
+} as const;
+const WORKBENCH_DEFAULT_COLUMN_LIMITS = {
+  config: { min: 280, max: 380 },
+  detail: { min: 300, max: 420 },
 } as const;
 
 type WorkbenchColumn = "config" | "detail";
@@ -64,6 +81,12 @@ const DEFAULT_WORKBENCH_LAYOUT: WorkbenchLayout = {
 
 function clampWorkbenchColumn(value: number, column: WorkbenchColumn) {
   const limits = WORKBENCH_COLUMN_LIMITS[column];
+
+  return Math.round(Math.min(Math.max(value, limits.min), limits.max));
+}
+
+function clampDefaultWorkbenchColumn(value: number, column: WorkbenchColumn) {
+  const limits = WORKBENCH_DEFAULT_COLUMN_LIMITS[column];
 
   return Math.round(Math.min(Math.max(value, limits.min), limits.max));
 }
@@ -125,6 +148,46 @@ function fitWorkbenchLayoutToWidth(layout: WorkbenchLayout, totalWidth: number):
   return { config, detail };
 }
 
+function computeDefaultWorkbenchLayout(totalWidth: number): WorkbenchLayout {
+  if (!totalWidth) {
+    return DEFAULT_WORKBENCH_LAYOUT;
+  }
+
+  const availableSideWidth =
+    totalWidth - WORKBENCH_COLUMN_LIMITS.calendar.min - WORKBENCH_HANDLE_SPACE;
+
+  if (
+    availableSideWidth <=
+    WORKBENCH_COLUMN_LIMITS.config.min + WORKBENCH_COLUMN_LIMITS.detail.min
+  ) {
+    return {
+      config: WORKBENCH_COLUMN_LIMITS.config.min,
+      detail: WORKBENCH_COLUMN_LIMITS.detail.min,
+    };
+  }
+
+  let config = clampDefaultWorkbenchColumn(totalWidth * WORKBENCH_DEFAULT_RATIOS.config, "config");
+  let detail = clampDefaultWorkbenchColumn(totalWidth * WORKBENCH_DEFAULT_RATIOS.detail, "detail");
+  let excessSideWidth = config + detail - availableSideWidth;
+
+  if (excessSideWidth <= 0) {
+    return { config, detail };
+  }
+
+  const detailShrink = Math.min(excessSideWidth, detail - WORKBENCH_COLUMN_LIMITS.detail.min);
+  detail -= detailShrink;
+  excessSideWidth -= detailShrink;
+
+  if (excessSideWidth > 0) {
+    config -= Math.min(excessSideWidth, config - WORKBENCH_COLUMN_LIMITS.config.min);
+  }
+
+  return {
+    config: Math.round(config),
+    detail: Math.round(detail),
+  };
+}
+
 export function useBrowserDefaults({
   setDetectedStoreRegion,
   setHasInitializedClientLocale,
@@ -180,46 +243,185 @@ export function useBrowserDefaults({
   ]);
 }
 
+export function useSubscriptionUrls({
+  calendarConfig,
+  effectiveSteamLang,
+  effectiveStoreRegion,
+  effectiveUiLang,
+  origin,
+  preview,
+}: {
+  calendarConfig: CalendarConfig;
+  effectiveSteamLang: string;
+  effectiveStoreRegion: string;
+  effectiveUiLang: string;
+  origin: string;
+  preview: PreviewResponse;
+}): { webcalUrl: string } {
+  const calendarQuery = useMemo(() => {
+    const params = calendarConfigToSearchParams(calendarConfig);
+
+    params.set("cc", effectiveStoreRegion);
+    params.set("lang", effectiveSteamLang);
+    params.set("uiLang", effectiveUiLang);
+
+    return params.toString();
+  }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang]);
+
+  const webcalUrl = useMemo(() => {
+    const calendarUrl = origin
+      ? `${origin}${preview.calendarPath}?${calendarQuery}`
+      : `${preview.calendarPath}?${calendarQuery}`;
+
+    return calendarUrl.replace(/^https?:\/\//, "webcal://");
+  }, [calendarQuery, origin, preview.calendarPath]);
+
+  return { webcalUrl };
+}
+
+export function useCalendarSourceState(): {
+  eventFutureDays: number;
+  eventPastDays: number;
+  handleSteamEventCategoryChange: (category: SteamEventCategory, checked: boolean) => void;
+  isSteamEventOptionsOpen: boolean;
+  setEventFutureDays: Dispatch<SetStateAction<number>>;
+  setEventPastDays: Dispatch<SetStateAction<number>>;
+  setIsSteamEventOptionsOpen: Dispatch<SetStateAction<boolean>>;
+  setShowMyGames: Dispatch<SetStateAction<boolean>>;
+  setShowSteamEvents: Dispatch<SetStateAction<boolean>>;
+  showMyGames: boolean;
+  showSteamEvents: boolean;
+  steamEventCategories: SteamEventCategory[];
+} {
+  const [showSteamEvents, setShowSteamEvents] = useState(true);
+  const [showMyGames, setShowMyGames] = useState(true);
+  const [steamEventCategories, setSteamEventCategories] = useState<SteamEventCategory[]>(
+    DEFAULT_CALENDAR_CONFIG.steamEventCategories,
+  );
+  const [isSteamEventOptionsOpen, setIsSteamEventOptionsOpen] = useState(false);
+  const [eventPastDays, setEventPastDays] = useState(DEFAULT_CALENDAR_CONFIG.eventPastDays);
+  const [eventFutureDays, setEventFutureDays] = useState(DEFAULT_CALENDAR_CONFIG.eventFutureDays);
+  const handleSteamEventCategoryChange = useCallback(
+    (category: SteamEventCategory, checked: boolean) => {
+      setSteamEventCategories((categories) =>
+        checked
+          ? [...categories, category].sort(compareSteamEventCategories)
+          : categories.filter((currentCategory) => currentCategory !== category),
+      );
+    },
+    [],
+  );
+
+  return {
+    eventFutureDays,
+    eventPastDays,
+    handleSteamEventCategoryChange,
+    isSteamEventOptionsOpen,
+    setEventFutureDays,
+    setEventPastDays,
+    setIsSteamEventOptionsOpen,
+    setShowMyGames,
+    setShowSteamEvents,
+    showMyGames,
+    showSteamEvents,
+    steamEventCategories,
+  };
+}
+
+export function useCalendarConfig({
+  eventFutureDays,
+  eventPastDays,
+  hasConnectedWishlist,
+  hasEditedSelectedGames,
+  selectedGames,
+  showMyGames,
+  showSteamEvents,
+  steamEventCategories,
+}: {
+  eventFutureDays: number;
+  eventPastDays: number;
+  hasConnectedWishlist: boolean;
+  hasEditedSelectedGames: boolean;
+  selectedGames: SelectedGame[];
+  showMyGames: boolean;
+  showSteamEvents: boolean;
+  steamEventCategories: SteamEventCategory[];
+}): {
+  calendarConfig: CalendarConfig;
+  shouldLoadDefaultDeals: boolean;
+  watchedAppIds: string[];
+} {
+  const watchedAppIds = useMemo(
+    () => (showMyGames && !hasConnectedWishlist ? selectedGames.map((game) => game.appId) : []),
+    [hasConnectedWishlist, selectedGames, showMyGames],
+  );
+  const shouldLoadDefaultDeals = shouldLoadDefaultDealPreview({
+    hasConnectedWishlist,
+    hasEditedSelectedGames,
+    selectedGameCount: selectedGames.length,
+    showMyGames,
+  });
+  const calendarConfig = useMemo<CalendarConfig>(
+    () => ({
+      includeDeals: shouldLoadDefaultDeals,
+      includePriceHistory: DEFAULT_CALENDAR_CONFIG.includePriceHistory,
+      includeSteamEvents: showSteamEvents,
+      includeWishlist: showMyGames,
+      watchedAppIds,
+      steamEventCategories,
+      dealCount: AUTO_TRACKED_GAME_COUNT,
+      eventPastDays,
+      eventFutureDays,
+    }),
+    [
+      eventFutureDays,
+      eventPastDays,
+      shouldLoadDefaultDeals,
+      showMyGames,
+      showSteamEvents,
+      steamEventCategories,
+      watchedAppIds,
+    ],
+  );
+
+  return {
+    calendarConfig,
+    shouldLoadDefaultDeals,
+    watchedAppIds,
+  };
+}
+
 export function useResizableWorkbench(): {
   activeResizeHandle: WorkbenchColumn | null;
   configResizeHandleProps: WorkbenchResizeHandleProps;
   detailResizeHandleProps: WorkbenchResizeHandleProps;
   hasRestoredWorkbenchLayout: boolean;
+  hasUserResizedWorkbench: boolean;
   workbenchRef: RefObject<HTMLElement | null>;
-  workbenchStyle: CSSProperties & {
-    "--config-panel-width": string;
-    "--detail-panel-width": string;
-  };
+  workbenchStyle: CSSProperties;
 } {
   const workbenchRef = useRef<HTMLElement | null>(null);
   const [layout, setLayout] = useState<WorkbenchLayout>(DEFAULT_WORKBENCH_LAYOUT);
   const [activeResizeHandle, setActiveResizeHandle] = useState<WorkbenchColumn | null>(null);
   const [hasRestoredWorkbenchLayout, setHasRestoredWorkbenchLayout] = useState(false);
+  const [hasUserResizedWorkbench, setHasUserResizedWorkbench] = useState(false);
 
-  useEffect(() => {
-    let restoreAnimationFrameId = 0;
-    const animationFrameId = window.requestAnimationFrame(() => {
-      const storedLayout = readStoredWorkbenchLayout();
-      setHasRestoredWorkbenchLayout(true);
+  useLayoutEffect(() => {
+    const storedLayout = readStoredWorkbenchLayout();
+    const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
+    const initialLayout = storedLayout
+      ? totalWidth
+        ? fitWorkbenchLayoutToWidth(storedLayout, totalWidth)
+        : storedLayout
+      : computeDefaultWorkbenchLayout(totalWidth);
 
-      if (storedLayout) {
-        restoreAnimationFrameId = window.requestAnimationFrame(() => {
-          const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
-          setLayout(
-            totalWidth ? fitWorkbenchLayoutToWidth(storedLayout, totalWidth) : storedLayout,
-          );
-        });
-      }
-    });
-
-    return () => {
-      window.cancelAnimationFrame(animationFrameId);
-      window.cancelAnimationFrame(restoreAnimationFrameId);
-    };
+    setLayout(initialLayout);
+    setHasRestoredWorkbenchLayout(true);
   }, []);
 
   const updateLayout = useCallback(
     (updater: (currentLayout: WorkbenchLayout) => WorkbenchLayout) => {
+      setHasUserResizedWorkbench(true);
       setLayout((currentLayout) => {
         const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
         const nextLayout = totalWidth
@@ -349,10 +551,13 @@ export function useResizableWorkbench(): {
     detailResizeHandleProps,
     hasRestoredWorkbenchLayout,
     workbenchRef,
-    workbenchStyle: {
-      "--config-panel-width": `${layout.config}px`,
-      "--detail-panel-width": `${layout.detail}px`,
-    },
+    workbenchStyle: hasRestoredWorkbenchLayout
+      ? ({
+          "--config-panel-width": `${layout.config}px`,
+          "--detail-panel-width": `${layout.detail}px`,
+        } as CSSProperties)
+      : {},
+    hasUserResizedWorkbench,
   };
 }
 
@@ -699,9 +904,10 @@ export function useSelectedGames({
   function selectGame(
     appId: string,
     events: PreviewEvent[],
+    todayIso: string,
     onGameMatched: (eventId: string) => void,
   ) {
-    const matchingEvent = events.find((event) => event.appId === appId);
+    const matchingEvent = chooseCurrentGameEvent(events, appId, todayIso);
 
     if (matchingEvent) {
       // Clicking a tracked game should jump to its event when we have one; otherwise a notice

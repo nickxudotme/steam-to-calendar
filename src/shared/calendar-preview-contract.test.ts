@@ -35,6 +35,7 @@ const validPreview = {
     wishlistReleaseEvents: 1,
     steamMajorEvents: 1,
     priceHistoryEvents: 1,
+    skippedWatchedAppIds: 0,
     storeFallbackEvents: 0,
   },
   events: [

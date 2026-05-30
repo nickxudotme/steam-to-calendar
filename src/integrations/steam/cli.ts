@@ -24,6 +24,11 @@ export type SteamCliOptions = {
   uiLang?: string;
 };
 
+export type SteamCliStatus = {
+  available: boolean;
+  source: "configured" | "bundled" | "missing";
+};
+
 const DEFAULT_PROCESS_TIMEOUT_MS = 45_000;
 const DEFAULT_MAX_BUFFER = 20 * 1024 * 1024;
 const commandSupportCache = new Map<string, Promise<boolean>>();
@@ -105,6 +110,17 @@ export async function steamCliSupportsCommand(
 
   commandSupportCache.set(cacheKey, probe);
   return probe;
+}
+
+export function getSteamCliStatus(): SteamCliStatus {
+  const configuredPath = process.env.STEAM_CLI_PATH?.trim();
+  const resolvedPath = resolveSteamCliPath();
+
+  if (configuredPath) {
+    return { available: Boolean(resolvedPath), source: "configured" };
+  }
+
+  return { available: Boolean(resolvedPath), source: resolvedPath ? "bundled" : "missing" };
 }
 
 function steamCliCacheKey(binaryPath: string, args: string[]): string {

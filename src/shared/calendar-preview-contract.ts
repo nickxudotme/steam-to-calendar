@@ -133,6 +133,7 @@ function isPreviewStats(value: unknown): value is PreviewResponse["stats"] {
     isNumber(value.wishlistReleaseEvents) &&
     isNumber(value.steamMajorEvents) &&
     isOptionalNumber(value.priceHistoryEvents) &&
+    isOptionalNumber(value.skippedWatchedAppIds) &&
     isOptionalNumber(value.storeFallbackEvents)
   );
 }
