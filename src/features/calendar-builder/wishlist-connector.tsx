@@ -77,6 +77,8 @@ export function WishlistConnector({
   const [profileHelpPlacement, setProfileHelpPlacement] = useState<"bottom" | "right" | "top">(
     "right",
   );
+  const isProfileHelpVisible = isProfileHelpOpen && isWishlistImportOpen && !hasConnectedWishlist;
+
   const openProfileHelp = useCallback(() => {
     const buttonRect = helpButtonRef.current?.getBoundingClientRect();
     if (!buttonRect) {
@@ -110,7 +112,7 @@ export function WishlistConnector({
   const profileHelpPopover = (
     <div
       className="steamProfileHelpPopover"
-      data-open={isProfileHelpOpen}
+      data-open={isProfileHelpVisible}
       data-placement={profileHelpPlacement}
       id="steam-profile-help"
       role="tooltip"
@@ -177,7 +179,10 @@ export function WishlistConnector({
           ) : isWishlistImportOpen ? (
             <form
               className="wishlistImport"
-              onSubmit={onSubmit}
+              onSubmit={(event) => {
+                setIsProfileHelpOpen(false);
+                onSubmit(event);
+              }}
               aria-label="Import Steam wishlist releases to the calendar"
             >
               <label className="srOnly" htmlFor="steam-id">
