@@ -414,6 +414,11 @@ select {
   margin: 0;
 }
 
+.introPanel .introDisclaimer {
+  color: rgba(155, 174, 189, 0.78);
+  font-size: 0.74rem;
+}
+
 .introPrimary {
   align-items: center;
   background: linear-gradient(180deg, #168dff, #0867bf);

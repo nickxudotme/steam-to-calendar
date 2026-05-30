@@ -54,8 +54,15 @@ const workbenchLayoutScript = `
       }
     }
 
-    document.documentElement.style.setProperty("--config-panel-width", config + "px");
-    document.documentElement.style.setProperty("--detail-panel-width", detail + "px");
+    const style = document.createElement("style");
+    style.dataset.workbenchLayout = "true";
+    style.textContent =
+      ".calendarWorkbench{--config-panel-width:" +
+      config +
+      "px;--detail-panel-width:" +
+      detail +
+      "px}";
+    document.head.appendChild(style);
   } catch {
   }
 })();

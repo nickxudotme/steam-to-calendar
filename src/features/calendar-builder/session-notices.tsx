@@ -45,6 +45,7 @@ export function IntroPanel({
       <div className="introKicker">{copy.productName}</div>
       <h2 id="intro-title">{copy.positioning}</h2>
       <p>{copy.introBody}</p>
+      <p className="introDisclaimer">{copy.footerNotice}</p>
       <button className="introPrimary" type="button" onClick={onClose}>
         {copy.introPrimary}
       </button>

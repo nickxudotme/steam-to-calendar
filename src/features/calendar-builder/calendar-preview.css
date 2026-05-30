@@ -16,7 +16,10 @@
   gap: 16px;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 38px;
+  overflow: visible;
   padding: 0 16px;
+  position: relative;
+  z-index: 4;
 }
 
 .calendarActionBar .calendarLegend {
@@ -29,6 +32,8 @@
   display: flex;
   gap: 8px;
   justify-content: end;
+  position: relative;
+  z-index: 5;
 }
 
 .calendarIconLinks a {
@@ -40,6 +45,7 @@
   display: inline-flex;
   height: 30px;
   justify-content: center;
+  position: relative;
   text-decoration: none;
   transition:
     background 140ms var(--ease-soft),
@@ -62,14 +68,44 @@
   width: 15px;
 }
 
-.buildPanelNotice {
-  align-self: end;
-  color: rgba(155, 174, 189, 0.76);
-  font-size: 0.72rem;
-  font-weight: 650;
-  line-height: 1.4;
-  margin: auto 2px 0;
-  text-align: center;
+.calendarIconTooltip {
+  background: rgba(5, 12, 20, 0.98);
+  border: 1px solid rgba(117, 151, 184, 0.28);
+  border-radius: 6px;
+  bottom: calc(100% + 10px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
+  color: #d9e8f3;
+  font-size: 0.76rem;
+  font-weight: 680;
+  left: 50%;
+  line-height: 1.35;
+  opacity: 0;
+  padding: 8px 10px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  white-space: nowrap;
+  z-index: 30;
+}
+
+.calendarIconLinks a:hover .calendarIconTooltip,
+.calendarIconLinks a:focus-visible .calendarIconTooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.calendarIconLinks a:last-child .calendarIconTooltip {
+  left: auto;
+  right: 0;
+  transform: translateY(4px);
+}
+
+.calendarIconLinks a:last-child:hover .calendarIconTooltip,
+.calendarIconLinks a:last-child:focus-visible .calendarIconTooltip {
+  transform: translateY(0);
 }
 
 .calendarExperience .calendarFooter {

@@ -110,14 +110,15 @@ test("previews, searches, and edits a calendar with mocked Steam data", async ({
   });
 
   await page.goto("/");
+  await expect(page.locator(".introDisclaimer")).toContainText(
+    "Steam to Calendar is not affiliated with Valve Corp.",
+  );
   await page.getByRole("button", { name: "Start tracking" }).click();
 
   await expect(page.getByRole("region", { name: "Calendar preview", exact: true })).toBeVisible();
   await expect(page.locator('[data-testid="calendar-event-segment"]').first()).toBeVisible();
-  await expect(page.locator(".buildPanelNotice")).toContainText(
-    "Steam to Calendar is not affiliated with Valve Corp.",
-  );
-  await expect(page.getByRole("link", { name: "GitHub repository" })).toHaveAttribute(
+  await expect(page.locator(".buildPanelNotice")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute(
     "href",
     "https://github.com/nickxudotme/steam-to-calendar",
   );

@@ -762,8 +762,6 @@ export function CalendarBuilderPage({
                 </select>
               </label>
             </div>
-
-            <p className="buildPanelNotice">{copy.footerNotice}</p>
           </aside>
 
           <div {...configResizeHandleProps} />
@@ -785,22 +783,28 @@ export function CalendarBuilderPage({
               <CalendarLegend legendItems={calendarLegendItems(visibleEvents, copy)} />
               <nav className="calendarIconLinks" aria-label="Project links">
                 <a
-                  aria-label="GitHub repository"
+                  aria-describedby="github-link-tooltip"
+                  aria-label={copy.githubLinkLabel}
                   href={GITHUB_REPOSITORY_URL}
                   rel="noreferrer"
                   target="_blank"
-                  title="GitHub"
                 >
                   <GitHubMark />
+                  <span className="calendarIconTooltip" id="github-link-tooltip" role="tooltip">
+                    {copy.githubLinkLabel}
+                  </span>
                 </a>
                 <a
-                  aria-label="Buy me a coffee"
+                  aria-describedby="donate-link-tooltip"
+                  aria-label={copy.donateLinkLabel}
                   href={DONATE_URL}
                   rel="noreferrer"
                   target="_blank"
-                  title="Buy me a coffee"
                 >
                   <Coffee aria-hidden="true" />
+                  <span className="calendarIconTooltip" id="donate-link-tooltip" role="tooltip">
+                    {copy.donateLinkLabel}
+                  </span>
                 </a>
               </nav>
             </div>
