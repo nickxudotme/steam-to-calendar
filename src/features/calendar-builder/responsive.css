@@ -289,7 +289,7 @@
   }
 
   .brandText {
-    gap: 2px;
+    gap: 0;
   }
 
   .brandName {
@@ -298,10 +298,7 @@
   }
 
   .brandTagline {
-    display: block;
-    font-size: 0.66rem;
-    line-height: 1.15;
-    max-width: clamp(170px, 52vw, 260px);
+    display: none;
   }
 
   .brandIcon {
@@ -310,7 +307,7 @@
   }
 
   .siteHeader {
-    height: 68px;
+    height: 64px;
     margin: 0 -10px 8px;
     padding: 0 14px;
   }
