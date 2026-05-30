@@ -15,6 +15,25 @@ export function languageCodeFromBrowser(language: string): LanguageOption {
   return languageOptionByCode("en");
 }
 
+export function languageCodeFromAcceptLanguage(header: string | null): LanguageOption {
+  const languages = (header ?? "")
+    .split(",")
+    .map((entry) => {
+      const [tag = "", ...parameters] = entry.trim().split(";");
+      const qualityParameter = parameters.find((parameter) => parameter.trim().startsWith("q="));
+      const quality = qualityParameter ? Number(qualityParameter.trim().slice(2)) : 1;
+
+      return {
+        quality: Number.isFinite(quality) ? quality : 0,
+        tag,
+      };
+    })
+    .filter((language) => language.tag)
+    .sort((first, second) => second.quality - first.quality);
+
+  return languageCodeFromBrowser(languages[0]?.tag ?? "en");
+}
+
 export function storeRegionFromBrowser(): string | null {
   if (typeof window === "undefined") {
     return null;

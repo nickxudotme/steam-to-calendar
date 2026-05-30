@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { SteamWishlistError } from "@/integrations/steam/client";
 import { getCachedSteamCliValue } from "@/integrations/steam/cache";
@@ -108,7 +108,16 @@ export async function steamCliSupportsCommand(
 }
 
 function steamCliCacheKey(binaryPath: string, args: string[]): string {
-  return JSON.stringify([binaryPath, args]);
+  return JSON.stringify([binaryPath, steamCliBinaryFingerprint(binaryPath), args]);
+}
+
+function steamCliBinaryFingerprint(binaryPath: string): string {
+  try {
+    const stats = statSync(binaryPath);
+    return `${stats.mtimeMs}:${stats.size}`;
+  } catch {
+    return "unknown";
+  }
 }
 
 function resolveSteamCliPath(): string | null {

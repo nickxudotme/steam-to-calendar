@@ -76,6 +76,10 @@ select {
   position: fixed;
 }
 
+.animatedSizeSlot {
+  overflow: hidden;
+}
+
 .shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -90,6 +94,7 @@ select {
 
 .siteHeader {
   align-items: center;
+  animation: appHeaderIn 180ms ease-out both;
   border-bottom: 1px solid rgba(151, 174, 191, 0.12);
   display: flex;
   gap: 18px;
@@ -97,6 +102,8 @@ select {
   justify-content: space-between;
   margin: 0 -12px 12px;
   padding: 12px 28px;
+  position: relative;
+  z-index: 20;
 }
 
 .brandMark {
@@ -167,6 +174,7 @@ select {
 
 .localeControls {
   align-items: center;
+  animation: appSurfaceIn 180ms ease-out 40ms both;
   background: linear-gradient(180deg, rgba(16, 32, 48, 0.72), rgba(7, 15, 25, 0.7));
   border: 1px solid rgba(117, 151, 184, 0.22);
   border-radius: 7px;
@@ -365,7 +373,12 @@ select {
   transform: translateY(1px) scale(0.98);
 }
 
+.settingsContentPanel {
+  animation: panelContentIn 180ms var(--ease-soft) both;
+}
+
 .introPanel {
+  animation: panelContentIn 200ms var(--ease-soft) both;
   background: #0b1722;
   border: 1px solid rgba(124, 157, 184, 0.26);
   border-radius: 8px;
@@ -430,6 +443,25 @@ select {
 
 .introPrimary:active {
   transform: translateY(1px) scale(0.99);
+}
+
+@keyframes panelContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settingsContentPanel,
+  .introPanel {
+    animation: none;
+  }
 }
 
 .calendarFooterCta {

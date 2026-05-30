@@ -1,8 +1,21 @@
 "use client";
 
-import { Link, X } from "lucide-react";
-import type { FormEvent } from "react";
-import { formatWishlistCalendarSummary, selectedGameFromWishlistGame } from "./calendar-utils";
+import { CircleHelp, Link, X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
+import { createPortal } from "react-dom";
+import { AnimatedSizePresence } from "./animated-size-presence";
+import {
+  formatWishlistCalendarSummary,
+  selectedGameFromWishlistGame,
+  watchedGamePendingMessage,
+} from "./calendar-utils";
 import type { PreviewEvent, WishlistGame } from "./model";
 import { SteamCliImage } from "./steam-cli-image";
 import { UI_COPY, type UiLanguage } from "./ui-copy";
@@ -26,6 +39,7 @@ export function WishlistConnector({
   selectedGameNoticeAppId,
   sortedEvents,
   steamId64,
+  todayIso,
   uiLanguage,
   wishlistEventCount,
   wishlistGameCount,
@@ -51,124 +65,243 @@ export function WishlistConnector({
   selectedGameNoticeAppId: string | null;
   sortedEvents: PreviewEvent[];
   steamId64: string;
+  todayIso: string;
   uiLanguage: UiLanguage;
   wishlistEventCount: number;
   wishlistGameCount: number;
 }) {
-  return (
-    <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
-      <div className="taskCardHeader">
-        <span className="taskCardBadge">{copy.recommendedLabel}</span>
-        <div className="taskCardContent">
-          <Link aria-hidden="true" className="linkIcon" />
-          <div className="taskCardCopy">
-            <h3>{copy.connectWishlistTitle}</h3>
-            <p>{copy.connectWishlistDescription}</p>
-          </div>
+  const helpButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isProfileHelpOpen, setIsProfileHelpOpen] = useState(false);
+  const [profileHelpStyle, setProfileHelpStyle] = useState<CSSProperties>({});
+  const [profileHelpPlacement, setProfileHelpPlacement] = useState<"bottom" | "right" | "top">(
+    "right",
+  );
+  const openProfileHelp = useCallback(() => {
+    const buttonRect = helpButtonRef.current?.getBoundingClientRect();
+    if (!buttonRect) {
+      return;
+    }
+
+    const viewportPadding = 12;
+    const shouldUseBottomPlacement = window.innerWidth < 720;
+    const popoverWidth = shouldUseBottomPlacement
+      ? window.innerWidth - viewportPadding * 2
+      : Math.min(460, window.innerWidth - viewportPadding * 2);
+    const mobileEstimatedHeight = 320;
+    const mobileHasBottomSpace =
+      window.innerHeight - buttonRect.bottom - viewportPadding >= mobileEstimatedHeight;
+    const mobileTop = mobileHasBottomSpace
+      ? buttonRect.bottom + 8
+      : Math.max(viewportPadding, buttonRect.top - mobileEstimatedHeight - 8);
+    const left = Math.min(buttonRect.right + 8, window.innerWidth - popoverWidth - viewportPadding);
+
+    setProfileHelpStyle({
+      left: shouldUseBottomPlacement ? viewportPadding : left,
+      top: shouldUseBottomPlacement ? mobileTop : buttonRect.top + buttonRect.height / 2,
+      width: popoverWidth,
+    });
+    setProfileHelpPlacement(
+      shouldUseBottomPlacement ? (mobileHasBottomSpace ? "bottom" : "top") : "right",
+    );
+    setIsProfileHelpOpen(true);
+  }, []);
+
+  const profileHelpPopover = (
+    <div
+      className="steamProfileHelpPopover"
+      data-open={isProfileHelpOpen}
+      data-placement={profileHelpPlacement}
+      id="steam-profile-help"
+      role="tooltip"
+      style={profileHelpStyle}
+    >
+      <div className="steamProfileHelpArt" aria-hidden="true">
+        <div className="steamProfileTopBar">
+          {copy.steamProfileHelpSteamNav
+            .trim()
+            .split(/\s+/)
+            .map((item) => (
+              <span className="steamProfileNavItem" key={item}>
+                {item}
+              </span>
+            ))}
+          <span className="steamProfileUserName">{copy.steamProfileHelpUserName}</span>
+          <span className="steamProfileStepBadge steamProfileStepBadgeName">
+            {copy.steamProfileHelpClickHere}
+          </span>
         </div>
+        <div className="steamProfileAddress">
+          <span>{copy.steamProfileHelpExampleId}</span>
+        </div>
+        <div className="steamProfileAddressCallout">{copy.steamProfileHelpAddressLabel}</div>
       </div>
+      <strong>{copy.steamProfileHelpTitle}</strong>
+      <p>{copy.steamProfileHelpBody}</p>
+      <code>{copy.steamProfileHelpExampleProfiles}</code>
+      <code>{copy.steamProfileHelpExampleId}</code>
+    </div>
+  );
 
-      {hasConnectedWishlist ? (
-        <button className="disconnectWishlistButton" type="button" onClick={onDisconnect}>
-          <X aria-hidden="true" className="miniIcon" />
-          {copy.disconnectWishlist}
-        </button>
-      ) : isWishlistImportOpen ? (
-        <form
-          className="wishlistImport"
-          onSubmit={onSubmit}
-          aria-label="Import Steam wishlist releases to the calendar"
+  useEffect(() => {
+    const animationFrameId = window.requestAnimationFrame(() => setHasMounted(true));
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  return (
+    <>
+      <section className="wishlistTaskCard" id="steam-connect" aria-label="Connect Steam wishlist">
+        <div className="taskCardHeader">
+          <span className="taskCardBadge">{copy.recommendedLabel}</span>
+          <div className="taskCardContent">
+            <Link aria-hidden="true" className="linkIcon" />
+            <div className="taskCardCopy">
+              <h3>{copy.connectWishlistTitle}</h3>
+              <p>{copy.connectWishlistDescription}</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="wishlistActionRegion"
+          data-mode={
+            hasConnectedWishlist ? "connected" : isWishlistImportOpen ? "import" : "connect"
+          }
         >
-          <label className="srOnly" htmlFor="steam-id">
-            {copy.steamProfilePlaceholder}
-          </label>
-          <div className="steamInputWrap">
-            <input
-              id="steam-id"
-              inputMode="text"
-              placeholder={copy.steamProfilePlaceholder}
-              value={steamId64}
-              onChange={(event) => onSteamIdChange(event.target.value)}
-            />
-          </div>
-          <button disabled={isLoading} type="submit">
-            {isLoading ? copy.importing : copy.importWishlistShort}
-          </button>
-        </form>
-      ) : (
-        <button className="connectWishlistButton" type="button" onClick={onImportOpen}>
-          {copy.connectWishlistButton}
-        </button>
-      )}
-
-      {isLoading ? (
-        <div className="notice loadingNotice" role="status">
-          {copy.importingWishlist}
-        </div>
-      ) : null}
-
-      {hasConnectedWishlist ? (
-        <div className="connectedWishlistSummary">
-          <p>
-            {copy.connectedSteamUser}{" "}
-            <strong>{previewProfileName || copy.connectedSteamUserFallback}</strong>
-          </p>
-          <p>
-            {formatWishlistCalendarSummary(wishlistGameCount, wishlistEventCount, copy, uiLanguage)}
-          </p>
-        </div>
-      ) : (
-        <p className="wishlistHint">{copy.wishlistHint}</p>
-      )}
-
-      {hasConnectedWishlist && connectedWishlistGames.length ? (
-        <div className="selectedGames wishlistGamesList" aria-label={copy.wishlistGamesListLabel}>
-          <div className="selectedGamesHeader">
-            <span className="miniSectionTitle">
-              {copy.wishlistGamesListLabel} ({connectedWishlistGames.length})
-            </span>
-          </div>
-          {connectedWishlistGames.map((game) => {
-            const matchingEvent = sortedEvents.find((event) => event.appId === game.appId);
-            const displayGame = selectedGameFromWishlistGame(game, matchingEvent);
-
-            return (
-              <div className="selectedGameRow wishlistGameRow" key={game.appId}>
+          {hasConnectedWishlist ? (
+            <button className="disconnectWishlistButton" type="button" onClick={onDisconnect}>
+              <X aria-hidden="true" className="miniIcon" />
+              {copy.disconnectWishlist}
+            </button>
+          ) : isWishlistImportOpen ? (
+            <form
+              className="wishlistImport"
+              onSubmit={onSubmit}
+              aria-label="Import Steam wishlist releases to the calendar"
+            >
+              <label className="srOnly" htmlFor="steam-id">
+                {copy.steamProfilePlaceholder}
+              </label>
+              <div className="steamInputWrap">
+                <input
+                  id="steam-id"
+                  inputMode="text"
+                  placeholder={copy.steamProfilePlaceholder}
+                  value={steamId64}
+                  onChange={(event) => onSteamIdChange(event.target.value)}
+                />
                 <button
-                  className="selectedGameSelect"
+                  aria-describedby="steam-profile-help"
+                  aria-label={copy.steamProfileHelpLabel}
+                  className="steamProfileHelpButton"
+                  onBlur={() => setIsProfileHelpOpen(false)}
+                  onFocus={openProfileHelp}
+                  onPointerEnter={openProfileHelp}
+                  onPointerLeave={() => setIsProfileHelpOpen(false)}
+                  ref={helpButtonRef}
                   type="button"
-                  onBlur={onSearchPreviewClear}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onFocus={(event) => onGamePreview(displayGame, event.currentTarget)}
-                  onMouseEnter={(event) => onGamePreview(displayGame, event.currentTarget)}
-                  onMouseLeave={onSearchPreviewClear}
-                  onClick={() => {
-                    onSearchPreviewClear();
-                    onGameClick(game.appId);
-                  }}
                 >
-                  <SteamCliImage fallbackClassName="gameThumbFallback" src={displayGame.imageUrl} />
-                  <span>{game.name}</span>
+                  <CircleHelp aria-hidden="true" size={16} strokeWidth={2.2} />
                 </button>
-                {selectedGameNoticeAppId === game.appId ? (
-                  <div className="selectedGameNotice" role="status">
-                    {copy.watchedGamePending}
-                  </div>
-                ) : null}
               </div>
-            );
-          })}
+              <button disabled={isLoading} type="submit">
+                {isLoading ? copy.importing : copy.importWishlistShort}
+              </button>
+            </form>
+          ) : (
+            <button className="connectWishlistButton" type="button" onClick={onImportOpen}>
+              {copy.connectWishlistButton}
+            </button>
+          )}
         </div>
-      ) : null}
 
-      {error ? <div className="notice error">{error}</div> : null}
-      {error ? (
-        <div className="notice fallbackNotice">
-          {errorCode === "wishlist_private_or_unavailable"
-            ? copy.wishlistPrivateHint
-            : copy.wishlistGenericHint}
-        </div>
-      ) : null}
-    </section>
+        <AnimatedSizePresence id="wishlist-loading" marginTop={8} visible={isLoading}>
+          <div className="notice loadingNotice wishlistAnimatedBlock" role="status">
+            {copy.importingWishlist}
+          </div>
+        </AnimatedSizePresence>
+
+        <AnimatedSizePresence id="wishlist-summary" marginTop={8} visible={hasConnectedWishlist}>
+          <div className="connectedWishlistSummary wishlistAnimatedBlock">
+            <p>
+              {copy.connectedSteamUser}{" "}
+              <strong>{previewProfileName || copy.connectedSteamUserFallback}</strong>
+            </p>
+            <p>
+              {formatWishlistCalendarSummary(
+                wishlistGameCount,
+                wishlistEventCount,
+                copy,
+                uiLanguage,
+              )}
+            </p>
+          </div>
+        </AnimatedSizePresence>
+
+        <AnimatedSizePresence id="wishlist-hint" marginTop={8} visible={!hasConnectedWishlist}>
+          <p className="wishlistHint wishlistAnimatedBlock">{copy.wishlistHint}</p>
+        </AnimatedSizePresence>
+
+        <AnimatedSizePresence
+          id="wishlist-games"
+          marginTop={8}
+          visible={hasConnectedWishlist && connectedWishlistGames.length > 0}
+        >
+          <div className="selectedGames wishlistGamesList" aria-label={copy.wishlistGamesListLabel}>
+            <div className="selectedGamesHeader">
+              <span className="miniSectionTitle">
+                {copy.wishlistGamesListLabel} ({connectedWishlistGames.length})
+              </span>
+            </div>
+            {connectedWishlistGames.map((game) => {
+              const matchingEvent = sortedEvents.find((event) => event.appId === game.appId);
+              const displayGame = selectedGameFromWishlistGame(game, matchingEvent);
+
+              return (
+                <div className="selectedGameRow wishlistGameRow" key={game.appId}>
+                  <button
+                    className="selectedGameSelect"
+                    type="button"
+                    onBlur={onSearchPreviewClear}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onFocus={(event) => onGamePreview(displayGame, event.currentTarget)}
+                    onMouseEnter={(event) => onGamePreview(displayGame, event.currentTarget)}
+                    onMouseLeave={onSearchPreviewClear}
+                    onClick={() => {
+                      onSearchPreviewClear();
+                      onGameClick(game.appId);
+                    }}
+                  >
+                    <SteamCliImage
+                      fallbackClassName="gameThumbFallback"
+                      src={displayGame.imageUrl}
+                    />
+                    <span>{game.name}</span>
+                  </button>
+                  {selectedGameNoticeAppId === game.appId ? (
+                    <div className="selectedGameNotice" role="status">
+                      {watchedGamePendingMessage(displayGame, copy, todayIso)}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </AnimatedSizePresence>
+
+        <AnimatedSizePresence id="wishlist-error" marginTop={8} visible={Boolean(error)}>
+          <div className="notice error wishlistAnimatedBlock">{error}</div>
+        </AnimatedSizePresence>
+        <AnimatedSizePresence id="wishlist-fallback" marginTop={8} visible={Boolean(error)}>
+          <div className="notice fallbackNotice wishlistAnimatedBlock">
+            {errorCode === "wishlist_private_or_unavailable"
+              ? copy.wishlistPrivateHint
+              : copy.wishlistGenericHint}
+          </div>
+        </AnimatedSizePresence>
+      </section>
+      {hasMounted ? createPortal(profileHelpPopover, document.body) : null}
+    </>
   );
 }

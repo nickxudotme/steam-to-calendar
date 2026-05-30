@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
+import { languageCodeFromAcceptLanguage } from "@/features/calendar-builder/browser-locale";
 import "@/features/calendar-builder/styles.css";
 
 export const metadata: Metadata = {
@@ -19,9 +21,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const requestHeaders = await headers();
+  const initialLanguage = languageCodeFromAcceptLanguage(requestHeaders.get("accept-language"));
+
   return (
-    <html lang="en">
+    <html lang={initialLanguage.uiLang}>
       <body>
         {children}
         <Analytics />

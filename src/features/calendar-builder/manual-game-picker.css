@@ -185,8 +185,11 @@
 .gameSearchResults,
 .selectedGames {
   display: grid;
-  gap: 5px;
   margin-top: 8px;
+}
+
+.gameSearchResults {
+  gap: 5px;
 }
 
 .miniSectionTitle {
@@ -252,8 +255,11 @@
   transition:
     background 150ms var(--ease-soft),
     border-color 150ms var(--ease-soft),
-    box-shadow 150ms var(--ease-soft),
-    transform 150ms var(--ease-soft);
+    box-shadow 150ms var(--ease-soft);
+}
+
+.selectedGameRowSlot {
+  overflow: hidden;
 }
 
 .selectedGameRow::after {
@@ -270,6 +276,21 @@
   position: absolute;
   transition: opacity 120ms ease;
   width: 78px;
+  z-index: 1;
+}
+
+.selectedGameDeleteWash {
+  background: linear-gradient(
+    90deg,
+    rgba(127, 29, 29, 0),
+    rgba(127, 29, 29, 0.42) 48%,
+    rgba(239, 68, 68, 0.5)
+  );
+  inset: 0 0 0 auto;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 116px;
   z-index: 1;
 }
 
@@ -362,14 +383,18 @@
 .selectedGameSelect {
   background: transparent;
   border-color: transparent;
+  cursor: pointer;
   display: grid;
   gap: 9px;
   grid-template-columns: 64px minmax(0, 1fr);
   justify-content: stretch;
+  margin: -6px;
   min-height: 34px;
-  padding: 0;
+  padding: 6px;
+  position: relative;
   text-align: left;
-  width: 100%;
+  width: calc(100% + 12px);
+  z-index: 1;
 }
 
 .selectedGameSelect:hover {
@@ -401,8 +426,10 @@
 .selectedGameRemove {
   background: rgba(8, 15, 24, 0.42);
   border-color: rgba(117, 151, 184, 0.26);
-  font-size: 1.15rem;
+  color: rgba(216, 232, 244, 0.82);
+  display: grid;
   height: 30px;
+  place-items: center;
   min-height: 32px;
   opacity: 0;
   padding: 0;
@@ -427,9 +454,14 @@
 
 .selectedGameRemove:hover,
 .selectedGameRemove:focus-visible {
-  background: rgba(102, 192, 244, 0.1);
-  border-color: rgba(102, 192, 244, 0.46);
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(248, 113, 113, 0.48);
+  color: #fecaca;
   outline: none;
+}
+
+.selectedGameRemove svg {
+  display: block;
 }
 
 .selectedGameNotice {

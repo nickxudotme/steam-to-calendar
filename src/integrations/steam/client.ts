@@ -70,6 +70,8 @@ export class SteamWishlistError extends Error {
 const STEAM_ID_64_PATTERN = /^7656\d{13}$/;
 const STEAM_CUSTOM_URL_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const DEFAULT_TIMEOUT_MS = 10_000;
+const STEAM_PROFILE_URL_HINT =
+  "Enter a valid Steam profile URL, for example https://steamcommunity.com/profiles/123456 or https://steamcommunity.com/id/abcd.";
 
 export function isSteamId64(value: string): boolean {
   return STEAM_ID_64_PATTERN.test(value.trim());
@@ -90,10 +92,7 @@ export function normalizeSteamId64(input: string): string {
   try {
     url = new URL(value);
   } catch {
-    throw new SteamWishlistError(
-      "invalid_steam_id",
-      "Enter a SteamID64 or a supported Steam profile URL.",
-    );
+    throw new SteamWishlistError("invalid_steam_id", STEAM_PROFILE_URL_HINT);
   }
 
   const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
@@ -118,10 +117,7 @@ export function normalizeSteamId64(input: string): string {
     return segments[2];
   }
 
-  throw new SteamWishlistError(
-    "invalid_steam_id",
-    "Enter a SteamID64 or a supported Steam profile URL.",
-  );
+  throw new SteamWishlistError("invalid_steam_id", STEAM_PROFILE_URL_HINT);
 }
 
 export function normalizeSteamProfileInput(input: string): string {
@@ -136,10 +132,7 @@ export function normalizeSteamProfileInput(input: string): string {
     return steamInput;
   }
 
-  throw new SteamWishlistError(
-    "invalid_steam_id",
-    "Enter a SteamID64, custom Steam profile URL, or supported Steam wishlist URL.",
-  );
+  throw new SteamWishlistError("invalid_steam_id", STEAM_PROFILE_URL_HINT);
 }
 
 function extractSupportedSteamProfileUrl(value: string): string | null {

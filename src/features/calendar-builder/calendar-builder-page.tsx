@@ -54,7 +54,11 @@ import { useWishlistPreview } from "./wishlist-preview-hooks";
 
 const TOOLTIP_VIEWPORT_PADDING = 16;
 
-export function CalendarBuilderPage() {
+export function CalendarBuilderPage({
+  initialLanguageCode = "en",
+}: {
+  initialLanguageCode?: string;
+}) {
   // This component is intentionally the feature composition root: it owns app-wide UI state
   // and delegates rendering/details to smaller components and hooks.
   const [preview, setPreview] = useState<PreviewResponse>(PUBLIC_PREVIEW);
@@ -74,8 +78,9 @@ export function CalendarBuilderPage() {
   const [detectedStoreRegion, setDetectedStoreRegion] = useState<string | null>(null);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
-  const [uiLanguage, setUiLanguage] = useState<UiLanguage>("en");
-  const [selectedLanguageCode, setSelectedLanguageCode] = useState("en");
+  const initialLanguage = languageOptionByCode(initialLanguageCode);
+  const [uiLanguage, setUiLanguage] = useState<UiLanguage>(initialLanguage.uiLanguage);
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState(initialLanguage.code);
   const [hasInitializedClientLocale, setHasInitializedClientLocale] = useState(false);
   const [shouldSendDetectedStoreRegion, setShouldSendDetectedStoreRegion] = useState(false);
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
@@ -90,6 +95,7 @@ export function CalendarBuilderPage() {
     activeResizeHandle,
     configResizeHandleProps,
     detailResizeHandleProps,
+    hasRestoredWorkbenchLayout,
     workbenchRef,
     workbenchStyle,
   } = useResizableWorkbench();
@@ -102,9 +108,14 @@ export function CalendarBuilderPage() {
     effectiveStoreRegion,
     preview.locale?.cc === effectiveStoreRegion ? preview.events : [],
   );
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrency})`;
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
+  const isStoreRegionCurrencyLoading =
+    !shouldShowResolvedStoreRegion || preview.locale?.cc !== effectiveStoreRegion;
+  const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
+    ? copy.storeCurrencyLoading
+    : effectiveStoreRegionCurrency;
+  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
@@ -268,6 +279,10 @@ export function CalendarBuilderPage() {
   }, [isPreviewLoading]);
 
   useEffect(() => {
+    document.documentElement.lang = effectiveUiLang;
+  }, [effectiveUiLang]);
+
+  useEffect(() => {
     if (!isStoreTooltipOpen) {
       return;
     }
@@ -303,7 +318,6 @@ export function CalendarBuilderPage() {
       setIsMobileSettingsOpen(false);
       setIsMobileDetailOpen(true);
     },
-    onSelectFromGames: () => setIsMobileSettingsOpen(false),
     todayIso,
     visibleEvents,
   });
@@ -367,6 +381,7 @@ export function CalendarBuilderPage() {
         ? { reviewPercentage: game.reviewPercentage }
         : {}),
       ...(game.reviewSummary ? { reviewSummary: game.reviewSummary } : {}),
+      ...(game.releaseDateText !== undefined ? { releaseDateText: game.releaseDateText } : {}),
       storeUrl: game.storeUrl,
     });
   }
@@ -378,7 +393,15 @@ export function CalendarBuilderPage() {
 
   function handleSelectedGameClick(appId: string) {
     setShowMyGames(true);
-    selectedGamesState.selectGame(appId, sortedEvents, calendarSelection.selectEventFromGame);
+    const didSelectGameEvent = selectedGamesState.selectGame(
+      appId,
+      sortedEvents,
+      calendarSelection.selectEventFromGame,
+    );
+
+    if (didSelectGameEvent && isMobileSettingsOpen) {
+      setIsMobileDetailOpen(true);
+    }
   }
 
   function handleStoreRegionChange(value: string) {
@@ -510,7 +533,11 @@ export function CalendarBuilderPage() {
         />
 
         <section
-          className={["calendarWorkbench", activeResizeHandle ? "isResizing" : ""]
+          className={[
+            "calendarWorkbench",
+            activeResizeHandle ? "isResizing" : "",
+            hasRestoredWorkbenchLayout ? "hasRestoredLayout" : "",
+          ]
             .filter(Boolean)
             .join(" ")}
           aria-label={`${copy.productName} workbench`}
@@ -537,7 +564,7 @@ export function CalendarBuilderPage() {
             {isIntroOpen ? (
               <IntroPanel copy={copy} onClose={handleCloseIntro} />
             ) : (
-              <>
+              <div className="settingsContentPanel">
                 <div className="taskPanelHeader">
                   <div className="taskPanelTitle">
                     <h2>{copy.calendarSetupTitle}</h2>
@@ -697,6 +724,7 @@ export function CalendarBuilderPage() {
                         selectedGameNoticeAppId={selectedGamesState.selectedGameNoticeAppId}
                         sortedEvents={sortedEvents}
                         steamId64={wishlistPreview.steamId64}
+                        todayIso={todayIso}
                         uiLanguage={uiLanguage}
                         wishlistEventCount={wishlistEventAppIds.size}
                         wishlistGameCount={preview.stats.wishlistGames}
@@ -726,6 +754,7 @@ export function CalendarBuilderPage() {
                         selectedGameNoticeAppId={selectedGamesState.selectedGameNoticeAppId}
                         selectedGames={selectedGamesState.selectedGames}
                         showMyGames={showMyGames}
+                        todayIso={todayIso}
                       />
                     </div>
                   </section>
@@ -753,7 +782,7 @@ export function CalendarBuilderPage() {
                     </div>
                   </section>
                 </div>
-              </>
+              </div>
             )}
 
             <div className="mobileSheetControls" aria-hidden={!isMobileSettingsOpen}>

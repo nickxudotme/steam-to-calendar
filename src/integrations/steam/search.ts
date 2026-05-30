@@ -14,6 +14,7 @@ export type SteamSearchResult = {
   reviewCount?: number;
   reviewPercentage?: number;
   reviewSummary?: string;
+  releaseDateText?: string | null;
   storeUrl: string;
 };
 
@@ -46,6 +47,10 @@ type SteamCliAppSearchResult = {
       final_formatted?: string;
       initial_formatted?: string;
     };
+    release_date?: {
+      date?: string;
+    };
+    release_string?: string;
   };
   reviews?: {
     review_score_desc?: string;
@@ -251,6 +256,7 @@ async function enrichSearchResults(
       ...result,
       imageUrl: app.imageUrl ?? result.imageUrl,
       genres: app.genres,
+      releaseDateText: app.releaseDateText,
       reviewCount: app.reviewCount,
       reviewPercentage: app.reviewPercentage,
       reviewSummary: app.reviewSummary,
@@ -262,8 +268,13 @@ async function enrichSearchResults(
 
 function steamAppSearchMetadata(
   app: SteamCliAppSearchResult,
-): Pick<SteamSearchResult, "genres" | "reviewCount" | "reviewPercentage" | "reviewSummary"> {
+): Pick<
+  SteamSearchResult,
+  "genres" | "releaseDateText" | "reviewCount" | "reviewPercentage" | "reviewSummary"
+> {
   const review = readReviewSummary(app.reviews, app.store_item?.reviews);
+  const releaseDateText =
+    app.details?.release_date?.date?.trim() || app.details?.release_string?.trim() || null;
   const genres = uniqueStrings(
     (app.details?.genres ?? []).flatMap((genre) => {
       const value = genre.description?.trim() || genre.name?.trim();
@@ -273,6 +284,7 @@ function steamAppSearchMetadata(
 
   return {
     ...(genres.length ? { genres } : {}),
+    releaseDateText,
     ...review,
   };
 }

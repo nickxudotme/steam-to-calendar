@@ -19,6 +19,7 @@ export type GameSearchResult = {
   reviewCount?: number;
   reviewPercentage?: number;
   reviewSummary?: string;
+  releaseDateText?: string | null;
   storeUrl: string;
 };
 
@@ -37,6 +38,7 @@ export type SelectedGame = {
   reviewCount?: number;
   reviewPercentage?: number;
   reviewSummary?: string;
+  releaseDateText?: string | null;
   storeUrl: string;
 };
 

@@ -2,7 +2,11 @@
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.42;
-  margin: 8px 0 0;
+  margin: 0;
+}
+
+.wishlistAnimatedBlock {
+  margin-top: 0;
 }
 
 .connectWishlistButton,
@@ -23,6 +27,20 @@
     color 150ms var(--ease-soft),
     transform 120ms var(--ease-soft);
   width: 100%;
+}
+
+.wishlistActionRegion {
+  display: grid;
+  min-height: 40px;
+  transition: min-height 220ms var(--ease-soft);
+}
+
+.wishlistActionRegion[data-mode="import"] {
+  min-height: 98px;
+}
+
+.wishlistActionRegion > * {
+  animation: wishlistActionIn 180ms var(--ease-soft) both;
 }
 
 .connectWishlistButton {
@@ -55,6 +73,7 @@
   border-radius: 6px;
   display: grid;
   gap: 4px;
+  margin-top: 0;
   padding: 9px 10px;
 }
 
@@ -110,10 +129,260 @@
 .wishlistImport {
   display: grid;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 
-.wishlistImport button {
+.steamProfileHelpButton {
+  align-items: center;
+  background: rgba(12, 25, 38, 0.86);
+  border: 1px solid rgba(117, 151, 184, 0.3);
+  border-radius: 5px;
+  color: #b8cde0;
+  cursor: help;
+  display: inline-flex;
+  grid-column: 1;
+  grid-row: 1;
+  height: 28px;
+  justify-content: center;
+  justify-self: end;
+  margin-right: 5px;
+  padding: 0;
+  position: relative;
+  transition:
+    background 150ms var(--ease-soft),
+    border-color 150ms var(--ease-soft),
+    color 150ms var(--ease-soft),
+    transform 120ms var(--ease-soft);
+  width: 28px;
+  z-index: 3;
+}
+
+.steamProfileHelpButton:hover,
+.steamProfileHelpButton:focus-visible {
+  background: rgba(18, 48, 74, 0.96);
+  border-color: rgba(102, 192, 244, 0.58);
+  color: #ffffff;
+  outline: none;
+}
+
+.steamProfileHelpButton:active {
+  transform: scale(0.97);
+}
+
+.steamProfileHelpPopover {
+  background: linear-gradient(180deg, rgba(13, 28, 42, 0.99), rgba(5, 11, 18, 0.99));
+  border: 1px solid rgba(102, 192, 244, 0.34);
+  border-radius: 7px;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #d9e8f3;
+  display: grid;
+  gap: 10px;
+  opacity: 0;
+  padding: 12px;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-4px, -50%) scale(0.99);
+  transform-origin: left center;
+  transition:
+    opacity 140ms var(--ease-soft),
+    transform 140ms var(--ease-soft);
+  z-index: 120;
+}
+
+.steamProfileHelpPopover[data-open="true"] {
+  opacity: 1;
+  transform: translate(0, -50%) scale(1);
+}
+
+.steamProfileHelpPopover[data-placement="bottom"],
+.steamProfileHelpPopover[data-placement="top"] {
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  transform: translateY(-4px) scale(0.99);
+  transform-origin: top center;
+}
+
+.steamProfileHelpPopover[data-placement="top"] {
+  transform: translateY(4px) scale(0.99);
+}
+
+.steamProfileHelpPopover[data-open="true"][data-placement="bottom"],
+.steamProfileHelpPopover[data-open="true"][data-placement="top"] {
+  transform: translateY(0) scale(1);
+}
+
+.steamProfileHelpPopover strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.steamProfileHelpPopover p {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.42;
+  margin: 0;
+}
+
+.steamProfileHelpPopover code {
+  background: rgba(4, 10, 17, 0.68);
+  border: 1px solid rgba(117, 151, 184, 0.2);
+  border-radius: 5px;
+  color: #bfe3ff;
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 7px 8px;
+  white-space: normal;
+}
+
+.steamProfileHelpArt {
+  background:
+    linear-gradient(180deg, rgba(20, 31, 45, 0.98), rgba(9, 17, 28, 0.98)),
+    radial-gradient(circle at 82% 78%, rgba(102, 192, 244, 0.2), transparent 38%);
+  border: 1px solid rgba(117, 151, 184, 0.24);
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 10px;
+  position: relative;
+}
+
+.steamProfileTopBar {
+  align-items: baseline;
+  color: rgba(221, 235, 246, 0.92);
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 850;
+  gap: 1em;
+  justify-content: flex-start;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  width: max-content;
+}
+
+.steamProfileNavItem,
+.steamProfileUserName {
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steamProfileUserName {
+  color: #29a6ff;
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: #1686df;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+}
+
+.steamProfileStepBadge {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.16);
+  border: 1px solid rgba(102, 192, 244, 0.42);
+  border-radius: 999px;
+  color: #b9dff7;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.steamProfileStepBadgeName {
+  text-transform: none;
+}
+
+.steamProfileAddress {
+  align-items: center;
+  background: rgba(2, 8, 14, 0.96);
+  border: 2px solid rgba(102, 192, 244, 0.9);
+  border-radius: 5px;
+  box-shadow:
+    0 0 0 2px rgba(102, 192, 244, 0.12),
+    0 10px 22px rgba(0, 0, 0, 0.26);
+  color: #e7f6ff;
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  min-width: 0;
+  padding: 7px 8px;
+  position: relative;
+  width: 100%;
+}
+
+.steamProfileAddress span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steamProfileAddressCallout {
+  align-items: center;
+  background: rgba(102, 192, 244, 0.16);
+  border: 1px solid rgba(102, 192, 244, 0.42);
+  border-radius: 999px;
+  color: #d7efff;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  justify-self: start;
+  line-height: 1;
+  padding: 5px 8px;
+  position: relative;
+}
+
+.steamProfileAddressCallout::before {
+  background: rgba(102, 192, 244, 0.74);
+  content: "";
+  height: 14px;
+  left: 18px;
+  position: absolute;
+  top: -15px;
+  width: 2px;
+}
+
+@media (max-width: 720px) {
+  .steamProfileHelpPopover {
+    border-radius: 8px;
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .steamProfileHelpArt {
+    gap: 7px;
+    padding: 9px;
+  }
+
+  .steamProfileTopBar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.72em;
+    width: auto;
+  }
+
+  .steamProfileStepBadge {
+    font-size: 0.7rem;
+    padding: 5px 7px;
+  }
+
+  .steamProfileAddress {
+    font-size: 0.72rem;
+  }
+
+  .steamProfileHelpPopover code {
+    font-size: 0.68rem;
+  }
+}
+
+.wishlistImport button:not(.steamProfileHelpButton) {
   align-items: center;
   background: transparent;
   border: 1px solid rgba(117, 151, 184, 0.3);
@@ -127,14 +396,40 @@
   min-height: 40px;
 }
 
-.wishlistTaskCard .wishlistImport button {
+.wishlistTaskCard .wishlistImport button:not(.steamProfileHelpButton) {
   background: linear-gradient(180deg, #168dff, #0867bf);
   border-color: rgba(102, 192, 244, 0.7);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
 
-.wishlistImport button:disabled {
+.wishlistImport button:not(.steamProfileHelpButton):disabled {
   cursor: wait;
   opacity: 0.68;
+}
+
+.steamInputWrap input {
+  padding-right: 40px;
+}
+
+@keyframes wishlistActionIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wishlistActionRegion {
+    transition: none;
+  }
+
+  .wishlistActionRegion > * {
+    animation: none;
+  }
 }

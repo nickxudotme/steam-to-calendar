@@ -56,6 +56,7 @@ export function selectedGameFromEvent(event: PreviewEvent): SelectedGame {
       ? { reviewPercentage: event.reviewPercentage }
       : {}),
     ...(event.reviewSummary ? { reviewSummary: event.reviewSummary } : {}),
+    ...(event.releaseDateText !== undefined ? { releaseDateText: event.releaseDateText } : {}),
     storeUrl: event.sourceUrl ?? `https://store.steampowered.com/app/${event.appId}/`,
   };
 }
@@ -81,8 +82,81 @@ export function selectedGameFromWishlistGame(
     ...((event?.reviewSummary ?? game.reviewSummary)
       ? { reviewSummary: event?.reviewSummary ?? game.reviewSummary }
       : {}),
+    releaseDateText: event?.releaseDateText ?? game.releaseDateText ?? null,
     storeUrl: event?.sourceUrl ?? game.storeUrl,
   };
+}
+
+export function watchedGamePendingMessage(
+  game: Pick<SelectedGame, "releaseDateText">,
+  copy: (typeof UI_COPY)[UiLanguage],
+  todayIso: string,
+): string {
+  const releaseStatus = gameReleaseStatus(game.releaseDateText, todayIso);
+
+  if (releaseStatus === "released") {
+    return copy.watchedReleasedGamePending;
+  }
+
+  if (releaseStatus === "unreleased") {
+    return copy.watchedUnreleasedGamePending;
+  }
+
+  return copy.watchedGamePending;
+}
+
+function gameReleaseStatus(
+  releaseDateText: string | null | undefined,
+  todayIso: string,
+): "released" | "unreleased" | "unknown" {
+  if (!releaseDateText) {
+    return "unknown";
+  }
+
+  const exactReleaseDate = parseExactSteamReleaseDateText(releaseDateText);
+  if (exactReleaseDate) {
+    return exactReleaseDate <= todayIso ? "released" : "unreleased";
+  }
+
+  return "unreleased";
+}
+
+function parseExactSteamReleaseDateText(releaseDateText: string): string | null {
+  const zhMatch = releaseDateText.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$/);
+  if (zhMatch) {
+    return `${zhMatch[1]}-${zhMatch[2].padStart(2, "0")}-${zhMatch[3].padStart(2, "0")}`;
+  }
+
+  const match = releaseDateText.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
+  if (!match) {
+    return null;
+  }
+
+  const month = steamReleaseMonthNumber(match[1]);
+  if (!month) {
+    return null;
+  }
+
+  return `${match[3]}-${month}-${match[2].padStart(2, "0")}`;
+}
+
+function steamReleaseMonthNumber(month: string): string | null {
+  const months: Record<string, string> = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Aug: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dec: "12",
+  };
+
+  return months[month] ?? null;
 }
 
 export function selectedGameTitle(event: PreviewEvent) {

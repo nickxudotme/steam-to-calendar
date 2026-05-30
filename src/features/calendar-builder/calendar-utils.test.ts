@@ -9,6 +9,7 @@ import {
   eventOccursOn,
   shouldLoadDefaultDealPreview,
   storeRegionCurrencySymbol,
+  watchedGamePendingMessage,
 } from "./calendar-utils";
 import type { PreviewEvent } from "./model";
 import { UI_COPY } from "./ui-copy";
@@ -167,6 +168,7 @@ describe("calendar builder utilities", () => {
           reviewCount: 1000,
           reviewPercentage: 98,
           reviewSummary: "Overwhelmingly Positive",
+          releaseDateText: "Apr 18, 2011",
           sourceUrl: "https://store.steampowered.com/app/620/",
           title: "-80% Portal 2",
           type: "steam_deal",
@@ -187,7 +189,27 @@ describe("calendar builder utilities", () => {
       reviewCount: 1000,
       reviewPercentage: 98,
       reviewSummary: "Overwhelmingly Positive",
+      releaseDateText: "Apr 18, 2011",
       storeUrl: "https://store.steampowered.com/app/620/",
     });
+  });
+
+  it("tailors pending tracked-game copy to release status", () => {
+    expect(
+      watchedGamePendingMessage({ releaseDateText: "Apr 18, 2011" }, UI_COPY.en, "2026-05-30"),
+    ).toBe(UI_COPY.en.watchedReleasedGamePending);
+    expect(
+      watchedGamePendingMessage({ releaseDateText: "Coming soon" }, UI_COPY.zh, "2026-05-30"),
+    ).toBe(UI_COPY.zh.watchedUnreleasedGamePending);
+    expect(
+      watchedGamePendingMessage(
+        { releaseDateText: "2025 年 5 月 25 日" },
+        UI_COPY.zh,
+        "2026-05-30",
+      ),
+    ).toBe(UI_COPY.zh.watchedReleasedGamePending);
+    expect(watchedGamePendingMessage({}, UI_COPY.en, "2026-05-30")).toBe(
+      UI_COPY.en.watchedGamePending,
+    );
   });
 });

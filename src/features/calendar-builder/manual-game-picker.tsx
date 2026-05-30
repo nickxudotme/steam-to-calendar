@@ -1,7 +1,9 @@
 "use client";
 
-import { Pencil, Search } from "lucide-react";
+import { Pencil, Search, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { FormEvent } from "react";
+import { watchedGamePendingMessage } from "./calendar-utils";
 import { SearchResultPrice } from "./game-search-preview-card";
 import type { GameSearchResult, SelectedGame } from "./model";
 import { SteamCliImage } from "./steam-cli-image";
@@ -27,6 +29,7 @@ export function ManualGamePicker({
   selectedGameNoticeAppId,
   selectedGames,
   showMyGames,
+  todayIso,
 }: {
   copy: (typeof UI_COPY)[UiLanguage];
   gameSearch: string;
@@ -47,6 +50,7 @@ export function ManualGamePicker({
   selectedGameNoticeAppId: string | null;
   selectedGames: SelectedGame[];
   showMyGames: boolean;
+  todayIso: string;
 }) {
   return (
     <div className="myGamesBlock">
@@ -111,7 +115,7 @@ export function ManualGamePicker({
         </div>
       ) : null}
 
-      {!hasConnectedWishlist && selectedGames.length ? (
+      {!hasConnectedWishlist ? (
         <SelectedGamesList
           copy={copy}
           onGameClick={onGameClick}
@@ -121,6 +125,7 @@ export function ManualGamePicker({
           recentlyAddedAppId={recentlyAddedAppId}
           selectedGameNoticeAppId={selectedGameNoticeAppId}
           selectedGames={selectedGames}
+          todayIso={todayIso}
         />
       ) : null}
     </div>
@@ -207,6 +212,7 @@ function SelectedGamesList({
   recentlyAddedAppId,
   selectedGameNoticeAppId,
   selectedGames,
+  todayIso,
 }: {
   copy: (typeof UI_COPY)[UiLanguage];
   onGameClick: (appId: string) => void;
@@ -216,7 +222,14 @@ function SelectedGamesList({
   recentlyAddedAppId: string | null;
   selectedGameNoticeAppId: string | null;
   selectedGames: SelectedGame[];
+  todayIso: string;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+  const collapseTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.18, ease: "easeInOut" as const };
+  const fadeTransition = { duration: shouldReduceMotion ? 0 : 0.11 };
+
   return (
     <div className="selectedGames" aria-label="Games added to calendar">
       <div className="selectedGamesHeader">
@@ -224,44 +237,76 @@ function SelectedGamesList({
           {copy.addedGamesLabel} ({selectedGames.length})
         </span>
       </div>
-      {selectedGames.map((game) => (
-        <div
-          className={
-            game.appId === recentlyAddedAppId ? "selectedGameRow isNewlyAdded" : "selectedGameRow"
-          }
-          key={game.appId}
-        >
-          <button
-            className="selectedGameSelect"
-            type="button"
-            onBlur={onSearchPreviewClear}
-            onMouseDown={(event) => event.preventDefault()}
-            onFocus={(event) => onGamePreview(game, event.currentTarget)}
-            onMouseEnter={(event) => onGamePreview(game, event.currentTarget)}
-            onMouseLeave={onSearchPreviewClear}
-            onClick={() => {
-              onSearchPreviewClear();
-              onGameClick(game.appId);
+      <AnimatePresence initial={false}>
+        {selectedGames.map((game) => (
+          <motion.div
+            className="selectedGameRowSlot"
+            key={game.appId}
+            initial={shouldReduceMotion ? false : { height: 0, marginTop: 0, opacity: 0 }}
+            animate={{ height: "auto", marginTop: 5, opacity: 1 }}
+            exit={{ height: 0, marginTop: 5, opacity: shouldReduceMotion ? 0 : 1 }}
+            transition={{
+              height: collapseTransition,
+              marginTop: collapseTransition,
+              opacity: fadeTransition,
             }}
           >
-            <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
-            <span>{game.name}</span>
-          </button>
-          <button
-            aria-label={`${copy.remove} ${game.name}`}
-            className="selectedGameRemove"
-            type="button"
-            onClick={() => onRemoveGame(game.appId)}
-          >
-            x
-          </button>
-          {selectedGameNoticeAppId === game.appId ? (
-            <div className="selectedGameNotice" role="status">
-              {copy.watchedGamePending}
-            </div>
-          ) : null}
-        </div>
-      ))}
+            <motion.div
+              className={[
+                "selectedGameRow",
+                game.appId === recentlyAddedAppId ? "isNewlyAdded" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0.78 }}
+              transition={{
+                opacity: fadeTransition,
+                y: fadeTransition,
+              }}
+            >
+              <motion.span
+                aria-hidden="true"
+                className="selectedGameDeleteWash"
+                initial={false}
+                animate={{ opacity: 0 }}
+                exit={{ opacity: shouldReduceMotion ? 0 : 1 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.09 }}
+              />
+              <button
+                className="selectedGameSelect"
+                type="button"
+                onBlur={onSearchPreviewClear}
+                onMouseDown={(event) => event.preventDefault()}
+                onFocus={(event) => onGamePreview(game, event.currentTarget)}
+                onMouseEnter={(event) => onGamePreview(game, event.currentTarget)}
+                onMouseLeave={onSearchPreviewClear}
+                onClick={() => {
+                  onSearchPreviewClear();
+                  onGameClick(game.appId);
+                }}
+              >
+                <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
+                <span>{game.name}</span>
+              </button>
+              <button
+                aria-label={`${copy.remove} ${game.name}`}
+                className="selectedGameRemove"
+                type="button"
+                onClick={() => onRemoveGame(game.appId)}
+              >
+                <Trash2 aria-hidden="true" focusable="false" size={15} strokeWidth={2.2} />
+              </button>
+              {selectedGameNoticeAppId === game.appId ? (
+                <div className="selectedGameNotice" role="status">
+                  {watchedGamePendingMessage(game, copy, todayIso)}
+                </div>
+              ) : null}
+            </motion.div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

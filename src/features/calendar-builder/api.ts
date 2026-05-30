@@ -158,7 +158,8 @@ function isSearchResult(value: unknown): value is GameSearchResult {
     (value.price === undefined || isSearchPrice(value.price)) &&
     isOptionalNumber(value.reviewCount) &&
     isOptionalNumber(value.reviewPercentage) &&
-    isOptionalString(value.reviewSummary)
+    isOptionalString(value.reviewSummary) &&
+    isOptionalNullableString(value.releaseDateText)
   );
 }
 
@@ -169,4 +170,8 @@ function isSearchPrice(value: unknown): value is NonNullable<GameSearchResult["p
     isOptionalString(value.finalFormatted) &&
     isOptionalString(value.initialFormatted)
   );
+}
+
+function isOptionalNullableString(value: unknown): value is string | null | undefined {
+  return value === undefined || value === null || isString(value);
 }

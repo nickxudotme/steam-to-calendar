@@ -184,6 +184,7 @@ export function useResizableWorkbench(): {
   activeResizeHandle: WorkbenchColumn | null;
   configResizeHandleProps: WorkbenchResizeHandleProps;
   detailResizeHandleProps: WorkbenchResizeHandleProps;
+  hasRestoredWorkbenchLayout: boolean;
   workbenchRef: RefObject<HTMLElement | null>;
   workbenchStyle: CSSProperties & {
     "--config-panel-width": string;
@@ -193,18 +194,28 @@ export function useResizableWorkbench(): {
   const workbenchRef = useRef<HTMLElement | null>(null);
   const [layout, setLayout] = useState<WorkbenchLayout>(DEFAULT_WORKBENCH_LAYOUT);
   const [activeResizeHandle, setActiveResizeHandle] = useState<WorkbenchColumn | null>(null);
+  const [hasRestoredWorkbenchLayout, setHasRestoredWorkbenchLayout] = useState(false);
 
   useEffect(() => {
+    let restoreAnimationFrameId = 0;
     const animationFrameId = window.requestAnimationFrame(() => {
       const storedLayout = readStoredWorkbenchLayout();
+      setHasRestoredWorkbenchLayout(true);
 
       if (storedLayout) {
-        const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
-        setLayout(totalWidth ? fitWorkbenchLayoutToWidth(storedLayout, totalWidth) : storedLayout);
+        restoreAnimationFrameId = window.requestAnimationFrame(() => {
+          const totalWidth = workbenchRef.current?.getBoundingClientRect().width ?? 0;
+          setLayout(
+            totalWidth ? fitWorkbenchLayoutToWidth(storedLayout, totalWidth) : storedLayout,
+          );
+        });
       }
     });
 
-    return () => window.cancelAnimationFrame(animationFrameId);
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.cancelAnimationFrame(restoreAnimationFrameId);
+    };
   }, []);
 
   const updateLayout = useCallback(
@@ -336,6 +347,7 @@ export function useResizableWorkbench(): {
     activeResizeHandle,
     configResizeHandleProps,
     detailResizeHandleProps,
+    hasRestoredWorkbenchLayout,
     workbenchRef,
     workbenchStyle: {
       "--config-panel-width": `${layout.config}px`,
