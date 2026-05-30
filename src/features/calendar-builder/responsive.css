@@ -289,7 +289,7 @@
   }
 
   .brandText {
-    gap: 0;
+    gap: 2px;
   }
 
   .brandName {
@@ -298,7 +298,10 @@
   }
 
   .brandTagline {
-    display: none;
+    display: block;
+    font-size: 0.66rem;
+    line-height: 1.15;
+    max-width: clamp(170px, 52vw, 260px);
   }
 
   .brandIcon {
@@ -307,7 +310,7 @@
   }
 
   .siteHeader {
-    height: 64px;
+    height: 68px;
     margin: 0 -10px 8px;
     padding: 0 14px;
   }
@@ -692,13 +695,25 @@
   }
 
   .calendarActionBar {
-    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 40px;
     padding: 0 12px;
   }
 
   .calendarIconLinks {
-    display: none;
+    display: flex;
+    gap: 6px;
+  }
+
+  .calendarIconLinks a {
+    height: 28px;
+    width: 28px;
+  }
+
+  .calendarIconLinks svg {
+    height: 14px;
+    width: 14px;
   }
 
   .calendarActionBar .calendarLegend span {
