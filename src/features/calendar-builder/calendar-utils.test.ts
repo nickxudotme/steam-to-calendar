@@ -6,6 +6,7 @@ import {
   chooseCurrentGameEvent,
   chooseEventFocusDate,
   detailFacts,
+  detailKind,
   detailTitle,
   selectedGameFromEvent,
   eventOccursOn,
@@ -203,6 +204,16 @@ describe("calendar builder utilities", () => {
       ),
     ).toBe("Subnautica");
     expect(detailTitle(previewEvent({ title: "🎮 Hades II releases" }))).toBe("Hades II releases");
+  });
+
+  it("uses one detail kind for tracked game deal and release events", () => {
+    expect(detailKind(previewEvent({ type: "steam_deal" }), UI_COPY.en)).toBe(
+      "Tracked Game Events",
+    );
+    expect(detailKind(previewEvent({ type: "wishlist_release" }), UI_COPY.en)).toBe(
+      "Tracked Game Events",
+    );
+    expect(detailKind(previewEvent({ type: "steam_preorder" }), UI_COPY.zh)).toBe("关注游戏事件");
   });
 
   it("shows historical low facts before sale start timestamps", () => {

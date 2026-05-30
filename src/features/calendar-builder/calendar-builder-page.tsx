@@ -329,6 +329,7 @@ export function CalendarBuilderPage({
   });
   const wishlistPreview = useWishlistPreview({
     calendarConfig,
+    connectedSteamId64: hasConnectedWishlist ? preview.steamId64 : null,
     effectiveSteamLang,
     effectiveStoreRegion,
     effectiveUiLang,

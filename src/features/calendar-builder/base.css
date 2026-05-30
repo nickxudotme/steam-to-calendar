@@ -375,6 +375,8 @@ select {
 
 .settingsContentPanel {
   animation: panelContentIn 180ms var(--ease-soft) both;
+  display: grid;
+  gap: 12px;
 }
 
 .introPanel {

@@ -673,15 +673,9 @@ export function compactEventTitle(title: string): string {
 export function detailKind(event: PreviewEvent, copy: (typeof UI_COPY)[UiLanguage]): string {
   switch (event.type) {
     case "steam_deal":
-      if (event.dataSource === "steam_history") {
-        return copy.priceHistoryWindow;
-      }
-
-      return copy.hotDealsTitle;
     case "steam_preorder":
-      return copy.preordersLegend;
     case "wishlist_release":
-      return copy.myGamesTitle;
+      return copy.trackedGameEventsTitle;
     case "steam_major_event":
       return copy.steamEventsTitle;
   }

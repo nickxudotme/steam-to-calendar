@@ -79,6 +79,10 @@ export function WishlistConnector({
   );
   const isProfileHelpVisible = isProfileHelpOpen && isWishlistImportOpen && !hasConnectedWishlist;
 
+  function canUseHoverHelp() {
+    return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  }
+
   const openProfileHelp = useCallback(() => {
     const buttonRect = helpButtonRef.current?.getBoundingClientRect();
     if (!buttonRect) {
@@ -198,12 +202,29 @@ export function WishlistConnector({
                 />
                 <button
                   aria-describedby="steam-profile-help"
+                  aria-expanded={isProfileHelpVisible}
                   aria-label={copy.steamProfileHelpLabel}
+                  aria-controls="steam-profile-help"
                   className="steamProfileHelpButton"
                   onBlur={() => setIsProfileHelpOpen(false)}
                   onFocus={openProfileHelp}
-                  onPointerEnter={openProfileHelp}
-                  onPointerLeave={() => setIsProfileHelpOpen(false)}
+                  onClick={() => {
+                    if (isProfileHelpOpen) {
+                      setIsProfileHelpOpen(false);
+                    } else {
+                      openProfileHelp();
+                    }
+                  }}
+                  onPointerEnter={() => {
+                    if (canUseHoverHelp()) {
+                      openProfileHelp();
+                    }
+                  }}
+                  onPointerLeave={() => {
+                    if (canUseHoverHelp()) {
+                      setIsProfileHelpOpen(false);
+                    }
+                  }}
                   ref={helpButtonRef}
                   type="button"
                 >

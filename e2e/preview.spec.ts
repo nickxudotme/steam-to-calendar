@@ -360,6 +360,122 @@ test("clicking an imported wishlist game scrolls the calendar to its event", asy
     .toBe(true);
 });
 
+test("uses the latest locale when wishlist import finishes after settings change", async ({
+  page,
+}) => {
+  const previewRequests: Array<{ cc: string; lang: string; uiLang: string | null }> = [];
+
+  await page.addInitScript(() => {
+    window.localStorage.setItem("steam-to-calendar-intro-seen", "1");
+  });
+  await page.route("**/api/public-preview?**", async (route) => {
+    const url = new URL(route.request().url());
+
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        steamId64: "steam-events",
+        feedPath: "/feed/steam-events.ics",
+        calendarPath: "/cal/steam-events",
+        wishlistUrl: "",
+        locale: {
+          cc: url.searchParams.get("cc") || "US",
+          lang: url.searchParams.get("lang") || "english",
+          uiLang: url.searchParams.get("uiLang") || "en",
+        },
+        stats: {
+          wishlistGames: 0,
+          appDetails: 0,
+          skippedAppIds: 0,
+          wishlistReleaseEvents: 0,
+          steamMajorEvents: 1,
+          priceHistoryEvents: 0,
+          storeFallbackEvents: 0,
+        },
+        events: [
+          {
+            id: "steam-next-fest-2026",
+            title: "Steam Next Fest",
+            description: "Playable demos.",
+            startDate: "2026-06-08",
+            endDate: "2026-06-15",
+            sourceUrl: "https://store.steampowered.com/",
+            type: "steam_major_event",
+            eventCategory: "fest",
+          },
+        ],
+      },
+    });
+  });
+  await page.route("**/api/preview?**", async (route) => {
+    const url = new URL(route.request().url());
+    const body = JSON.parse(route.request().postData() || "{}") as { cc?: string };
+    const request = {
+      cc: body.cc || "US",
+      lang: url.searchParams.get("lang") || "english",
+      uiLang: url.searchParams.get("uiLang"),
+    };
+
+    previewRequests.push(request);
+    if (previewRequests.length === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        steamId64: "76561198115468824",
+        feedPath: "/feed/76561198115468824.ics",
+        calendarPath: "/cal/76561198115468824",
+        wishlistUrl: "https://store.steampowered.com/wishlist/profiles/76561198115468824/",
+        profileName: `${request.cc}-${request.lang}`,
+        wishlistGames: [
+          {
+            appId: "620",
+            imageUrl: "https://cdn.example.test/portal-2.jpg",
+            name: "Portal 2",
+            releaseDateText: "Apr 18, 2011",
+            storeUrl: "https://store.steampowered.com/app/620/",
+          },
+        ],
+        locale: { cc: request.cc, lang: request.lang, uiLang: request.uiLang || "en" },
+        stats: {
+          wishlistGames: 1,
+          appDetails: 1,
+          skippedAppIds: 0,
+          wishlistReleaseEvents: 1,
+          steamMajorEvents: 0,
+          priceHistoryEvents: 0,
+          storeFallbackEvents: 0,
+        },
+        events: [
+          {
+            id: "steam-app-620-release",
+            title: "Portal 2 releases",
+            description: "Steam app 620",
+            startDate: "2026-06-01",
+            sourceUrl: "https://store.steampowered.com/app/620/",
+            type: "wishlist_release",
+            appId: "620",
+            imageUrl: "https://cdn.example.test/portal-2.jpg",
+          },
+        ],
+      },
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await page.locator("#steam-id").fill("https://steamcommunity.com/id/nickxudotme/");
+  await page.locator('.wishlistImport button[type="submit"]').click();
+  await page.locator("header").getByLabel("Steam store region").selectOption("HK");
+  await page.locator("header").getByLabel("Language").selectOption("zh-CN");
+
+  await expect(page.getByText("HK-schinese")).toBeVisible();
+  expect(previewRequests.length).toBeGreaterThanOrEqual(2);
+  expect(previewRequests.at(-1)).toEqual({ cc: "HK", lang: "schinese", uiLang: "zh-CN" });
+});
+
 test("live Steam smoke returns preview and feed contracts @steam-live", async ({
   page,
   request,
@@ -443,4 +559,43 @@ test("opens the calendar month view by default on mobile", async ({ page }) => {
     "true",
   );
   await expect(page.locator(".calendarScroll")).toBeVisible();
+});
+
+test("opens Steam profile help from the wishlist help button on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("steam-to-calendar-intro-seen", "1");
+  });
+  await page.route("**/api/public-preview?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        steamId64: "steam-events",
+        feedPath: "/feed/steam-events.ics",
+        calendarPath: "/cal/steam-events",
+        wishlistUrl: "",
+        locale: { cc: "US", lang: "english", uiLang: "en" },
+        stats: {
+          wishlistGames: 0,
+          appDetails: 0,
+          skippedAppIds: 0,
+          wishlistReleaseEvents: 0,
+          steamMajorEvents: 1,
+          priceHistoryEvents: 0,
+          storeFallbackEvents: 0,
+        },
+        events: [],
+      },
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await page.getByRole("button", { name: "Where to find the Steam profile URL" }).click();
+
+  await expect(page.locator("#steam-profile-help")).toBeVisible();
+  await expect(page.locator("#steam-profile-help")).toContainText(
+    "Copy your Steam profile page URL",
+  );
 });
