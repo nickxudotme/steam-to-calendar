@@ -207,8 +207,16 @@ export function WishlistConnector({
                   aria-controls="steam-profile-help"
                   className="steamProfileHelpButton"
                   onBlur={() => setIsProfileHelpOpen(false)}
-                  onFocus={openProfileHelp}
+                  onFocus={() => {
+                    if (canUseHoverHelp()) {
+                      openProfileHelp();
+                    }
+                  }}
                   onClick={() => {
+                    if (canUseHoverHelp()) {
+                      return;
+                    }
+
                     if (isProfileHelpOpen) {
                       setIsProfileHelpOpen(false);
                     } else {
@@ -223,6 +231,11 @@ export function WishlistConnector({
                   onPointerLeave={() => {
                     if (canUseHoverHelp()) {
                       setIsProfileHelpOpen(false);
+                    }
+                  }}
+                  onPointerDown={(event) => {
+                    if (canUseHoverHelp()) {
+                      event.preventDefault();
                     }
                   }}
                   ref={helpButtonRef}
