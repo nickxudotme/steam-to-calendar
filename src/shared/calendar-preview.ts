@@ -77,6 +77,30 @@ export type PreviewResponse = {
   events: PreviewEvent[];
 };
 
+export type ConnectedPreviewStreamEvent =
+  | {
+      type: "wishlist";
+      games: PreviewWishlistGame[];
+      profileName?: string | null;
+      stats: {
+        appDetails: number;
+        skippedAppIds: number;
+        wishlistGames: number;
+      };
+      steamId64: string;
+      wishlistUrl: string;
+    }
+  | {
+      type: "done";
+      preview: PreviewResponse;
+    }
+  | {
+      type: "error";
+      code: string;
+      message: string;
+      status: number;
+    };
+
 export const PUBLIC_PREVIEW: PreviewResponse = {
   steamId64: STEAM_EVENTS_CALENDAR_ID,
   feedPath: `/feed/${STEAM_EVENTS_CALENDAR_ID}.ics`,

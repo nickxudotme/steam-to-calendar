@@ -5,6 +5,7 @@ import { fetchWishlistCalendarData } from "@/integrations/steam/pipeline";
 import { fetchSteamCalendarEventBundle } from "@/server/calendar/event-bundle";
 import { buildConnectedPreviewResponse } from "@/server/calendar/preview-response";
 import { steamApiErrorPayload, steamApiErrorStatus } from "@/server/steam-api-error";
+import type { ConnectedPreviewStreamEvent } from "@/shared/calendar-preview";
 import { isRecord, isString } from "@/shared/calendar-preview-contract";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,17 @@ export async function POST(request: Request) {
       ...requestLocale,
       cc: normalizeCc(String(body.cc ?? "")) || requestLocale.cc,
     };
-    const data = await fetchWishlistCalendarData(String(body.steamId64 ?? ""), {
+    const steamId64 = String(body.steamId64 ?? "");
+
+    if (wantsStreamingPreview(request)) {
+      return streamConnectedPreview({
+        config,
+        locale,
+        steamId64,
+      });
+    }
+
+    const data = await fetchWishlistCalendarData(steamId64, {
       ...locale,
       appLimit: 100,
     });
@@ -47,6 +58,101 @@ export async function POST(request: Request) {
 
     return Response.json({ code, message }, { status });
   }
+}
+
+function wantsStreamingPreview(request: Request): boolean {
+  const accept = request.headers.get("accept") ?? "";
+  const url = new URL(request.url);
+
+  return accept.includes("application/x-ndjson") || url.searchParams.get("stream") === "1";
+}
+
+function streamConnectedPreview({
+  config,
+  locale,
+  steamId64,
+}: {
+  config: ReturnType<typeof calendarConfigFromRecord>;
+  locale: ReturnType<typeof steamLocaleFromRequest>;
+  steamId64: string;
+}) {
+  const encoder = new TextEncoder();
+
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (event: ConnectedPreviewStreamEvent) => {
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        };
+
+        try {
+          const data = await fetchWishlistCalendarData(steamId64, {
+            ...locale,
+            appLimit: 100,
+          });
+          const shouldUseWishlist = config.includeWishlist;
+
+          if (shouldUseWishlist) {
+            for (const games of chunkArray(data.wishlistGames, 8)) {
+              send({
+                type: "wishlist",
+                games,
+                profileName: data.profileName,
+                stats: {
+                  appDetails: data.appDetails.length,
+                  skippedAppIds: data.skippedAppIds.length,
+                  wishlistGames: data.wishlistGames.length,
+                },
+                steamId64: data.steamId64,
+                wishlistUrl: data.wishlistUrl,
+              });
+            }
+          }
+
+          const bundle = await fetchSteamCalendarEventBundle({
+            appIds: shouldUseWishlist
+              ? data.wishlistGames.map((game) => game.appId)
+              : config.watchedAppIds,
+            config,
+            locale,
+            withWatchedGameSnapshots: shouldUseWishlist,
+          });
+
+          send({
+            type: "done",
+            preview: buildConnectedPreviewResponse({
+              bundle,
+              data,
+              locale,
+              useWishlist: shouldUseWishlist,
+            }),
+          });
+        } catch (error) {
+          const { code, message, status } = previewErrorResponse(error);
+
+          send({ type: "error", code, message, status });
+        } finally {
+          controller.close();
+        }
+      },
+    }),
+    {
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/x-ndjson; charset=utf-8",
+      },
+    },
+  );
+}
+
+function chunkArray<T>(values: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+
+  return chunks;
 }
 
 async function parsePreviewRequestBody(request: Request): Promise<Record<string, unknown>> {

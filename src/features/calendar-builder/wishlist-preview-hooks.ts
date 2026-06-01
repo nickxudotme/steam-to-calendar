@@ -10,7 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { CalendarConfig } from "@/domain/calendar/config";
-import type { PreviewResponse } from "@/shared/calendar-preview";
+import type { ConnectedPreviewStreamEvent, PreviewResponse } from "@/shared/calendar-preview";
 import { fetchConnectedPreview } from "./api";
 
 export function useWishlistPreview({
@@ -86,6 +86,16 @@ export function useWishlistPreview({
         const payload = await fetchConnectedPreview({
           config: requestContext.calendarConfig,
           locale: requestContext.locale,
+          onWishlist: (event) => {
+            if (requestSequenceRef.current !== requestId) {
+              return;
+            }
+
+            lastAppliedRequestKeyRef.current = requestKey;
+            setPreview((currentPreview) =>
+              applyWishlistStreamEvent(currentPreview, event, requestContext.locale),
+            );
+          },
           steamId64: activeConnectedSteamId64,
         });
 
@@ -137,11 +147,32 @@ export function useWishlistPreview({
     const requestId = ++requestSequenceRef.current;
     let requestContext = latestRequestRef.current;
     let requestKey = connectedWishlistRequestKey(trimmedSteamId64, requestContext);
+    let hasAppliedWishlistChunk = false;
 
     try {
       let payload = await fetchConnectedPreview({
         config: requestContext.calendarConfig,
         locale: requestContext.locale,
+        onWishlist: (event) => {
+          if (requestSequenceRef.current !== requestId) {
+            return;
+          }
+
+          lastAppliedRequestKeyRef.current = connectedWishlistRequestKey(
+            event.steamId64,
+            requestContext,
+          );
+          setPreview((currentPreview) =>
+            applyWishlistStreamEvent(currentPreview, event, requestContext.locale),
+          );
+
+          if (!hasAppliedWishlistChunk) {
+            hasAppliedWishlistChunk = true;
+            setShowMyGames(true);
+            setIsImportOpen(false);
+            onConnected();
+          }
+        },
         steamId64: trimmedSteamId64,
       });
 
@@ -154,6 +185,19 @@ export function useWishlistPreview({
         payload = await fetchConnectedPreview({
           config: requestContext.calendarConfig,
           locale: requestContext.locale,
+          onWishlist: (event) => {
+            if (requestSequenceRef.current !== requestId) {
+              return;
+            }
+
+            lastAppliedRequestKeyRef.current = connectedWishlistRequestKey(
+              event.steamId64,
+              requestContext,
+            );
+            setPreview((currentPreview) =>
+              applyWishlistStreamEvent(currentPreview, event, requestContext.locale),
+            );
+          },
           steamId64: trimmedSteamId64,
         });
       }
@@ -204,6 +248,66 @@ export function useWishlistPreview({
     steamId64,
     submit,
   };
+}
+
+function applyWishlistStreamEvent(
+  currentPreview: PreviewResponse,
+  event: Extract<ConnectedPreviewStreamEvent, { type: "wishlist" }>,
+  locale: PreviewResponse["locale"],
+): PreviewResponse {
+  const isSameWishlist = currentPreview.steamId64 === event.steamId64;
+  const wishlistGames = mergeWishlistGames(
+    isSameWishlist ? (currentPreview.wishlistGames ?? []) : [],
+    event.games,
+  );
+
+  return {
+    ...currentPreview,
+    steamId64: event.steamId64,
+    feedPath: `/feed/${event.steamId64}.ics`,
+    calendarPath: `/cal/${event.steamId64}`,
+    wishlistUrl: event.wishlistUrl,
+    ...(event.profileName !== undefined
+      ? { profileName: event.profileName }
+      : isSameWishlist
+        ? { profileName: currentPreview.profileName }
+        : {}),
+    wishlistGames,
+    locale,
+    stats: {
+      wishlistGames: event.stats.wishlistGames,
+      appDetails: event.stats.appDetails,
+      skippedAppIds: event.stats.skippedAppIds,
+      wishlistReleaseEvents: isSameWishlist ? currentPreview.stats.wishlistReleaseEvents : 0,
+      steamMajorEvents: isSameWishlist ? currentPreview.stats.steamMajorEvents : 0,
+      ...(isSameWishlist && currentPreview.stats.priceHistoryEvents !== undefined
+        ? { priceHistoryEvents: currentPreview.stats.priceHistoryEvents }
+        : {}),
+      ...(isSameWishlist && currentPreview.stats.skippedWatchedAppIds !== undefined
+        ? { skippedWatchedAppIds: currentPreview.stats.skippedWatchedAppIds }
+        : {}),
+      ...(isSameWishlist && currentPreview.stats.storeFallbackEvents !== undefined
+        ? { storeFallbackEvents: currentPreview.stats.storeFallbackEvents }
+        : {}),
+    },
+    events: isSameWishlist ? currentPreview.events : [],
+  };
+}
+
+function mergeWishlistGames(
+  currentGames: NonNullable<PreviewResponse["wishlistGames"]>,
+  nextGames: NonNullable<PreviewResponse["wishlistGames"]>,
+) {
+  const gamesByAppId = new Map(currentGames.map((game) => [game.appId, game]));
+
+  for (const game of nextGames) {
+    gamesByAppId.set(game.appId, {
+      ...gamesByAppId.get(game.appId),
+      ...game,
+    });
+  }
+
+  return [...gamesByAppId.values()];
 }
 
 function wishlistRequestContext(
