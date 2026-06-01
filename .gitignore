@@ -25,6 +25,7 @@
 /.vercel-go
 
 # misc
+.agent/
 .DS_Store
 .idea/
 *.pem

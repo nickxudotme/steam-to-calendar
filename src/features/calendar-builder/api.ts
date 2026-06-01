@@ -1,6 +1,7 @@
 import { calendarConfigToSearchParams, type CalendarConfig } from "@/domain/calendar/config";
-import type { PreviewResponse } from "@/shared/calendar-preview";
+import type { ConnectedPreviewStreamEvent, PreviewResponse } from "@/shared/calendar-preview";
 import {
+  isPreviewWishlistGame,
   isNumber,
   isOptionalNumber,
   isOptionalString,
@@ -30,6 +31,7 @@ export type PublicPreviewRequest = {
 export type ConnectedPreviewRequest = {
   config: CalendarConfig;
   locale: CalendarBuilderLocale;
+  onWishlist?: (event: Extract<ConnectedPreviewStreamEvent, { type: "wishlist" }>) => void;
   steamId64: string;
 };
 
@@ -65,6 +67,7 @@ export async function fetchPublicPreview({
 export async function fetchConnectedPreview({
   config,
   locale,
+  onWishlist,
   steamId64,
 }: ConnectedPreviewRequest): Promise<PreviewResponse> {
   const previewParams = new URLSearchParams({
@@ -73,7 +76,10 @@ export async function fetchConnectedPreview({
   });
   const response = await fetch(`/api/preview?${previewParams.toString()}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      accept: onWishlist ? "application/x-ndjson" : "application/json",
+      "content-type": "application/json",
+    },
     body: JSON.stringify({
       steamId64,
       cc: locale.cc,
@@ -88,6 +94,11 @@ export async function fetchConnectedPreview({
       futureDays: config.eventFutureDays,
     }),
   });
+
+  if (onWishlist && isNdjsonResponse(response)) {
+    return readConnectedPreviewStream(response, onWishlist);
+  }
+
   const payload = await parseJson(response);
 
   if (!response.ok) {
@@ -125,6 +136,142 @@ export async function searchCalendarGames({
 
 async function parseJson(response: Response): Promise<unknown> {
   return response.json();
+}
+
+function isNdjsonResponse(response: Response): boolean {
+  return (response.headers.get("content-type") ?? "").includes("application/x-ndjson");
+}
+
+async function readConnectedPreviewStream(
+  response: Response,
+  onWishlist: NonNullable<ConnectedPreviewRequest["onWishlist"]>,
+): Promise<PreviewResponse> {
+  if (!response.body) {
+    throw new Error("Could not stream this Steam wishlist preview.");
+  }
+
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += value;
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const event = parseConnectedPreviewStreamEvent(line);
+
+        if (event.type === "wishlist") {
+          onWishlist(event);
+        } else if (event.type === "done") {
+          return event.preview;
+        } else {
+          throw streamError(event);
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const event = parseConnectedPreviewStreamEvent(buffer);
+
+      if (event.type === "wishlist") {
+        onWishlist(event);
+      } else if (event.type === "done") {
+        return event.preview;
+      } else {
+        throw streamError(event);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  throw new Error("Steam wishlist preview ended before it returned final calendar data.");
+}
+
+export function parseConnectedPreviewStreamEvent(line: string): ConnectedPreviewStreamEvent {
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(line);
+  } catch {
+    throw new Error("API returned an invalid streaming preview event.");
+  }
+
+  if (!isRecord(payload) || !isString(payload.type)) {
+    throw new Error("API returned an invalid streaming preview event.");
+  }
+
+  if (payload.type === "wishlist") {
+    if (
+      !isString(payload.steamId64) ||
+      !isString(payload.wishlistUrl) ||
+      !Array.isArray(payload.games) ||
+      !payload.games.every(isPreviewWishlistGame) ||
+      !isStreamWishlistStats(payload.stats) ||
+      (payload.profileName !== undefined &&
+        payload.profileName !== null &&
+        !isString(payload.profileName))
+    ) {
+      throw new Error("API returned invalid streaming wishlist data.");
+    }
+
+    return {
+      type: "wishlist",
+      games: payload.games,
+      ...(payload.profileName !== undefined ? { profileName: payload.profileName } : {}),
+      stats: payload.stats,
+      steamId64: payload.steamId64,
+      wishlistUrl: payload.wishlistUrl,
+    };
+  }
+
+  if (payload.type === "done") {
+    return {
+      type: "done",
+      preview: parsePreviewResponse(payload.preview),
+    };
+  }
+
+  if (
+    payload.type === "error" &&
+    isString(payload.code) &&
+    isString(payload.message) &&
+    isNumber(payload.status)
+  ) {
+    return {
+      type: "error",
+      code: payload.code,
+      message: payload.message,
+      status: payload.status,
+    };
+  }
+
+  throw new Error("API returned an invalid streaming preview event.");
+}
+
+function isStreamWishlistStats(
+  value: unknown,
+): value is Extract<ConnectedPreviewStreamEvent, { type: "wishlist" }>["stats"] {
+  return (
+    isRecord(value) &&
+    isNumber(value.appDetails) &&
+    isNumber(value.skippedAppIds) &&
+    isNumber(value.wishlistGames)
+  );
+}
+
+function streamError(event: Extract<ConnectedPreviewStreamEvent, { type: "error" }>): Error {
+  const error = new Error(event.message || "Could not preview this Steam wishlist.");
+  error.name = event.code || "Error";
+  return error;
 }
 
 export function parseSearchResults(payload: unknown): GameSearchResult[] {

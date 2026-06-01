@@ -1,10 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
+
+const previewMocks = vi.hoisted(() => ({
+  fetchSteamCalendarEventBundle: vi.fn(),
+  fetchWishlistCalendarData: vi.fn(),
+}));
+
+vi.mock("@/integrations/steam/pipeline", () => ({
+  fetchWishlistCalendarData: previewMocks.fetchWishlistCalendarData,
+}));
+
+vi.mock("@/server/calendar/event-bundle", () => ({
+  fetchSteamCalendarEventBundle: previewMocks.fetchSteamCalendarEventBundle,
+}));
 
 function previewRequest(body: BodyInit, contentType = "application/json") {
   return new Request("https://example.test/api/preview?lang=english&uiLang=en", {
     method: "POST",
     headers: { "content-type": contentType },
+    body,
+  });
+}
+
+function streamingPreviewRequest(body: BodyInit) {
+  return new Request("https://example.test/api/preview?lang=english&uiLang=en", {
+    method: "POST",
+    headers: { accept: "application/x-ndjson", "content-type": "application/json" },
     body,
   });
 }
@@ -54,6 +75,78 @@ describe("preview API request validation", () => {
     expect(response.status).toBe(400);
     await expect(responseJson(response)).resolves.toMatchObject({
       code: "invalid_request",
+    });
+  });
+});
+
+describe("preview API streaming response", () => {
+  it("streams wishlist games before the final connected preview", async () => {
+    previewMocks.fetchWishlistCalendarData.mockResolvedValueOnce({
+      steamId64: "76561198115468824",
+      profileName: "Nick",
+      wishlistUrl: "https://example.test/wishlist",
+      wishlistGames: [
+        {
+          appId: "620",
+          name: "Portal 2",
+          releaseDateText: "Apr 18, 2011",
+          storeUrl: "https://store.steampowered.com/app/620/",
+        },
+        {
+          appId: "400",
+          name: "Portal",
+          releaseDateText: "Oct 10, 2007",
+          storeUrl: "https://store.steampowered.com/app/400/",
+        },
+      ],
+      appDetails: [{ appId: "620" }, { appId: "400" }],
+      skippedAppIds: [],
+    });
+    previewMocks.fetchSteamCalendarEventBundle.mockResolvedValueOnce({
+      dealEvents: [],
+      steamEvents: [],
+      watchedGameEvents: [],
+      watchedGameSnapshots: [],
+      events: [],
+      stats: {
+        priceHistoryEvents: 0,
+        skippedWatchedAppIds: 0,
+        steamMajorEvents: 0,
+        storeFallbackEvents: 0,
+        watchedGameEvents: 0,
+      },
+    });
+
+    const response = await POST(
+      streamingPreviewRequest(
+        JSON.stringify({
+          steamId64: "76561198115468824",
+          wishlist: true,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+
+    const events = (await response.text())
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { type: string; [key: string]: unknown });
+
+    expect(events.map((event) => event.type)).toEqual(["wishlist", "done"]);
+    expect(events[0]).toMatchObject({
+      type: "wishlist",
+      steamId64: "76561198115468824",
+      games: [{ appId: "620" }, { appId: "400" }],
+      stats: { wishlistGames: 2 },
+    });
+    expect(events[1]).toMatchObject({
+      type: "done",
+      preview: {
+        steamId64: "76561198115468824",
+        stats: { wishlistGames: 2 },
+      },
     });
   });
 });
