@@ -73,7 +73,7 @@ function addCalendarMetadata(calendar: string): string {
       [
         "VERSION:2.0",
         "PRODID:-//steam-to-calendar//steam-to-calendar//EN",
-        "X-WR-CALNAME:Steam to Calendar",
+        "X-WR-CALNAME:Steam",
         "X-APPLE-CALENDAR-COLOR:#66C0F4",
         "CALSCALE:GREGORIAN",
         "",
