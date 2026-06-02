@@ -214,7 +214,7 @@ select {
   font-weight: 680;
   left: 50%;
   line-height: 1.35;
-  max-width: min(260px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   opacity: 0;
   padding: 8px 10px;
   pointer-events: none;
@@ -224,7 +224,7 @@ select {
   transition:
     opacity 140ms ease,
     transform 140ms ease;
-  white-space: normal;
+  white-space: nowrap;
   width: max-content;
   z-index: 10;
 }
@@ -247,7 +247,7 @@ select {
   display: inline-grid;
   font-size: 0.9rem;
   font-weight: 740;
-  grid-template-columns: minmax(0, max-content) 18px;
+  grid-template-columns: minmax(max-content, 1fr) 18px;
   height: 46px;
   max-width: min(42vw, 260px);
   min-width: 0;
@@ -257,12 +257,28 @@ select {
 .selectDisplay {
   align-items: center;
   display: flex;
+  gap: 7px;
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
   padding: 0 2px 0 8px;
   pointer-events: none;
   z-index: 1;
+}
+
+.regionSelect.customLocaleSelect .selectDisplay {
+  padding-right: 28px;
+}
+
+.storeRegionFlag {
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 1px 4px rgba(0, 0, 0, 0.28);
+  flex: 0 0 auto;
+  height: 12px;
+  overflow: hidden;
+  width: 16px;
 }
 
 .selectDisplayText {
@@ -303,18 +319,128 @@ select {
   width: 21px;
 }
 
-.regionSelect select,
-.languageSelect select {
+.customLocaleSelect .customSelectButton {
   appearance: none;
   background: transparent;
   border: 0;
-  color: transparent;
+  color: inherit;
   cursor: pointer;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 1;
   height: 100%;
-  inset: 0;
+  min-width: 0;
   outline: none;
-  position: absolute;
+  padding: 0;
+  position: relative;
   width: 100%;
+}
+
+.languageSelect.customLocaleSelect,
+.languageSelect .customSelectButton {
+  min-width: 56px;
+}
+
+.customLocaleSelect .customSelectButton:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(102, 192, 244, 0.3);
+}
+
+.customLocaleSelect .customSelectMenu {
+  animation: customSelectMenuIn 140ms ease both;
+  background: rgba(6, 13, 22, 0.98);
+  border: 1px solid rgba(117, 151, 184, 0.32);
+  border-radius: 7px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: 2px;
+  left: 50%;
+  max-height: min(360px, calc(100dvh - 96px));
+  overflow: auto;
+  padding: 5px;
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  transform-origin: top center;
+  max-width: min(220px, calc(100vw - 32px));
+  min-width: 100%;
+  width: max-content;
+  z-index: 30;
+}
+
+@keyframes customSelectMenuIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.regionSelect .customSelectMenu {
+  max-width: calc(100vw - 32px);
+  width: max-content;
+}
+
+.customSelectOptions {
+  display: grid;
+  gap: 2px;
+}
+
+.regionSelect .customSelectOptions {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.customLocaleSelect .customSelectOption {
+  align-items: center;
+  background: transparent;
+  border-radius: 5px;
+  color: #dceaf4;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 680;
+  gap: 8px;
+  min-height: 34px;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.customLocaleSelect .customSelectOption span:not(.storeRegionFlag) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customLocaleSelect .customSelectOption:hover,
+.customLocaleSelect .customSelectOption.isActive {
+  background: rgba(102, 192, 244, 0.12);
+  color: #f7fbff;
+}
+
+.customSelectOptions:focus-visible {
+  outline: none;
+}
+
+.customLocaleSelect .customSelectOption.isSelected {
+  background: rgba(102, 192, 244, 0.18);
+  color: #ffffff;
+}
+
+.customSelectMenuNote {
+  border-top: 1px solid rgba(117, 151, 184, 0.18);
+  color: rgba(191, 210, 225, 0.76);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 4px 2px 0;
+  padding: 8px 8px 6px;
+  white-space: nowrap;
 }
 
 .regionSelect::after {

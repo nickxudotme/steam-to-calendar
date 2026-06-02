@@ -21,7 +21,7 @@ describe("ICS generator", () => {
     expect(calendar).toContain("BEGIN:VCALENDAR");
     expect(calendar).toContain("VERSION:2.0");
     expect(calendar).toContain("PRODID:-//steam-to-calendar//steam-to-calendar//EN");
-    expect(calendar).toContain("X-WR-CALNAME:Steam to Calendar");
+    expect(calendar).toContain("X-WR-CALNAME:Steam");
     expect(calendar).toContain("X-APPLE-CALENDAR-COLOR:#66C0F4");
     expect(calendar).not.toContain("METHOD:PUBLISH");
     expect(calendar).not.toContain("X-PUBLISHED-TTL");

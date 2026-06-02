@@ -3,7 +3,16 @@
 import NextLink from "next/link";
 import { Coffee, Info, Languages, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
@@ -56,6 +65,12 @@ const TOOLTIP_VIEWPORT_PADDING = 16;
 const MOBILE_WORKBENCH_MEDIA_QUERY = "(max-width: 900px)";
 const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar";
 const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
+type LocaleSelectKind = "region" | "language";
+type LocaleSelectOption = {
+  flagCode?: string;
+  label: string;
+  value: string;
+};
 
 export function CalendarBuilderPage({
   initialLanguageCode = "en",
@@ -81,6 +96,7 @@ export function CalendarBuilderPage({
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [origin, setOrigin] = useState("");
   const [isStoreTooltipOpen, setIsStoreTooltipOpen] = useState(false);
+  const [activeLocaleSelect, setActiveLocaleSelect] = useState<LocaleSelectKind | null>(null);
   const [storeTooltipShiftX, setStoreTooltipShiftX] = useState(0);
   const [projectTooltip, setProjectTooltip] = useState<{
     id: string;
@@ -112,12 +128,30 @@ export function CalendarBuilderPage({
   );
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
+  const shouldShowStoreTooltip = isStoreTooltipOpen && activeLocaleSelect !== "region";
   const isStoreRegionCurrencyLoading =
     !shouldShowResolvedStoreRegion || preview.locale?.cc !== effectiveStoreRegion;
   const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
     ? copy.storeCurrencyLoading
     : effectiveStoreRegionCurrency;
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
+  const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
+  const storeRegionOptions = useMemo(
+    () =>
+      STEAM_STORE_REGIONS.map((region) => ({
+        flagCode: region.code,
+        label: region.name,
+        value: region.code,
+      })),
+    [],
+  );
+  const languageOptions = useMemo(
+    () =>
+      LANGUAGE_OPTIONS.map((language) => ({
+        label: language.label,
+        value: language.code,
+      })),
+    [],
+  );
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
@@ -453,7 +487,7 @@ export function CalendarBuilderPage({
             <div className="localeControls">
               <div
                 className="storeRegionControl"
-                data-open={isStoreTooltipOpen}
+                data-open={shouldShowStoreTooltip}
                 ref={storeRegionControlRef}
                 style={{ "--tooltip-shift-x": `${storeTooltipShiftX}px` } as CSSProperties}
                 onBlur={(event) => {
@@ -468,25 +502,19 @@ export function CalendarBuilderPage({
                 <span className="storeRegionIcon" aria-hidden="true">
                   {effectiveStoreRegionCurrency}
                 </span>
-                <label className="regionSelect">
-                  <span className="selectDisplay">
-                    <span className="selectDisplayText">
-                      {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : "..."}
-                    </span>
-                  </span>
-                  <select
-                    aria-label="Steam store region"
-                    aria-describedby={isStoreTooltipOpen ? "store-region-tooltip" : undefined}
-                    value={effectiveStoreRegion}
-                    onChange={(event) => handleStoreRegionChange(event.target.value)}
-                  >
-                    {STEAM_STORE_REGIONS.map((region) => (
-                      <option key={region.code} value={region.code}>
-                        {countryFlag(region.code)} {region.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <CustomLocaleSelect
+                  ariaDescribedBy={shouldShowStoreTooltip ? "store-region-tooltip" : undefined}
+                  ariaLabel="Steam store region"
+                  className="regionSelect"
+                  displayFlagCode={shouldShowResolvedStoreRegion ? effectiveStoreRegion : undefined}
+                  displayLabel={shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : "..."}
+                  isOpen={activeLocaleSelect === "region"}
+                  menuNote={copy.storeNote}
+                  onChange={handleStoreRegionChange}
+                  onOpenChange={(isOpen) => setActiveLocaleSelect(isOpen ? "region" : null)}
+                  options={storeRegionOptions}
+                  value={effectiveStoreRegion}
+                />
                 <span
                   className="storeRegionTooltip"
                   id="store-region-tooltip"
@@ -496,22 +524,17 @@ export function CalendarBuilderPage({
                   {copy.storeNote}
                 </span>
               </div>
-              <label className="languageSelect" title={selectedLanguage.label}>
-                <span className="languageIconOnly" aria-hidden="true">
-                  <LanguageIcon />
-                </span>
-                <select
-                  aria-label={copy.languageLabel}
-                  value={selectedLanguage.code}
-                  onChange={(event) => handleLanguageChange(event.target.value)}
-                >
-                  {LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language.code} value={language.code}>
-                      {language.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <CustomLocaleSelect
+                ariaLabel={copy.languageLabel}
+                className="languageSelect"
+                icon={<LanguageIcon />}
+                isOpen={activeLocaleSelect === "language"}
+                onChange={handleLanguageChange}
+                onOpenChange={(isOpen) => setActiveLocaleSelect(isOpen ? "language" : null)}
+                options={languageOptions}
+                title={selectedLanguage.label}
+                value={selectedLanguage.code}
+              />
             </div>
           </div>
         </header>
@@ -942,6 +965,227 @@ export function CalendarBuilderPage({
         : null}
     </main>
   );
+}
+
+function CustomLocaleSelect({
+  ariaDescribedBy,
+  ariaLabel,
+  displayFlagCode,
+  className,
+  displayLabel,
+  icon,
+  isOpen,
+  menuNote,
+  onChange,
+  onOpenChange,
+  options,
+  title,
+  value,
+}: {
+  ariaDescribedBy?: string;
+  ariaLabel: string;
+  className: string;
+  displayFlagCode?: string;
+  displayLabel?: string;
+  icon?: ReactNode;
+  isOpen: boolean;
+  menuNote?: string;
+  onChange: (value: string) => void;
+  onOpenChange: (isOpen: boolean) => void;
+  options: LocaleSelectOption[];
+  title?: string;
+  value: string;
+}) {
+  const listboxId = useId();
+  const menuNoteId = useId();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const listboxRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const selectedOptionIndex = options.findIndex((option) => option.value === value);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(
+    selectedOptionIndex >= 0 ? selectedOptionIndex : 0,
+  );
+  const selectedOption = options.find((option) => option.value === value);
+  const buttonLabel = displayLabel ?? selectedOption?.label ?? value;
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (rootRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      onOpenChange(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isOpen, onOpenChange]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    listboxRef.current?.focus();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    optionRefs.current[activeOptionIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionIndex, isOpen]);
+
+  function commitSelection(nextIndex: number) {
+    const nextOption = options[nextIndex];
+    if (!nextOption) {
+      return;
+    }
+
+    onChange(nextOption.value);
+    onOpenChange(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setActiveOptionIndex(selectedOptionIndex >= 0 ? selectedOptionIndex : 0);
+    }
+
+    onOpenChange(nextOpen);
+  }
+
+  function handleListboxKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        setActiveOptionIndex((currentIndex) => Math.min(currentIndex + 1, options.length - 1));
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        setActiveOptionIndex((currentIndex) => Math.max(currentIndex - 1, 0));
+        break;
+      case "Home":
+        event.preventDefault();
+        setActiveOptionIndex(0);
+        break;
+      case "End":
+        event.preventDefault();
+        setActiveOptionIndex(options.length - 1);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        commitSelection(activeOptionIndex);
+        break;
+      case "Escape":
+        event.preventDefault();
+        onOpenChange(false);
+        triggerRef.current?.focus();
+        break;
+      default:
+        break;
+    }
+  }
+
+  return (
+    <div
+      className={`${className} customLocaleSelect`}
+      ref={rootRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          onOpenChange(false);
+        }
+      }}
+      title={title}
+    >
+      <button
+        aria-controls={isOpen ? listboxId : undefined}
+        aria-describedby={ariaDescribedBy}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={ariaLabel}
+        className="customSelectButton"
+        ref={triggerRef}
+        type="button"
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            handleOpenChange(true);
+          }
+        }}
+        onClick={() => handleOpenChange(!isOpen)}
+      >
+        {icon ? (
+          <span className="languageIconOnly" aria-hidden="true">
+            {icon}
+          </span>
+        ) : (
+          <span className="selectDisplay">
+            {displayFlagCode ? <StoreRegionFlag code={displayFlagCode} /> : null}
+            <span className="selectDisplayText">{buttonLabel}</span>
+          </span>
+        )}
+      </button>
+      {isOpen ? (
+        <div className="customSelectMenu">
+          <div
+            aria-activedescendant={`${listboxId}-option-${activeOptionIndex}`}
+            aria-describedby={menuNote ? menuNoteId : undefined}
+            aria-label={ariaLabel}
+            className="customSelectOptions"
+            id={listboxId}
+            onKeyDown={handleListboxKeyDown}
+            ref={listboxRef}
+            role="listbox"
+            tabIndex={0}
+          >
+            {options.map((option, index) => (
+              <div
+                aria-selected={option.value === value}
+                className={[
+                  "customSelectOption",
+                  option.value === value ? "isSelected" : "",
+                  index === activeOptionIndex ? "isActive" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                id={`${listboxId}-option-${index}`}
+                key={option.value}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                role="option"
+                onClick={() => {
+                  commitSelection(index);
+                }}
+              >
+                {option.flagCode ? <StoreRegionFlag code={option.flagCode} /> : null}
+                <span>{option.label}</span>
+              </div>
+            ))}
+          </div>
+          {menuNote ? (
+            <p className="customSelectMenuNote" id={menuNoteId}>
+              {menuNote}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function StoreRegionFlag({ code }: { code: string }) {
+  return <span aria-hidden="true" className={`storeRegionFlag fi fi-${code.toLowerCase()}`} />;
 }
 
 function GitHubMark() {
