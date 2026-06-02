@@ -191,7 +191,7 @@ function computeDefaultWorkbenchLayout(totalWidth: number): WorkbenchLayout {
 export function useBrowserDefaults({
   setDetectedStoreRegion,
   setHasInitializedClientLocale,
-  setIsIntroOpen,
+  openIntro,
   setOrigin,
   setSelectedLanguageCode,
   setShouldSendDetectedStoreRegion,
@@ -200,7 +200,7 @@ export function useBrowserDefaults({
 }: {
   setDetectedStoreRegion: Dispatch<SetStateAction<string | null>>;
   setHasInitializedClientLocale: Dispatch<SetStateAction<boolean>>;
-  setIsIntroOpen: Dispatch<SetStateAction<boolean>>;
+  openIntro: () => void;
   setOrigin: Dispatch<SetStateAction<string>>;
   setSelectedLanguageCode: Dispatch<SetStateAction<string>>;
   setShouldSendDetectedStoreRegion: Dispatch<SetStateAction<boolean>>;
@@ -214,10 +214,10 @@ export function useBrowserDefaults({
     setShouldSendDetectedStoreRegion(shouldSendClientStoreRegion(window.location.hostname));
     try {
       if (window.localStorage.getItem(INTRO_STORAGE_KEY) !== "1") {
-        setIsIntroOpen(true);
+        openIntro();
       }
     } catch {
-      setIsIntroOpen(true);
+      openIntro();
     }
 
     const browserLanguage = languageCodeFromBrowser(navigator.language);
@@ -234,7 +234,7 @@ export function useBrowserDefaults({
   }, [
     setDetectedStoreRegion,
     setHasInitializedClientLocale,
-    setIsIntroOpen,
+    openIntro,
     setOrigin,
     setSelectedLanguageCode,
     setShouldSendDetectedStoreRegion,
