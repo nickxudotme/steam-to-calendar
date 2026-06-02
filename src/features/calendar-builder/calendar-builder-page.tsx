@@ -4,6 +4,7 @@ import NextLink from "next/link";
 import { Coffee, Info, Languages, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -61,6 +62,7 @@ import { WishlistConnector } from "./wishlist-connector";
 import { useWishlistPreview } from "./wishlist-preview-hooks";
 
 const TOOLTIP_VIEWPORT_PADDING = 16;
+const MOBILE_WORKBENCH_MEDIA_QUERY = "(max-width: 900px)";
 const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar";
 const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
 type LocaleSelectKind = "region" | "language";
@@ -294,6 +296,17 @@ export function CalendarBuilderPage({
     document.documentElement.lang = effectiveUiLang;
   }, [effectiveUiLang]);
 
+  const openIntroPanel = useCallback(() => {
+    setIsIntroOpen(true);
+
+    if (!window.matchMedia(MOBILE_WORKBENCH_MEDIA_QUERY).matches) {
+      return;
+    }
+
+    setIsMobileDetailOpen(false);
+    setIsMobileSettingsOpen(true);
+  }, []);
+
   useEffect(() => {
     if (!isStoreTooltipOpen) {
       return;
@@ -335,9 +348,9 @@ export function CalendarBuilderPage({
   });
 
   useBrowserDefaults({
+    openIntro: openIntroPanel,
     setDetectedStoreRegion,
     setHasInitializedClientLocale,
-    setIsIntroOpen,
     setOrigin,
     setSelectedLanguageCode,
     setShouldSendDetectedStoreRegion,
@@ -582,7 +595,7 @@ export function CalendarBuilderPage({
                     aria-label={copy.infoLabel}
                     className="infoButton"
                     type="button"
-                    onClick={() => setIsIntroOpen(true)}
+                    onClick={openIntroPanel}
                   >
                     <Info aria-hidden="true" className="miniIcon" />
                   </button>
