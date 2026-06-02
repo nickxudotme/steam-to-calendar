@@ -15,7 +15,7 @@ import {
 } from "react";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
-import { STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
+import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
 import { languageOptionByCode } from "./browser-locale";
 import {
   calendarLegendItems,
@@ -824,7 +824,7 @@ export function CalendarBuilderPage({
                 >
                   {STEAM_STORE_REGIONS.map((region) => (
                     <option key={region.code} value={region.code}>
-                      {region.code} {region.name}
+                      {countryFlag(region.code)} {region.name}
                     </option>
                   ))}
                 </select>
