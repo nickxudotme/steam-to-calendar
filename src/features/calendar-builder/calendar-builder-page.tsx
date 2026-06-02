@@ -3,10 +3,18 @@
 import NextLink from "next/link";
 import { Coffee, Info, Languages, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
-import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
+import { STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
 import { languageOptionByCode } from "./browser-locale";
 import {
   calendarLegendItems,
@@ -55,6 +63,12 @@ import { useWishlistPreview } from "./wishlist-preview-hooks";
 const TOOLTIP_VIEWPORT_PADDING = 16;
 const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar";
 const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
+type LocaleSelectKind = "region" | "language";
+type LocaleSelectOption = {
+  flagCode?: string;
+  label: string;
+  value: string;
+};
 
 export function CalendarBuilderPage({
   initialLanguageCode = "en",
@@ -80,6 +94,7 @@ export function CalendarBuilderPage({
   const [todayIso, setTodayIso] = useState(() => localIsoDate());
   const [origin, setOrigin] = useState("");
   const [isStoreTooltipOpen, setIsStoreTooltipOpen] = useState(false);
+  const [activeLocaleSelect, setActiveLocaleSelect] = useState<LocaleSelectKind | null>(null);
   const [storeTooltipShiftX, setStoreTooltipShiftX] = useState(0);
   const [projectTooltip, setProjectTooltip] = useState<{
     id: string;
@@ -111,12 +126,30 @@ export function CalendarBuilderPage({
   );
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
+  const shouldShowStoreTooltip = isStoreTooltipOpen && activeLocaleSelect !== "region";
   const isStoreRegionCurrencyLoading =
     !shouldShowResolvedStoreRegion || preview.locale?.cc !== effectiveStoreRegion;
   const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
     ? copy.storeCurrencyLoading
     : effectiveStoreRegionCurrency;
-  const effectiveStoreRegionLabel = `${countryFlag(effectiveStoreRegion)} ${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
+  const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
+  const storeRegionOptions = useMemo(
+    () =>
+      STEAM_STORE_REGIONS.map((region) => ({
+        flagCode: region.code,
+        label: region.name,
+        value: region.code,
+      })),
+    [],
+  );
+  const languageOptions = useMemo(
+    () =>
+      LANGUAGE_OPTIONS.map((language) => ({
+        label: language.label,
+        value: language.code,
+      })),
+    [],
+  );
   const effectiveSteamLang = selectedLanguage.steamLang;
   const effectiveUiLang = selectedLanguage.uiLang;
   const hasConnectedWishlist = preview.steamId64 !== STEAM_EVENTS_CALENDAR_ID;
@@ -441,7 +474,7 @@ export function CalendarBuilderPage({
             <div className="localeControls">
               <div
                 className="storeRegionControl"
-                data-open={isStoreTooltipOpen}
+                data-open={shouldShowStoreTooltip}
                 ref={storeRegionControlRef}
                 style={{ "--tooltip-shift-x": `${storeTooltipShiftX}px` } as CSSProperties}
                 onBlur={(event) => {
@@ -456,25 +489,19 @@ export function CalendarBuilderPage({
                 <span className="storeRegionIcon" aria-hidden="true">
                   {effectiveStoreRegionCurrency}
                 </span>
-                <label className="regionSelect">
-                  <span className="selectDisplay">
-                    <span className="selectDisplayText">
-                      {shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : "..."}
-                    </span>
-                  </span>
-                  <select
-                    aria-label="Steam store region"
-                    aria-describedby={isStoreTooltipOpen ? "store-region-tooltip" : undefined}
-                    value={effectiveStoreRegion}
-                    onChange={(event) => handleStoreRegionChange(event.target.value)}
-                  >
-                    {STEAM_STORE_REGIONS.map((region) => (
-                      <option key={region.code} value={region.code}>
-                        {countryFlag(region.code)} {region.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <CustomLocaleSelect
+                  ariaDescribedBy={shouldShowStoreTooltip ? "store-region-tooltip" : undefined}
+                  ariaLabel="Steam store region"
+                  className="regionSelect"
+                  displayFlagCode={shouldShowResolvedStoreRegion ? effectiveStoreRegion : undefined}
+                  displayLabel={shouldShowResolvedStoreRegion ? effectiveStoreRegionLabel : "..."}
+                  isOpen={activeLocaleSelect === "region"}
+                  menuNote={copy.storeNote}
+                  onChange={handleStoreRegionChange}
+                  onOpenChange={(isOpen) => setActiveLocaleSelect(isOpen ? "region" : null)}
+                  options={storeRegionOptions}
+                  value={effectiveStoreRegion}
+                />
                 <span
                   className="storeRegionTooltip"
                   id="store-region-tooltip"
@@ -484,22 +511,17 @@ export function CalendarBuilderPage({
                   {copy.storeNote}
                 </span>
               </div>
-              <label className="languageSelect" title={selectedLanguage.label}>
-                <span className="languageIconOnly" aria-hidden="true">
-                  <LanguageIcon />
-                </span>
-                <select
-                  aria-label={copy.languageLabel}
-                  value={selectedLanguage.code}
-                  onChange={(event) => handleLanguageChange(event.target.value)}
-                >
-                  {LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language.code} value={language.code}>
-                      {language.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <CustomLocaleSelect
+                ariaLabel={copy.languageLabel}
+                className="languageSelect"
+                icon={<LanguageIcon />}
+                isOpen={activeLocaleSelect === "language"}
+                onChange={handleLanguageChange}
+                onOpenChange={(isOpen) => setActiveLocaleSelect(isOpen ? "language" : null)}
+                options={languageOptions}
+                title={selectedLanguage.label}
+                value={selectedLanguage.code}
+              />
             </div>
           </div>
         </header>
@@ -789,7 +811,7 @@ export function CalendarBuilderPage({
                 >
                   {STEAM_STORE_REGIONS.map((region) => (
                     <option key={region.code} value={region.code}>
-                      {countryFlag(region.code)} {region.name}
+                      {region.code} {region.name}
                     </option>
                   ))}
                 </select>
@@ -930,6 +952,101 @@ export function CalendarBuilderPage({
         : null}
     </main>
   );
+}
+
+function CustomLocaleSelect({
+  ariaDescribedBy,
+  ariaLabel,
+  displayFlagCode,
+  className,
+  displayLabel,
+  icon,
+  isOpen,
+  menuNote,
+  onChange,
+  onOpenChange,
+  options,
+  title,
+  value,
+}: {
+  ariaDescribedBy?: string;
+  ariaLabel: string;
+  className: string;
+  displayFlagCode?: string;
+  displayLabel?: string;
+  icon?: ReactNode;
+  isOpen: boolean;
+  menuNote?: string;
+  onChange: (value: string) => void;
+  onOpenChange: (isOpen: boolean) => void;
+  options: LocaleSelectOption[];
+  title?: string;
+  value: string;
+}) {
+  const listboxId = useId();
+  const selectedOption = options.find((option) => option.value === value);
+  const buttonLabel = displayLabel ?? selectedOption?.label ?? value;
+
+  return (
+    <div
+      className={`${className} customLocaleSelect`}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          onOpenChange(false);
+        }
+      }}
+      title={title}
+    >
+      <button
+        aria-controls={isOpen ? listboxId : undefined}
+        aria-describedby={ariaDescribedBy}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={ariaLabel}
+        className="customSelectButton"
+        type="button"
+        onClick={() => onOpenChange(!isOpen)}
+      >
+        {icon ? (
+          <span className="languageIconOnly" aria-hidden="true">
+            {icon}
+          </span>
+        ) : (
+          <span className="selectDisplay">
+            {displayFlagCode ? <StoreRegionFlag code={displayFlagCode} /> : null}
+            <span className="selectDisplayText">{buttonLabel}</span>
+          </span>
+        )}
+      </button>
+      {isOpen ? (
+        <div className="customSelectMenu">
+          <div className="customSelectOptions" id={listboxId} role="listbox">
+            {options.map((option) => (
+              <button
+                aria-selected={option.value === value}
+                className={option.value === value ? "isSelected" : undefined}
+                key={option.value}
+                role="option"
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  onOpenChange(false);
+                }}
+              >
+                {option.flagCode ? <StoreRegionFlag code={option.flagCode} /> : null}
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+          {menuNote ? <p className="customSelectMenuNote">{menuNote}</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function StoreRegionFlag({ code }: { code: string }) {
+  return <span aria-hidden="true" className={`storeRegionFlag fi fi-${code.toLowerCase()}`} />;
 }
 
 function GitHubMark() {
