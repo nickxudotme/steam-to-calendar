@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Check, Copy } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   buildContinuousCalendarWeeks,
@@ -28,6 +28,7 @@ export function CalendarPreview({
   todayIso,
   uiCopy,
   uiLanguage,
+  calendarUrl,
   webcalUrl,
 }: {
   events: PreviewEvent[];
@@ -39,6 +40,7 @@ export function CalendarPreview({
   todayIso: string;
   uiCopy: (typeof UI_COPY)[UiLanguage];
   uiLanguage: UiLanguage;
+  calendarUrl: string;
   webcalUrl: string;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -265,6 +267,10 @@ export function CalendarPreview({
 
         <CalendarFooter
           addToCalendarLabel={uiCopy.addToCalendar}
+          manualSubscribeHint={uiCopy.calendarManualSubscribeHint}
+          copySubscriptionUrlLabel={uiCopy.copySubscriptionUrl}
+          copiedSubscriptionUrlLabel={uiCopy.copiedSubscriptionUrl}
+          calendarUrl={calendarUrl}
           legendItems={legendItems}
           webcalUrl={webcalUrl}
         />
@@ -275,22 +281,113 @@ export function CalendarPreview({
 
 function CalendarFooter({
   addToCalendarLabel,
+  manualSubscribeHint,
+  copySubscriptionUrlLabel,
+  copiedSubscriptionUrlLabel,
+  calendarUrl,
   legendItems,
   webcalUrl,
 }: {
   addToCalendarLabel: string;
+  manualSubscribeHint: string;
+  copySubscriptionUrlLabel: string;
+  copiedSubscriptionUrlLabel: string;
+  calendarUrl: string;
   legendItems: ReturnType<typeof calendarLegendItems>;
   webcalUrl: string;
 }) {
   return (
     <div className="calendarFooter">
       <CalendarLegend legendItems={legendItems} />
-      <a className="calendarFooterCta" href={webcalUrl}>
-        <CalendarListIcon />
-        {addToCalendarLabel}
-      </a>
+      <div className="calendarFooterSubscribe">
+        <a className="calendarFooterCta" href={webcalUrl}>
+          <CalendarListIcon />
+          {addToCalendarLabel}
+        </a>
+        <ManualSubscribeFallback
+          calendarUrl={calendarUrl}
+          copiedLabel={copiedSubscriptionUrlLabel}
+          copyLabel={copySubscriptionUrlLabel}
+          hint={manualSubscribeHint}
+        />
+      </div>
     </div>
   );
+}
+
+export function ManualSubscribeFallback({
+  calendarUrl,
+  className,
+  copiedLabel,
+  copyLabel,
+  hint,
+  variant = "default",
+}: {
+  calendarUrl: string;
+  className?: string;
+  copiedLabel: string;
+  copyLabel: string;
+  hint: string;
+  variant?: "compact" | "default";
+}) {
+  const [hasCopied, setHasCopied] = useState(false);
+
+  async function handleCopyClick() {
+    try {
+      await copyTextToClipboard(calendarUrl);
+    } catch {
+      // Some browsers block clipboard access until the user grants permission.
+    }
+
+    setHasCopied(true);
+    window.setTimeout(() => setHasCopied(false), 2200);
+  }
+
+  const classNames = ["manualSubscribeHint", variant === "compact" ? "isCompact" : "", className]
+    .filter(Boolean)
+    .join(" ");
+  const buttonLabel = hasCopied ? copiedLabel : variant === "compact" ? hint : copyLabel;
+
+  return (
+    <div className={classNames}>
+      {variant === "default" ? <span>{hint}</span> : null}
+      <button
+        className="manualSubscribeCopy"
+        type="button"
+        onClick={handleCopyClick}
+        title={calendarUrl}
+      >
+        {hasCopied ? (
+          <Check aria-hidden="true" className="toolbarSvg" />
+        ) : (
+          <Copy aria-hidden="true" className="toolbarSvg" />
+        )}
+        {buttonLabel}
+      </button>
+    </div>
+  );
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Browser permission prompts can block Clipboard API; fall through to the legacy copy path.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
 }
 
 export function CalendarListIcon() {

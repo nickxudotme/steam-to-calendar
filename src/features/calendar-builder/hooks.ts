@@ -257,7 +257,7 @@ export function useSubscriptionUrls({
   effectiveUiLang: string;
   origin: string;
   preview: PreviewResponse;
-}): { webcalUrl: string } {
+}): { calendarUrl: string; webcalUrl: string } {
   const calendarQuery = useMemo(() => {
     const params = calendarConfigToSearchParams(calendarConfig);
 
@@ -268,15 +268,17 @@ export function useSubscriptionUrls({
     return params.toString();
   }, [calendarConfig, effectiveSteamLang, effectiveStoreRegion, effectiveUiLang]);
 
-  const webcalUrl = useMemo(() => {
-    const calendarUrl = origin
+  const calendarUrl = useMemo(() => {
+    return origin
       ? `${origin}${preview.calendarPath}?${calendarQuery}`
       : `${preview.calendarPath}?${calendarQuery}`;
-
-    return calendarUrl.replace(/^https?:\/\//, "webcal://");
   }, [calendarQuery, origin, preview.calendarPath]);
 
-  return { webcalUrl };
+  const webcalUrl = useMemo(() => {
+    return calendarUrl.replace(/^https?:\/\//, "webcal://");
+  }, [calendarUrl]);
+
+  return { calendarUrl, webcalUrl };
 }
 
 export function useCalendarSourceState(): {

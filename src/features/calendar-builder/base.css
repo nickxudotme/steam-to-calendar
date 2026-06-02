@@ -509,3 +509,104 @@ select {
 .calendarFooterCta:active {
   transform: translateY(1px) scale(0.99);
 }
+
+.calendarFooterSubscribe {
+  align-items: end;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: min(360px, 42vw);
+}
+
+.manualSubscribeHint {
+  align-items: center;
+  color: rgba(191, 204, 214, 0.72);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.68rem;
+  font-weight: 560;
+  gap: 8px;
+  justify-content: flex-end;
+  line-height: 1.35;
+  margin: 0;
+  max-width: 420px;
+  text-align: right;
+}
+
+.manualSubscribeHint span {
+  min-width: 0;
+}
+
+.manualSubscribeCopy {
+  align-items: center;
+  background: rgba(124, 157, 184, 0.1);
+  border: 1px solid rgba(124, 157, 184, 0.22);
+  border-radius: 5px;
+  color: rgba(226, 239, 250, 0.84);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 780;
+  gap: 5px;
+  min-height: 25px;
+  padding: 0 8px;
+  transition:
+    background 150ms var(--ease-soft),
+    border-color 150ms var(--ease-soft),
+    color 150ms var(--ease-soft);
+}
+
+.manualSubscribeCopy:hover,
+.manualSubscribeCopy:focus-visible {
+  background: rgba(102, 192, 244, 0.14);
+  border-color: rgba(102, 192, 244, 0.38);
+  color: #ffffff;
+  outline: none;
+}
+
+.manualSubscribeCopy .toolbarSvg {
+  height: 13px;
+  width: 13px;
+}
+
+.manualSubscribeHint.isCompact {
+  color: rgba(191, 204, 214, 0.66);
+  flex-wrap: wrap;
+  font-size: 0.64rem;
+  gap: 6px;
+  justify-content: center;
+  line-height: 1.2;
+  max-width: none;
+  text-align: center;
+}
+
+.manualSubscribeHint.isCompact .manualSubscribeCopy {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(102, 192, 244, 0.9);
+  gap: 4px;
+  justify-content: center;
+  line-height: 1.25;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 2px;
+  text-align: center;
+  white-space: normal;
+}
+
+.manualSubscribeHint.isCompact .manualSubscribeCopy .toolbarSvg {
+  flex: 0 0 auto;
+  height: 11px;
+  width: 11px;
+}
+
+.manualSubscribeHint.isCompact .manualSubscribeCopy:hover,
+.manualSubscribeHint.isCompact .manualSubscribeCopy:focus-visible {
+  background: transparent;
+  border-color: transparent;
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

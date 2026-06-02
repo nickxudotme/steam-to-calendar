@@ -875,6 +875,10 @@
     display: none;
   }
 
+  .calendarFooterSubscribe {
+    display: none;
+  }
+
   .eventListScroll {
     padding: 10px;
   }

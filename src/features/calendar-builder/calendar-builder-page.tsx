@@ -16,7 +16,12 @@ import {
   localIsoDate,
   storeRegionCurrencySymbol,
 } from "./calendar-utils";
-import { CalendarLegend, CalendarListIcon, CalendarPreview } from "./calendar-preview";
+import {
+  CalendarLegend,
+  CalendarListIcon,
+  CalendarPreview,
+  ManualSubscribeFallback,
+} from "./calendar-preview";
 import { EventDetails } from "./event-details";
 import { GameSearchPreviewCard } from "./game-search-preview-card";
 import {
@@ -153,7 +158,7 @@ export function CalendarBuilderPage({
     steamEventCategories,
   });
 
-  const { webcalUrl } = useSubscriptionUrls({
+  const { calendarUrl, webcalUrl } = useSubscriptionUrls({
     calendarConfig,
     effectiveSteamLang,
     effectiveStoreRegion,
@@ -760,6 +765,14 @@ export function CalendarBuilderPage({
                           <small>{copy.calendarCtaHint}</small>
                         </span>
                       </a>
+                      <ManualSubscribeFallback
+                        calendarUrl={calendarUrl}
+                        className="setupManualSubscribeHint"
+                        copiedLabel={copy.copiedSubscriptionUrl}
+                        copyLabel={copy.copySubscriptionUrl}
+                        hint={copy.calendarManualSubscribeShortHint}
+                        variant="compact"
+                      />
                     </div>
                   </section>
                 </div>
@@ -797,6 +810,7 @@ export function CalendarBuilderPage({
               todayIso={todayIso}
               uiCopy={copy}
               uiLanguage={uiLanguage}
+              calendarUrl={calendarUrl}
               webcalUrl={webcalUrl}
             />
             <div className="calendarActionBar">
