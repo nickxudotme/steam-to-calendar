@@ -63,7 +63,7 @@ export const UI_COPY = {
   en: {
     productName: "Steam to Calendar",
     positioning: "Track Steam deals, game launch dates, and events in your calendar.",
-    positioningShort: "Steam deals, launches, and events in your calendar.",
+    positioningShort: "Track Steam deals, launches, and events in your calendar.",
     introBody:
       "Follow specific games, import a public wishlist, choose Steam sales and fests, then subscribe from Apple Calendar, Google Calendar, Outlook, or Fantastical.",
     introPrimary: "Start tracking",
