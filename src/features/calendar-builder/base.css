@@ -250,7 +250,7 @@ select {
   grid-template-columns: minmax(max-content, 1fr) 18px;
   height: 46px;
   max-width: min(42vw, 260px);
-  min-width: max-content;
+  min-width: 0;
   position: relative;
 }
 
@@ -329,7 +329,7 @@ select {
   grid-column: 1 / -1;
   grid-row: 1;
   height: 100%;
-  min-width: max-content;
+  min-width: 0;
   outline: none;
   padding: 0;
   position: relative;
@@ -394,39 +394,40 @@ select {
   overflow: auto;
 }
 
-.customLocaleSelect .customSelectMenu button {
+.customLocaleSelect .customSelectOption {
   align-items: center;
-  appearance: none;
   background: transparent;
-  border: 0;
   border-radius: 5px;
   color: #dceaf4;
   cursor: pointer;
+  display: flex;
   font-size: 0.86rem;
   font-weight: 680;
+  gap: 8px;
   min-height: 34px;
   overflow-wrap: anywhere;
   padding: 8px 10px;
-  display: flex;
-  gap: 8px;
   text-align: left;
 }
 
-.customLocaleSelect .customSelectMenu button span:not(.storeRegionFlag) {
+.customLocaleSelect .customSelectOption span:not(.storeRegionFlag) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.customLocaleSelect .customSelectMenu button:hover,
-.customLocaleSelect .customSelectMenu button:focus-visible {
+.customLocaleSelect .customSelectOption:hover,
+.customLocaleSelect .customSelectOption.isActive {
   background: rgba(102, 192, 244, 0.12);
   color: #f7fbff;
+}
+
+.customSelectOptions:focus-visible {
   outline: none;
 }
 
-.customLocaleSelect .customSelectMenu button.isSelected {
+.customLocaleSelect .customSelectOption.isSelected {
   background: rgba(102, 192, 244, 0.18);
   color: #ffffff;
 }
