@@ -26,6 +26,7 @@
 
 # misc
 .agent/
+.gstack/
 .DS_Store
 .idea/
 *.pem

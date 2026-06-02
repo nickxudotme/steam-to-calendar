@@ -11,18 +11,16 @@
 <p align="center">
   <a href="README.zh-CN.md">中文文档</a>
   ·
-  <a href="https://github.com/nickxudotme/steam-cli">Steam CLI</a>
-  ·
-  <a href="https://isthereanydeal.com/apps/">Get an API key</a>
+  <a href="https://steamcalendar.com/">Open App</a>
 </p>
 
-Steam to Calendar is a production-style Next.js app that turns public Steam data into a subscribable calendar feed. It helps you follow official Steam sale windows and festivals, track selected games, import a public Steam wishlist, and subscribe from Apple Calendar, Google Calendar, Outlook, Fantastical, or any calendar app that supports ICS/WebCal.
+Steam to Calendar turns Steam sales, game launches, preorders, wishlist updates, and official Steam events into a calendar you can subscribe to. Pick the games and event types you care about, preview the result, then add the generated feed to Apple Calendar, Google Calendar, Outlook, Fantastical, or any ICS/WebCal-compatible calendar app.
 
-This project is built on top of [Steam CLI](https://github.com/nickxudotme/steam-cli), which is vendored as `vendor/steam-cli` and compiled into `bin/steam-cli` during production builds.
+It works with public Steam data by default, so you can run it locally without accounts, tokens, or paid APIs. Optional IsThereAnyDeal enrichment adds deeper price-history context when you provide an API key.
 
 > Steam to Calendar is not affiliated with Valve Corp. Steam, Valve, and related marks belong to their respective owners.
 
-## Product Tour
+## Preview
 
 Desktop workbench:
 
@@ -34,28 +32,27 @@ Mobile calendar builder:
   <img src="public/assets/readme/calendar-builder-mobile.png" alt="Steam to Calendar mobile calendar builder" width="320" />
 </p>
 
-## Features
+## What It Does
 
-- Subscribe to a generated calendar feed for Steam events, watched games, or a public wishlist.
-- Track official Steam seasonal sales, Next Fest, theme fests, publisher sales, and franchise events.
-- Import public Steam wishlists and turn upcoming releases, preorders, and discounts into calendar events.
-- Search Steam games manually when you only want to follow a small watch list.
-- Preview the calendar in a desktop/mobile workbench before subscribing.
-- Choose Steam store region and interface language independently.
-- Generate ICS/WebCal URLs that preserve feed configuration through query parameters.
-- Use Steam-only data by default, with optional advanced price-history enrichment.
+- Builds subscribable ICS/WebCal feeds for Steam events, selected games, and public wishlists.
+- Tracks official sale windows, Next Fest, theme festivals, publisher sales, franchise events, releases, preorders, and discounts.
+- Lets you connect a public wishlist or curate a smaller manual watch list.
+- Shows an interactive desktop and mobile preview before you subscribe.
+- Supports independent Steam store region and interface language settings.
+- Encodes feed configuration in the calendar URL, making feeds easy to share, inspect, and resubscribe to.
+- Runs on public Steam data by default, with optional advanced price-history enrichment.
 
-## Full Experience: API Key
+## Optional Price History
 
-The app works without any third-party API key. In that mode it uses public Steam data through Steam CLI and falls back gracefully when advanced pricing data is unavailable.
+Steam to Calendar does not require a third-party API key. Without one, it uses public Steam data and still generates previews and calendar feeds.
 
-For the full experience, create an IsThereAnyDeal API key at <https://isthereanydeal.com/apps/> and set:
+For richer historical-low and price-window data, create an IsThereAnyDeal API key at <https://isthereanydeal.com/apps/> and set:
 
 ```bash
 STEAM_CLI_ITAD_KEY=your_key
 ```
 
-This enables advanced price-history features from Steam CLI, including richer historical low and price-window data. See the [Steam CLI README](https://github.com/nickxudotme/steam-cli#advanced-price-enhancement) for the underlying CLI behavior.
+See the [Steam CLI README](https://github.com/nickxudotme/steam-cli#advanced-price-enhancement) for the underlying enrichment behavior.
 
 ## Quick Start
 
@@ -112,29 +109,29 @@ Production builds run `build:steam-cli` automatically. If you intentionally want
 SKIP_STEAM_CLI_BUILD=1 npm run build
 ```
 
-## Project Structure
+## Architecture
 
 ```text
 src/
-  app/                  Thin App Router pages and route handlers
-  features/             User-facing workflows and UI
-  domain/               Framework-light calendar rules and ICS mapping
-  integrations/         Steam CLI/API adapters, parsing, cache, fallbacks
-  server/               HTTP/API response orchestration
-  shared/               Browser/server contracts and validators
+  app/                  App Router pages and route handlers
+  features/             Product workflows and UI
+  domain/               Calendar rules and ICS mapping
+  integrations/         Steam adapters, parsing, cache, and fallbacks
+  server/               Request orchestration and HTTP responses
+  shared/               Shared contracts and runtime validators
 
-vendor/steam-cli/       Steam CLI submodule
+vendor/steam-cli/       Vendored Steam CLI
 public/assets/brand/    Logo and app icons
 ```
 
-Architecture boundaries:
+The codebase keeps product, domain, integration, and server concerns separated:
 
-- `src/app` should stay thin: route handlers, layouts, and page shells.
-- `src/features/calendar-builder` owns the interactive calendar builder UI.
-- `src/domain/calendar` owns feed configuration, calendar event mapping, and ICS output.
-- `src/integrations/steam` owns Steam CLI/API details and Steam-specific parsing.
-- `src/server/calendar` owns request-level calendar orchestration and HTTP responses.
-- `src/shared` owns DTOs and runtime validators shared across server and browser code.
+- `src/app` contains route handlers, layouts, and page shells.
+- `src/features/calendar-builder` owns the interactive calendar builder experience.
+- `src/domain/calendar` owns feed configuration, event mapping, and ICS output.
+- `src/integrations/steam` owns Steam CLI/API calls, parsing, caching, and fallbacks.
+- `src/server/calendar` composes domain and integration code for HTTP/API responses.
+- `src/shared` contains DTOs and validators shared by the browser and server.
 
 ## Testing
 
@@ -164,9 +161,9 @@ npm run test:e2e:live
 
 ## Data Sources
 
-Steam to Calendar uses the vendored [Steam CLI](https://github.com/nickxudotme/steam-cli) for most Steam access. Steam CLI combines public Steam Store, Steam Community, Steam Web API, Steamworks event pages, and optional IsThereAnyDeal enrichment.
+Steam to Calendar uses the vendored [Steam CLI](https://github.com/nickxudotme/steam-cli) for Steam access. Steam CLI combines public Steam Store, Steam Community, Steam Web API, Steamworks event pages, and optional IsThereAnyDeal enrichment.
 
-Default mode is public, live, and API-key-free. Optional advanced pricing requires `STEAM_CLI_ITAD_KEY`.
+Default mode is public, live, and API-key-free. Advanced pricing requires `STEAM_CLI_ITAD_KEY`.
 
 ## Contributing
 

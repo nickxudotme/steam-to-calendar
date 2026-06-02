@@ -9,53 +9,50 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a>
+  <a href="README.md">English README</a>
   ·
-  <a href="https://github.com/nickxudotme/steam-cli">Steam CLI</a>
-  ·
-  <a href="https://isthereanydeal.com/apps/">申请 API Key</a>
+  <a href="https://steamcalendar.com/">打开官网</a>
 </p>
 
-Steam to Calendar 是一个生产风格的 Next.js 应用，可以把公开 Steam 数据转换成可订阅的日历 feed。你可以追踪 Steam 官方促销窗口和主题节、关注指定游戏、导入公开 Steam 愿望单，并订阅到 Apple Calendar、Google Calendar、Outlook、Fantastical 或任何支持 ICS/WebCal 的日历应用。
+Steam to Calendar 可以把 Steam 折扣、游戏发售、预购、愿望单更新和官方活动变成可订阅的日历。选择你关心的游戏和事件类型，先在页面里预览效果，再订阅到 Apple Calendar、Google Calendar、Outlook、Fantastical 或任何支持 ICS/WebCal 的日历应用。
 
-这个项目基于 [Steam CLI](https://github.com/nickxudotme/steam-cli) 构建。Steam CLI 以 `vendor/steam-cli` submodule 的形式随项目 vendored，并在生产构建时编译到 `bin/steam-cli`。
+默认情况下，它只依赖公开 Steam 数据，本地运行不需要账号、token 或付费 API。配置 IsThereAnyDeal API key 后，可以额外显示更完整的价格历史和史低信息。
 
 > Steam to Calendar 与 Valve Corp. 没有关联。Steam、Valve 以及相关标识归各自权利方所有。
 
-## 使用预览
+## 预览
 
 桌面端工作台：
 
-![Steam to Calendar 桌面端日历构建器](public/assets/readme/calendar-builder-desktop.png)
+![Steam to Calendar 桌面端日历构建器](public/assets/readme/calendar-builder-desktop-zh-CN.png)
 
 移动端日历构建器：
 
 <p align="center">
-  <img src="public/assets/readme/calendar-builder-mobile.png" alt="Steam to Calendar 移动端日历构建器" width="320" />
+  <img src="public/assets/readme/calendar-builder-mobile-zh-CN.png" alt="Steam to Calendar 移动端日历构建器" width="320" />
 </p>
 
-## 功能
+## 可以做什么
 
-- 为 Steam 活动、关注游戏或公开愿望单生成可订阅的日历 feed。
-- 追踪 Steam 官方季节促销、Next Fest、主题游戏节、发行商促销和系列促销。
-- 导入公开 Steam 愿望单，把未来发售、预购和折扣变成日历事件。
-- 手动搜索并关注少量 Steam 游戏。
-- 在桌面和移动端工作台里预览日历，再决定是否订阅。
-- 独立选择 Steam 商店地区和界面语言。
-- 生成带配置参数的 ICS/WebCal URL，方便分享、排障和重新订阅。
-- 默认只使用公开 Steam 数据，也可以接入高级价格历史增强。
+- 为 Steam 活动、关注游戏和公开愿望单生成可订阅的 ICS/WebCal feed。
+- 追踪官方促销窗口、Next Fest、主题游戏节、发行商促销、系列促销、发售、预购和折扣。
+- 支持连接公开愿望单，也支持手动维护一个更小的关注列表。
+- 在订阅前提供桌面端和移动端交互预览。
+- 支持独立选择 Steam 商店地区和界面语言。
+- 把 feed 配置编码在日历 URL 中，方便分享、检查和重新订阅。
+- 默认使用公开 Steam 数据，也可以通过 API key 增强价格历史。
 
-## 完整体验：API Key
+## 可选价格历史
 
-项目不依赖第三方 API key 也可以运行。默认模式会通过 Steam CLI 使用公开 Steam 数据；当高级价格数据不可用时，应用会自动降级到 Steam 当前折扣和发售数据。
+Steam to Calendar 不依赖第三方 API key。没有 API key 时，它会使用公开 Steam 数据，并照常生成预览和日历 feed。
 
-如果想获得完整价格历史和史低体验，请在 <https://isthereanydeal.com/apps/> 创建 IsThereAnyDeal API key，然后设置：
+如果想获得更完整的史低和价格窗口数据，可以在 <https://isthereanydeal.com/apps/> 创建 IsThereAnyDeal API key，然后设置：
 
 ```bash
 STEAM_CLI_ITAD_KEY=your_key
 ```
 
-这会启用 Steam CLI 的高级价格历史能力，包括更完整的史低和价格窗口数据。底层行为可以参考 [Steam CLI README](https://github.com/nickxudotme/steam-cli#advanced-price-enhancement)。
+底层增强逻辑可以参考 [Steam CLI README](https://github.com/nickxudotme/steam-cli#advanced-price-enhancement)。
 
 ## 快速开始
 
@@ -112,29 +109,29 @@ npm run test:e2e:live    # 真实 Steam smoke test
 SKIP_STEAM_CLI_BUILD=1 npm run build
 ```
 
-## 项目结构
+## 架构
 
 ```text
 src/
-  app/                  轻量 App Router 页面和 route handlers
-  features/             面向用户的工作流和 UI
-  domain/               不依赖框架的日历规则和 ICS 映射
-  integrations/         Steam CLI/API adapter、解析、缓存、降级
-  server/               HTTP/API 响应编排
-  shared/               浏览器/服务端共享合同和校验器
+  app/                  App Router 页面和 route handlers
+  features/             产品工作流和 UI
+  domain/               日历规则和 ICS 映射
+  integrations/         Steam adapter、解析、缓存和降级
+  server/               请求编排和 HTTP 响应
+  shared/               共享合同和运行时校验器
 
-vendor/steam-cli/       Steam CLI submodule
+vendor/steam-cli/       vendored Steam CLI
 public/assets/brand/    Logo 和应用图标
 ```
 
-架构边界：
+代码按产品、领域、集成和服务端职责拆分：
 
-- `src/app` 保持轻量，只放 route handlers、layout 和页面壳。
-- `src/features/calendar-builder` 负责交互式日历构建 UI。
-- `src/domain/calendar` 负责 feed 配置、日历事件映射和 ICS 输出。
-- `src/integrations/steam` 负责 Steam CLI/API 细节和 Steam 专属解析。
-- `src/server/calendar` 负责请求级日历编排和 HTTP 响应。
-- `src/shared` 放服务端和浏览器都需要共享的 DTO 与运行时校验。
+- `src/app` 放 route handlers、layout 和页面壳。
+- `src/features/calendar-builder` 负责交互式日历构建体验。
+- `src/domain/calendar` 负责 feed 配置、事件映射和 ICS 输出。
+- `src/integrations/steam` 负责 Steam CLI/API 调用、解析、缓存和降级。
+- `src/server/calendar` 组合领域逻辑和 Steam 集成，生成 HTTP/API 响应。
+- `src/shared` 放浏览器和服务端共享的 DTO 与校验器。
 
 ## 测试
 
@@ -164,9 +161,9 @@ npm run test:e2e:live
 
 ## 数据来源
 
-Steam to Calendar 主要通过 vendored [Steam CLI](https://github.com/nickxudotme/steam-cli) 访问 Steam。Steam CLI 会组合公开 Steam Store、Steam Community、Steam Web API、Steamworks 活动页面，以及可选 IsThereAnyDeal 增强。
+Steam to Calendar 通过 vendored [Steam CLI](https://github.com/nickxudotme/steam-cli) 访问 Steam。Steam CLI 会组合公开 Steam Store、Steam Community、Steam Web API、Steamworks 活动页面，以及可选 IsThereAnyDeal 增强。
 
-默认模式是公开、实时、无需 API key 的。高级价格能力需要设置 `STEAM_CLI_ITAD_KEY`。
+默认模式公开、实时、无需 API key。高级价格能力需要设置 `STEAM_CLI_ITAD_KEY`。
 
 ## 参与贡献
 
