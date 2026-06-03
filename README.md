@@ -90,6 +90,23 @@ Common environment variables:
 
 See [.env.example](.env.example) for the full local-development template.
 
+## Observability
+
+Production analytics are sent to the self-hosted Umami instance at
+<https://umami.nickxu.me>.
+
+- Client page views and custom events use `NEXT_PUBLIC_UMAMI_SCRIPT_URL` and
+  `NEXT_PUBLIC_UMAMI_WEBSITE_ID`.
+- Server-side diagnostic events use `UMAMI_COLLECT_URL` and `UMAMI_WEBSITE_ID`.
+- The current Steam to Calendar website ID is
+  `312a5b89-c994-4d81-a96b-63239f4fdbf0`.
+- Raw search or wishlist inputs stay disabled unless the explicit debug capture
+  flags are enabled.
+
+For local operations reports, create an Umami API key in the self-hosted Umami
+dashboard and set `UMAMI_API_KEY` in `.env.local`. The API endpoint defaults to
+`https://umami.nickxu.me/api`.
+
 ## Scripts
 
 ```bash
@@ -101,6 +118,7 @@ npm run start            # Start the production server
 npm run verify           # Format, lint, typecheck, unit tests, build
 npm run verify:full      # verify + stable Playwright e2e
 npm run test:e2e:live    # Live Steam smoke tests
+npm run ops:today        # Deployment and Umami activity summary
 ```
 
 Production builds run `build:steam-cli` automatically. If you intentionally want to skip rebuilding the binary during local checks, set:

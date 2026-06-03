@@ -90,6 +90,20 @@ npm run dev:clean
 
 完整本地模板见 [.env.example](.env.example)。
 
+## 观测
+
+生产环境 analytics 发送到自建 Umami：<https://umami.nickxu.me>。
+
+- 客户端 page view 和自定义事件使用 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 与
+  `NEXT_PUBLIC_UMAMI_WEBSITE_ID`。
+- 服务端诊断事件使用 `UMAMI_COLLECT_URL` 与 `UMAMI_WEBSITE_ID`。
+- 当前 Steam to Calendar website ID 是
+  `312a5b89-c994-4d81-a96b-63239f4fdbf0`。
+- 搜索词或愿望单输入默认不会记录原文，只有显式打开 debug capture flag 时才会采集。
+
+本地运行 ops 报表时，需要先在自建 Umami dashboard 创建 API key，并在 `.env.local`
+里设置 `UMAMI_API_KEY`。API endpoint 默认是 `https://umami.nickxu.me/api`。
+
 ## 脚本
 
 ```bash
@@ -101,6 +115,7 @@ npm run start            # 启动生产服务
 npm run verify           # format、lint、typecheck、unit test、build
 npm run verify:full      # verify + 稳定 Playwright e2e
 npm run test:e2e:live    # 真实 Steam smoke test
+npm run ops:today        # 部署和 Umami 活动摘要
 ```
 
 生产构建会自动运行 `build:steam-cli`。如果你只是本地检查并明确想跳过二进制重建，可以使用：
