@@ -252,6 +252,7 @@ function logWishlistPreviewResult({
       wishlistGames: data.wishlistGames.length,
       wishlistReleaseEvents: bundle.stats.watchedGameEvents,
     },
+    { request },
   );
 }
 
@@ -270,15 +271,20 @@ function logWishlistPreviewError({
   startedAt: number;
   status: number;
 }) {
-  logStructuredEvent("error", "wishlist_preview_failed", {
-    code,
-    durationMs: Date.now() - startedAt,
-    error: errorMessage(error),
-    method: request.method,
-    requestId,
-    route: "/api/preview",
-    status,
-  });
+  logStructuredEvent(
+    "error",
+    "wishlist_preview_failed",
+    {
+      code,
+      durationMs: Date.now() - startedAt,
+      error: errorMessage(error),
+      method: request.method,
+      requestId,
+      route: "/api/preview",
+      status,
+    },
+    { request },
+  );
 }
 
 function chunkArray<T>(values: T[], size: number): T[][] {
