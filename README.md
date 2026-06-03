@@ -97,14 +97,20 @@ Production analytics are sent to the self-hosted Umami instance at
 
 - Client page views and custom events use `NEXT_PUBLIC_UMAMI_SCRIPT_URL` and
   `NEXT_PUBLIC_UMAMI_WEBSITE_ID`.
+- Session replays use `NEXT_PUBLIC_UMAMI_RECORDER_URL`; they are enabled by
+  default at a `0.15` sample rate, mask inputs, stop after 5 minutes, and block
+  the manual subscription URL area from recordings.
 - Server-side diagnostic events use `UMAMI_COLLECT_URL` and `UMAMI_WEBSITE_ID`.
 - The current Steam to Calendar website ID is
   `312a5b89-c994-4d81-a96b-63239f4fdbf0`.
 - Raw search or wishlist inputs stay disabled unless the explicit debug capture
   flags are enabled.
+- Umami keeps session replays for 30 days.
 
-For local operations reports, create an Umami API key in the self-hosted Umami
-dashboard and set `UMAMI_API_KEY` in `.env.local`. The API endpoint defaults to
+For local operations reports against the self-hosted Umami instance, set
+`UMAMI_USERNAME` and `UMAMI_PASSWORD` in `.env.local`; the script logs in through
+`/api/auth/login` and then uses Bearer auth. `UMAMI_API_KEY` is still supported
+for Umami Cloud-style API keys. The API endpoint defaults to
 `https://umami.nickxu.me/api`.
 
 ## Scripts

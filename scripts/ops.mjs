@@ -17,6 +17,7 @@ loadEnvFile(resolve(rootDir, ".env"));
 const now = Date.now();
 const startAt = args.has("--24h") ? now - 24 * 60 * 60 * 1000 : startOfLocalDay(now);
 const endAt = now;
+let cachedUmamiToken;
 
 switch (command) {
   case "deploys":
@@ -162,11 +163,9 @@ async function umamiGet(config, pathname, params) {
   }
 
   try {
+    const headers = await umamiHeaders(config);
     const response = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        "x-umami-api-key": config.apiKey,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -179,8 +178,48 @@ async function umamiGet(config, pathname, params) {
   }
 }
 
+async function umamiHeaders(config) {
+  if (config.apiKey) {
+    return {
+      accept: "application/json",
+      "x-umami-api-key": config.apiKey,
+    };
+  }
+
+  if (!cachedUmamiToken) {
+    const response = await fetch(`${config.baseUrl}/auth/login`, {
+      body: JSON.stringify({
+        password: config.password,
+        username: config.username,
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Umami login failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data?.token) {
+      throw new Error("Umami login did not return a token.");
+    }
+
+    cachedUmamiToken = data.token;
+  }
+
+  return {
+    accept: "application/json",
+    authorization: `Bearer ${cachedUmamiToken}`,
+  };
+}
+
 function umamiConfig() {
   const apiKey = process.env.UMAMI_API_KEY?.trim();
+  const password = process.env.UMAMI_PASSWORD?.trim();
+  const username = process.env.UMAMI_USERNAME?.trim();
   const websiteId =
     process.env.UMAMI_WEBSITE_ID?.trim() || process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID?.trim();
   const baseUrl =
@@ -188,12 +227,12 @@ function umamiConfig() {
     process.env.UMAMI_API_BASE_URL?.trim() ||
     UMAMI_API_BASE_URL;
 
-  if (!apiKey || !websiteId) {
+  if ((!apiKey && (!username || !password)) || !websiteId) {
     return {
       message: [
         "Umami API is not configured.",
-        "Set UMAMI_API_KEY and UMAMI_WEBSITE_ID in .env.local or your shell.",
-        "For self-hosted Umami, create an API key and use https://umami.nickxu.me/api.",
+        "Set UMAMI_WEBSITE_ID plus either UMAMI_API_KEY or UMAMI_USERNAME/UMAMI_PASSWORD.",
+        "Self-hosted Umami uses /api/auth/login and Bearer auth; Umami Cloud can use API keys.",
       ].join("\n"),
       ok: false,
     };
@@ -203,6 +242,8 @@ function umamiConfig() {
     apiKey,
     baseUrl: baseUrl.replace(/\/$/, ""),
     ok: true,
+    password,
+    username,
     websiteId,
   };
 }

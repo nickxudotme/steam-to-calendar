@@ -96,13 +96,18 @@ npm run dev:clean
 
 - 客户端 page view 和自定义事件使用 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 与
   `NEXT_PUBLIC_UMAMI_WEBSITE_ID`。
+- Session Replay 使用 `NEXT_PUBLIC_UMAMI_RECORDER_URL`；默认开启，采样率
+  `0.15`，输入框会被 mask，单次最多录 5 分钟，并且会屏蔽手动订阅 URL 区域。
 - 服务端诊断事件使用 `UMAMI_COLLECT_URL` 与 `UMAMI_WEBSITE_ID`。
 - 当前 Steam to Calendar website ID 是
   `312a5b89-c994-4d81-a96b-63239f4fdbf0`。
 - 搜索词或愿望单输入默认不会记录原文，只有显式打开 debug capture flag 时才会采集。
+- Umami 的 Session Replay 保存 30 天。
 
-本地运行 ops 报表时，需要先在自建 Umami dashboard 创建 API key，并在 `.env.local`
-里设置 `UMAMI_API_KEY`。API endpoint 默认是 `https://umami.nickxu.me/api`。
+本地运行 ops 报表时，在 `.env.local` 里设置 `UMAMI_USERNAME` 和
+`UMAMI_PASSWORD`；脚本会通过 `/api/auth/login` 登录后使用 Bearer auth。
+`UMAMI_API_KEY` 仍支持 Umami Cloud 风格的 API key。API endpoint 默认是
+`https://umami.nickxu.me/api`。
 
 ## 脚本
 
