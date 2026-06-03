@@ -9,8 +9,13 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
+import { track } from "@vercel/analytics";
 import type { CalendarConfig } from "@/domain/calendar/config";
 import type { ConnectedPreviewStreamEvent, PreviewResponse } from "@/shared/calendar-preview";
+import {
+  WISHLIST_CONNECTED_EVENT,
+  type WishlistConnectedAnalyticsProperties,
+} from "@/shared/observability";
 import { fetchConnectedPreview } from "./api";
 
 export function useWishlistPreview({
@@ -210,6 +215,7 @@ export function useWishlistPreview({
         payload.steamId64,
         requestContext,
       );
+      trackWishlistConnected(payload);
       setPreview(payload);
       setShowMyGames(true);
       setIsImportOpen(false);
@@ -248,6 +254,21 @@ export function useWishlistPreview({
     steamId64,
     submit,
   };
+}
+
+function trackWishlistConnected(preview: PreviewResponse) {
+  const properties: WishlistConnectedAnalyticsProperties = {
+    appDetails: preview.stats.appDetails,
+    eventCount: preview.events.length,
+    locale: preview.locale?.lang ?? "unknown",
+    region: preview.locale?.cc ?? "unknown",
+    skippedAppIds: preview.stats.skippedAppIds,
+    steamMajorEvents: preview.stats.steamMajorEvents,
+    wishlistGames: preview.stats.wishlistGames,
+    wishlistReleaseEvents: preview.stats.wishlistReleaseEvents,
+  };
+
+  track(WISHLIST_CONNECTED_EVENT, properties);
 }
 
 function applyWishlistStreamEvent(

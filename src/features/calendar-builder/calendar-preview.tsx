@@ -29,6 +29,8 @@ export function CalendarPreview({
   uiCopy,
   uiLanguage,
   calendarUrl,
+  onCalendarSubscribeClick,
+  onSubscriptionLinkCopy,
   webcalUrl,
 }: {
   events: PreviewEvent[];
@@ -41,6 +43,8 @@ export function CalendarPreview({
   uiCopy: (typeof UI_COPY)[UiLanguage];
   uiLanguage: UiLanguage;
   calendarUrl: string;
+  onCalendarSubscribeClick: () => void;
+  onSubscriptionLinkCopy: (didCopy: boolean) => void;
   webcalUrl: string;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -272,6 +276,8 @@ export function CalendarPreview({
           copiedSubscriptionUrlLabel={uiCopy.copiedSubscriptionUrl}
           calendarUrl={calendarUrl}
           legendItems={legendItems}
+          onCalendarSubscribeClick={onCalendarSubscribeClick}
+          onSubscriptionLinkCopy={onSubscriptionLinkCopy}
           webcalUrl={webcalUrl}
         />
       </div>
@@ -286,6 +292,8 @@ function CalendarFooter({
   copiedSubscriptionUrlLabel,
   calendarUrl,
   legendItems,
+  onCalendarSubscribeClick,
+  onSubscriptionLinkCopy,
   webcalUrl,
 }: {
   addToCalendarLabel: string;
@@ -294,13 +302,15 @@ function CalendarFooter({
   copiedSubscriptionUrlLabel: string;
   calendarUrl: string;
   legendItems: ReturnType<typeof calendarLegendItems>;
+  onCalendarSubscribeClick: () => void;
+  onSubscriptionLinkCopy: (didCopy: boolean) => void;
   webcalUrl: string;
 }) {
   return (
     <div className="calendarFooter">
       <CalendarLegend legendItems={legendItems} />
       <div className="calendarFooterSubscribe">
-        <a className="calendarFooterCta" href={webcalUrl}>
+        <a className="calendarFooterCta" href={webcalUrl} onClick={onCalendarSubscribeClick}>
           <CalendarListIcon />
           {addToCalendarLabel}
         </a>
@@ -309,6 +319,7 @@ function CalendarFooter({
           copiedLabel={copiedSubscriptionUrlLabel}
           copyLabel={copySubscriptionUrlLabel}
           hint={manualSubscribeHint}
+          onCopy={onSubscriptionLinkCopy}
         />
       </div>
     </div>
@@ -321,6 +332,7 @@ export function ManualSubscribeFallback({
   copiedLabel,
   copyLabel,
   hint,
+  onCopy,
   variant = "default",
 }: {
   calendarUrl: string;
@@ -328,17 +340,22 @@ export function ManualSubscribeFallback({
   copiedLabel: string;
   copyLabel: string;
   hint: string;
+  onCopy?: (didCopy: boolean) => void;
   variant?: "compact" | "default";
 }) {
   const [hasCopied, setHasCopied] = useState(false);
 
   async function handleCopyClick() {
+    let didCopy = true;
+
     try {
       await copyTextToClipboard(calendarUrl);
     } catch {
       // Some browsers block clipboard access until the user grants permission.
+      didCopy = false;
     }
 
+    onCopy?.(didCopy);
     setHasCopied(true);
     window.setTimeout(() => setHasCopied(false), 2200);
   }

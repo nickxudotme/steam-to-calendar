@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
+import { WISHLIST_CONNECTED_EVENT } from "@/shared/observability";
 
 const previewMocks = vi.hoisted(() => ({
   fetchSteamCalendarEventBundle: vi.fn(),
@@ -25,7 +26,11 @@ function previewRequest(body: BodyInit, contentType = "application/json") {
 function streamingPreviewRequest(body: BodyInit) {
   return new Request("https://example.test/api/preview?lang=english&uiLang=en", {
     method: "POST",
-    headers: { accept: "application/x-ndjson", "content-type": "application/json" },
+    headers: {
+      accept: "application/x-ndjson",
+      "content-type": "application/json",
+      "x-vercel-id": "iad1::abc123",
+    },
     body,
   });
 }
@@ -33,6 +38,10 @@ function streamingPreviewRequest(body: BodyInit) {
 async function responseJson(response: Response) {
   return response.json() as Promise<{ code: string; message: string }>;
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("preview API request validation", () => {
   it("returns 400 for malformed JSON bodies", async () => {
@@ -81,6 +90,7 @@ describe("preview API request validation", () => {
 
 describe("preview API streaming response", () => {
   it("streams wishlist games before the final connected preview", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     previewMocks.fetchWishlistCalendarData.mockResolvedValueOnce({
       steamId64: "76561198115468824",
       profileName: "Nick",
@@ -148,5 +158,23 @@ describe("preview API streaming response", () => {
         stats: { wishlistGames: 2 },
       },
     });
+
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(String(logSpy.mock.calls[0]?.[0])) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      appDetails: 2,
+      event: WISHLIST_CONNECTED_EVENT,
+      level: "info",
+      method: "POST",
+      requestId: "iad1::abc123",
+      route: "/api/preview",
+      status: 200,
+      streaming: true,
+      useWishlist: true,
+      wishlistGames: 2,
+    });
+    expect(payload.steamIdHash).toMatch(/^[a-f0-9]{12}$/);
+    expect(payload).not.toHaveProperty("steamId64");
+    expect(JSON.stringify(payload)).not.toContain("76561198115468824");
   });
 });

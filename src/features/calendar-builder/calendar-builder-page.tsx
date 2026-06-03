@@ -13,8 +13,15 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { track } from "@vercel/analytics";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
+import {
+  CALENDAR_SUBSCRIBE_CLICKED_EVENT,
+  SUBSCRIPTION_LINK_COPIED_EVENT,
+  type CalendarSubscribeAnalyticsProperties,
+  type SubscriptionLinkCopiedAnalyticsProperties,
+} from "@/shared/observability";
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
 import { languageOptionByCode } from "./browser-locale";
 import {
@@ -270,6 +277,30 @@ export function CalendarBuilderPage({
   const trackedGameCount = hasConnectedWishlist
     ? preview.stats.wishlistGames
     : selectedGamesState.selectedGames.length;
+
+  function subscriptionAnalyticsProperties(source: string): CalendarSubscribeAnalyticsProperties {
+    return {
+      eventCount: visibleEvents.length,
+      source,
+      trackedGameCount,
+      usesWishlist: hasConnectedWishlist,
+    };
+  }
+
+  function handleCalendarSubscribeClick(source: string) {
+    track(
+      CALENDAR_SUBSCRIBE_CLICKED_EVENT,
+      subscriptionAnalyticsProperties(source) satisfies CalendarSubscribeAnalyticsProperties,
+    );
+  }
+
+  function handleSubscriptionLinkCopy(source: string, didCopy: boolean) {
+    track(SUBSCRIPTION_LINK_COPIED_EVENT, {
+      ...subscriptionAnalyticsProperties(source),
+      didCopy,
+    } satisfies SubscriptionLinkCopiedAnalyticsProperties);
+  }
+
   const calendarSummaryItems = [
     formatCountLabel(visibleEvents.length, copy.calendarSummaryEvents, uiLanguage),
     hasConnectedWishlist
@@ -797,7 +828,11 @@ export function CalendarBuilderPage({
                         <span aria-hidden="true">✓</span>
                       </div>
                       <p>{calendarSummaryItems}</p>
-                      <a className="primaryCalendarCta setupReadyCta" href={webcalUrl}>
+                      <a
+                        className="primaryCalendarCta setupReadyCta"
+                        href={webcalUrl}
+                        onClick={() => handleCalendarSubscribeClick("setup")}
+                      >
                         <CalendarListIcon />
                         <span>
                           <strong>{copy.addToCalendar}</strong>
@@ -810,6 +845,7 @@ export function CalendarBuilderPage({
                         copiedLabel={copy.copiedSubscriptionUrl}
                         copyLabel={copy.copySubscriptionUrl}
                         hint={copy.calendarManualSubscribeShortHint}
+                        onCopy={(didCopy) => handleSubscriptionLinkCopy("setup", didCopy)}
                         variant="compact"
                       />
                     </div>
@@ -850,6 +886,10 @@ export function CalendarBuilderPage({
               uiCopy={copy}
               uiLanguage={uiLanguage}
               calendarUrl={calendarUrl}
+              onCalendarSubscribeClick={() => handleCalendarSubscribeClick("calendar_footer")}
+              onSubscriptionLinkCopy={(didCopy) =>
+                handleSubscriptionLinkCopy("calendar_footer", didCopy)
+              }
               webcalUrl={webcalUrl}
             />
             <div className="calendarActionBar">
@@ -935,7 +975,11 @@ export function CalendarBuilderPage({
         </section>
 
         <nav className="mobileBottomBar" aria-label="Mobile calendar actions">
-          <a className="mobileAddCalendar" href={webcalUrl}>
+          <a
+            className="mobileAddCalendar"
+            href={webcalUrl}
+            onClick={() => handleCalendarSubscribeClick("mobile")}
+          >
             <CalendarListIcon />
             <span>{copy.addToCalendar}</span>
           </a>

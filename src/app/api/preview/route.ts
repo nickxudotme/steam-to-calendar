@@ -4,14 +4,25 @@ import { normalizeCc, steamLocaleFromRequest } from "@/integrations/steam/locale
 import { fetchWishlistCalendarData } from "@/integrations/steam/pipeline";
 import { fetchSteamCalendarEventBundle } from "@/server/calendar/event-bundle";
 import { buildConnectedPreviewResponse } from "@/server/calendar/preview-response";
+import {
+  errorMessage,
+  hashLogValue,
+  logStructuredEvent,
+  rawInput,
+  requestId,
+} from "@/server/observability";
 import { steamApiErrorPayload, steamApiErrorStatus } from "@/server/steam-api-error";
 import type { ConnectedPreviewStreamEvent } from "@/shared/calendar-preview";
 import { isRecord, isString } from "@/shared/calendar-preview-contract";
+import { WISHLIST_CONNECTED_EVENT } from "@/shared/observability";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
+  const currentRequestId = requestId(request);
+
   try {
     const body = await parsePreviewRequestBody(request);
     const config = calendarConfigFromRecord(body);
@@ -20,17 +31,20 @@ export async function POST(request: Request) {
       ...requestLocale,
       cc: normalizeCc(String(body.cc ?? "")) || requestLocale.cc,
     };
-    const steamId64 = String(body.steamId64 ?? "");
+    const steamInput = String(body.steamId64 ?? "");
 
     if (wantsStreamingPreview(request)) {
       return streamConnectedPreview({
         config,
         locale,
-        steamId64,
+        request,
+        requestId: currentRequestId,
+        startedAt,
+        steamId64: steamInput,
       });
     }
 
-    const data = await fetchWishlistCalendarData(steamId64, {
+    const data = await fetchWishlistCalendarData(steamInput, {
       ...locale,
       appLimit: 100,
     });
@@ -45,6 +59,18 @@ export async function POST(request: Request) {
       locale,
       withWatchedGameSnapshots: shouldUseWishlist,
     });
+    logWishlistPreviewResult({
+      bundle,
+      data,
+      locale,
+      request,
+      requestId: currentRequestId,
+      startedAt,
+      status: 200,
+      streaming: false,
+      steamInput,
+      useWishlist: shouldUseWishlist,
+    });
     return Response.json(
       buildConnectedPreviewResponse({
         bundle,
@@ -55,6 +81,15 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     const { code, message, status } = previewErrorResponse(error);
+
+    logWishlistPreviewError({
+      code,
+      error,
+      request,
+      requestId: currentRequestId,
+      startedAt,
+      status,
+    });
 
     return Response.json({ code, message }, { status });
   }
@@ -70,10 +105,16 @@ function wantsStreamingPreview(request: Request): boolean {
 function streamConnectedPreview({
   config,
   locale,
+  request,
+  requestId,
+  startedAt,
   steamId64,
 }: {
   config: ReturnType<typeof calendarConfigFromRecord>;
   locale: ReturnType<typeof steamLocaleFromRequest>;
+  request: Request;
+  requestId: string | null;
+  startedAt: number;
   steamId64: string;
 }) {
   const encoder = new TextEncoder();
@@ -117,6 +158,18 @@ function streamConnectedPreview({
             locale,
             withWatchedGameSnapshots: shouldUseWishlist,
           });
+          logWishlistPreviewResult({
+            bundle,
+            data,
+            locale,
+            request,
+            requestId,
+            startedAt,
+            status: 200,
+            streaming: true,
+            steamInput: steamId64,
+            useWishlist: shouldUseWishlist,
+          });
 
           send({
             type: "done",
@@ -129,6 +182,15 @@ function streamConnectedPreview({
           });
         } catch (error) {
           const { code, message, status } = previewErrorResponse(error);
+
+          logWishlistPreviewError({
+            code,
+            error,
+            request,
+            requestId,
+            startedAt,
+            status,
+          });
 
           send({ type: "error", code, message, status });
         } finally {
@@ -143,6 +205,80 @@ function streamConnectedPreview({
       },
     },
   );
+}
+
+function logWishlistPreviewResult({
+  bundle,
+  data,
+  locale,
+  request,
+  requestId,
+  startedAt,
+  status,
+  streaming,
+  steamInput,
+  useWishlist,
+}: {
+  bundle: Awaited<ReturnType<typeof fetchSteamCalendarEventBundle>>;
+  data: Awaited<ReturnType<typeof fetchWishlistCalendarData>>;
+  locale: ReturnType<typeof steamLocaleFromRequest>;
+  request: Request;
+  requestId: string | null;
+  startedAt: number;
+  status: number;
+  streaming: boolean;
+  steamInput: string;
+  useWishlist: boolean;
+}) {
+  logStructuredEvent(
+    "info",
+    useWishlist ? WISHLIST_CONNECTED_EVENT : "wishlist_preview_completed",
+    {
+      appDetails: data.appDetails.length,
+      durationMs: Date.now() - startedAt,
+      eventCount: bundle.events.length,
+      locale: locale.lang,
+      method: request.method,
+      region: locale.cc,
+      requestId,
+      route: "/api/preview",
+      skippedAppIds: data.skippedAppIds.length,
+      status,
+      ...rawInput({ steamInput }),
+      steamIdHash: hashLogValue(data.steamId64),
+      steamMajorEvents: bundle.stats.steamMajorEvents,
+      streaming,
+      useWishlist,
+      wishlistGames: data.wishlistGames.length,
+      wishlistReleaseEvents: bundle.stats.watchedGameEvents,
+    },
+  );
+}
+
+function logWishlistPreviewError({
+  code,
+  error,
+  request,
+  requestId,
+  startedAt,
+  status,
+}: {
+  code: string;
+  error: unknown;
+  request: Request;
+  requestId: string | null;
+  startedAt: number;
+  status: number;
+}) {
+  logStructuredEvent("error", "wishlist_preview_failed", {
+    code,
+    durationMs: Date.now() - startedAt,
+    error: errorMessage(error),
+    method: request.method,
+    requestId,
+    route: "/api/preview",
+    status,
+  });
 }
 
 function chunkArray<T>(values: T[], size: number): T[][] {

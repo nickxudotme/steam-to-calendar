@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { calendarConfigFromRequest, DEFAULT_CALENDAR_CONFIG } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import { calendarContentType, generateCalendar } from "@/domain/calendar/ics";
@@ -6,6 +5,7 @@ import { fetchSteamCalendarEventBundle } from "@/server/calendar/event-bundle";
 import { SteamWishlistError } from "@/integrations/steam/client";
 import { steamLocaleFromRequest, type SteamLocaleOptions } from "@/integrations/steam/locale";
 import { fetchWishlistCalendarData } from "@/integrations/steam/pipeline";
+import { hashLogValue } from "@/server/observability";
 
 export async function buildCalendarResponse(
   steamInput: string,
@@ -121,10 +121,6 @@ export function logCalendarRequest(
     timestamp: new Date().toISOString(),
     userAgent,
   });
-}
-
-function hashLogValue(value: string): string {
-  return createHash("sha256").update(value).digest("hex").slice(0, 12);
 }
 
 function redactedPath(pathname: string, steamId64: string | undefined): string {
