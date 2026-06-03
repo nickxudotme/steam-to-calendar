@@ -5,6 +5,7 @@ export type SteamWishlistGame = {
   name: string;
   imageUrl?: string;
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -22,6 +23,7 @@ export type SteamAppDetails = {
   name: string;
   imageUrl?: string;
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -685,6 +687,7 @@ function readPriceOverview(record: Record<string, unknown>): SteamWishlistGame["
   }
 
   const price = rawPrice as Record<string, unknown>;
+  const currency = readString(price, "currency");
   const discountPercent = readNumber(price, "discount_percent") ?? 0;
   const finalFormatted = readString(price, "final_formatted");
   const initialFormatted = readString(price, "initial_formatted");
@@ -694,6 +697,7 @@ function readPriceOverview(record: Record<string, unknown>): SteamWishlistGame["
   }
 
   return {
+    ...(currency ? { currency } : {}),
     discountPercent,
     ...(finalFormatted ? { finalFormatted } : {}),
     ...(initialFormatted ? { initialFormatted } : {}),

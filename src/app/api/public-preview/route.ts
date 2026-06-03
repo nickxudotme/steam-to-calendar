@@ -15,6 +15,7 @@ export async function GET(request: Request) {
       appIds: config.watchedAppIds,
       config,
       locale,
+      withWatchedGameSnapshots: true,
     });
 
     return Response.json(buildPublicPreviewResponse({ bundle, locale }));

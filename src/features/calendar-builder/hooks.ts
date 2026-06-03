@@ -34,9 +34,9 @@ import {
   chooseCalendarFocusDate,
   chooseCurrentGameEvent,
   compareSteamEventCategories,
-  isGameCalendarEvent,
   localIsoDate,
   selectedGameFromEvent,
+  selectedGameFromWishlistGame,
   shouldLoadDefaultDealPreview,
 } from "./calendar-utils";
 import { AUTO_TRACKED_GAME_COUNT, INTRO_STORAGE_KEY } from "./model";
@@ -839,14 +839,12 @@ export function useSelectedGames({
   }, [hasConnectedWishlist, preview, selectedGames.length, showMyGames]);
 
   useEffect(() => {
-    if (!selectedGames.length || !preview.events.length) {
+    if (!selectedGames.length || !preview.watchedGames?.length) {
       return;
     }
 
     const gamesByAppId = new Map(
-      preview.events
-        .filter((event) => isGameCalendarEvent(event) && event.appId)
-        .map((event) => [event.appId as string, selectedGameFromEvent(event)]),
+      preview.watchedGames.map((game) => [game.appId, selectedGameFromWishlistGame(game)]),
     );
     let didChange = false;
     const nextSelectedGames = selectedGames.map((game) => {
@@ -869,7 +867,7 @@ export function useSelectedGames({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedGames(nextSelectedGames);
     }
-  }, [preview.events, selectedGames]);
+  }, [preview.watchedGames, selectedGames]);
 
   function addGame(game: SelectedGame) {
     if (

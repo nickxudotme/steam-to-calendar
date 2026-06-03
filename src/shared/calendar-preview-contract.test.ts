@@ -28,6 +28,19 @@ const validPreview = {
       storeUrl: "https://store.steampowered.com/app/123/",
     },
   ],
+  watchedGames: [
+    {
+      appId: "456",
+      imageUrl: "https://example.test/kr5.jpg",
+      name: "王国保卫战 5：联盟",
+      price: {
+        discountPercent: 0,
+        finalFormatted: "HK$ 125.00",
+      },
+      releaseDateText: "Jul 25, 2024",
+      storeUrl: "https://store.steampowered.com/app/456/",
+    },
+  ],
   stats: {
     wishlistGames: 1,
     appDetails: 1,
@@ -102,6 +115,15 @@ describe("calendar preview API contract", () => {
         wishlistGames: [{ ...validPreview.wishlistGames[0], price: { discountPercent: "20" } }],
       }),
     ).toThrow("invalid wishlist games");
+  });
+
+  it("rejects invalid watched game price payloads", () => {
+    expect(() =>
+      parsePreviewResponse({
+        ...validPreview,
+        watchedGames: [{ ...validPreview.watchedGames[0], price: { discountPercent: "20" } }],
+      }),
+    ).toThrow("invalid watched games");
   });
 
   it("rejects unknown Steam event categories", () => {

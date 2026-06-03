@@ -141,6 +141,9 @@ export const UI_COPY = {
     searchResultsCount: "results",
     noSearchResults: "No Steam games found",
     priceUnavailable: "Price unavailable",
+    wishlistRateLimitedError: "Steam is rate limiting wishlist requests.",
+    wishlistRateLimitedHint:
+      "Wait a few minutes, then try again. You can still keep Steam events or add games manually.",
     wishlistPrivateHint:
       "Wishlist unavailable. Search or paste a game above, or keep Steam events without a wishlist.",
     wishlistGenericHint: "Steam did not respond. You can keep Steam events and add games manually.",
@@ -281,6 +284,8 @@ export const UI_COPY = {
     searchResultsCount: "个结果",
     noSearchResults: "没有找到 Steam 游戏",
     priceUnavailable: "暂无价格",
+    wishlistRateLimitedError: "Steam 正在限制愿望单请求。",
+    wishlistRateLimitedHint: "等几分钟后再试即可。你也可以先保留 Steam 活动，或手动添加游戏。",
     wishlistPrivateHint: "愿望单暂不可用。可以在上方搜索或粘贴游戏，也可以只保留 Steam 活动。",
     wishlistGenericHint: "Steam 暂时没有响应。你仍然可以保留 Steam 活动并手动添加游戏。",
     wishlistConnected: "愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。",

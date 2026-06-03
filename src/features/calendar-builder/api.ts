@@ -118,10 +118,11 @@ export async function searchCalendarGames({
   locale,
   query,
 }: GameSearchRequest): Promise<GameSearchResult[]> {
+  const trimmedQuery = query.trim();
   const params = new URLSearchParams({
     cc: locale.cc,
     lang: locale.lang,
-    query,
+    query: trimmedQuery,
     uiLang: locale.uiLang,
   });
   const response = await fetch(`/api/search-games?${params.toString()}`);
@@ -131,7 +132,9 @@ export async function searchCalendarGames({
     throw new Error(apiErrorMessage(payload, "Could not search Steam games."));
   }
 
-  return parseSearchResults(payload);
+  const results = parseSearchResults(payload);
+
+  return results;
 }
 
 async function parseJson(response: Response): Promise<unknown> {
@@ -314,6 +317,7 @@ function isSearchPrice(value: unknown): value is NonNullable<GameSearchResult["p
   return (
     isRecord(value) &&
     isNumber(value.discountPercent) &&
+    isOptionalString(value.currency) &&
     isOptionalString(value.finalFormatted) &&
     isOptionalString(value.initialFormatted)
   );

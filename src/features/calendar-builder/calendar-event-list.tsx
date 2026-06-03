@@ -6,6 +6,7 @@ import {
   detailTitle,
   eventVisualClass,
   formatEventDateRange,
+  formatDisplayPrice,
   hasGameEventImage,
 } from "./calendar-utils";
 import type { PreviewEvent } from "./model";
@@ -73,7 +74,9 @@ export function CalendarEventList({
                 {event.discount || event.finalPrice ? (
                   <span className="eventListPrice">
                     {event.discount ? <strong>{event.discount}</strong> : null}
-                    {event.finalPrice ? <span>{event.finalPrice}</span> : null}
+                    {event.finalPrice ? (
+                      <span>{formatDisplayPrice(event.finalPrice, uiLanguage)}</span>
+                    ) : null}
                   </span>
                 ) : null}
               </button>

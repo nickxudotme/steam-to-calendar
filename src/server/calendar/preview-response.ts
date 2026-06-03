@@ -3,7 +3,11 @@ import type { SteamWishlistGame } from "@/integrations/steam/client";
 import type { SteamLocaleOptions } from "@/integrations/steam/locale";
 import type { WishlistCalendarData } from "@/integrations/steam/pipeline";
 import type { WatchedGameSnapshot } from "@/integrations/steam/watched-games";
-import type { PreviewResponse, PreviewWishlistGame } from "@/shared/calendar-preview";
+import type {
+  PreviewResponse,
+  PreviewWatchedGame,
+  PreviewWishlistGame,
+} from "@/shared/calendar-preview";
 import type { SteamCalendarEventBundle } from "./event-bundle";
 
 export function buildConnectedPreviewResponse({
@@ -22,6 +26,7 @@ export function buildConnectedPreviewResponse({
   const wishlistGames = useWishlist
     ? mergeWishlistGamesWithSnapshots(data.wishlistGames, bundle.watchedGameSnapshots)
     : data.wishlistGames;
+  const watchedGames = bundle.watchedGameSnapshots.map(previewWatchedGameFromSnapshot);
 
   return {
     steamId64: data.steamId64,
@@ -31,6 +36,7 @@ export function buildConnectedPreviewResponse({
     profileName: data.profileName,
     locale,
     wishlistGames,
+    watchedGames,
     stats: {
       wishlistGames: data.wishlistGames.length,
       appDetails: data.appDetails.length,
@@ -58,6 +64,7 @@ export function buildPublicPreviewResponse({
     calendarPath: `/cal/${STEAM_EVENTS_CALENDAR_ID}`,
     wishlistUrl: "",
     locale,
+    watchedGames: bundle.watchedGameSnapshots.map(previewWatchedGameFromSnapshot),
     stats: {
       wishlistGames: 0,
       appDetails: 0,
@@ -69,6 +76,25 @@ export function buildPublicPreviewResponse({
       storeFallbackEvents: bundle.stats.storeFallbackEvents,
     },
     events: bundle.events,
+  };
+}
+
+function previewWatchedGameFromSnapshot(snapshot: WatchedGameSnapshot): PreviewWatchedGame {
+  return {
+    appId: snapshot.appId,
+    name: snapshot.name,
+    ...(snapshot.imageUrl ? { imageUrl: snapshot.imageUrl } : {}),
+    ...(snapshot.price ? { price: snapshot.price } : {}),
+    ...(snapshot.genres?.length ? { genres: snapshot.genres } : {}),
+    ...(snapshot.developers?.length ? { developers: snapshot.developers } : {}),
+    ...(snapshot.publishers?.length ? { publishers: snapshot.publishers } : {}),
+    ...(snapshot.reviewSummary ? { reviewSummary: snapshot.reviewSummary } : {}),
+    ...(typeof snapshot.reviewPercentage === "number"
+      ? { reviewPercentage: snapshot.reviewPercentage }
+      : {}),
+    ...(typeof snapshot.reviewCount === "number" ? { reviewCount: snapshot.reviewCount } : {}),
+    releaseDateText: snapshot.releaseDateText ?? null,
+    storeUrl: snapshot.storeUrl,
   };
 }
 

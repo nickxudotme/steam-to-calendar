@@ -8,6 +8,7 @@ export type SteamSearchResult = {
   imageUrl?: string;
   genres?: string[];
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -44,6 +45,7 @@ type SteamCliAppSearchResult = {
     header_image?: string;
     name?: string;
     price_overview?: {
+      currency?: string;
       discount_percent?: number;
       final_formatted?: string;
       initial_formatted?: string;
@@ -142,6 +144,7 @@ async function searchSteamGamesByText(
         ...(result.price
           ? {
               price: {
+                ...(result.price.currency ? { currency: result.price.currency } : {}),
                 discountPercent: result.price.discount_percent ?? 0,
                 ...(finalFormatted ? { finalFormatted } : {}),
                 ...(initialFormatted ? { initialFormatted } : {}),
@@ -215,6 +218,7 @@ async function fetchSteamGameByAppId(
   const bestPurchase = data.store_item?.best_purchase_option;
   const discountPercent =
     bestPurchase?.discount_pct ?? data.details?.price_overview?.discount_percent ?? 0;
+  const currency = data.details?.price_overview?.currency?.trim();
   const metadata = steamAppSearchMetadata(data);
 
   return {
@@ -223,6 +227,7 @@ async function fetchSteamGameByAppId(
     storeUrl: `https://store.steampowered.com/app/${appId}/`,
     ...(data.details?.header_image ? { imageUrl: data.details.header_image } : {}),
     price: {
+      ...(currency ? { currency } : {}),
       discountPercent,
       ...((bestPurchase?.formatted_final_price ?? data.details?.price_overview?.final_formatted)
         ? {

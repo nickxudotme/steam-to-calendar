@@ -123,8 +123,10 @@ export function CalendarBuilderPage({
     storeRegion ?? detectedStoreRegion ?? preview.locale?.cc ?? "US";
   const effectiveStoreRegion = selectedOrDetectedStoreRegion;
   const effectiveStoreRegionCurrency = storeRegionCurrencySymbol(
-    effectiveStoreRegion,
     preview.locale?.cc === effectiveStoreRegion ? preview.events : [],
+    preview.locale?.cc === effectiveStoreRegion
+      ? [...(preview.watchedGames ?? []), ...(preview.wishlistGames ?? [])]
+      : [],
   );
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
@@ -133,7 +135,7 @@ export function CalendarBuilderPage({
     !shouldShowResolvedStoreRegion || preview.locale?.cc !== effectiveStoreRegion;
   const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
     ? copy.storeCurrencyLoading
-    : effectiveStoreRegionCurrency;
+    : effectiveStoreRegionCurrency || effectiveStoreRegion;
   const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
   const storeRegionOptions = useMemo(
     () =>

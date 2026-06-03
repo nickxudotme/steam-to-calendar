@@ -1,5 +1,10 @@
 import { STEAM_EVENT_CATEGORIES, type SteamEventCategory } from "@/domain/calendar/config";
-import type { PreviewEvent, PreviewResponse, PreviewWishlistGame } from "./calendar-preview";
+import type {
+  PreviewEvent,
+  PreviewResponse,
+  PreviewWatchedGame,
+  PreviewWishlistGame,
+} from "./calendar-preview";
 
 // Runtime validators for the JSON contract shared by Next.js route handlers and the browser.
 // TypeScript types disappear at runtime, so these guards protect the UI from malformed payloads.
@@ -36,6 +41,13 @@ export function parsePreviewResponse(payload: unknown): PreviewResponse {
     throw new Error("API returned invalid wishlist games.");
   }
 
+  if (
+    payload.watchedGames !== undefined &&
+    (!Array.isArray(payload.watchedGames) || !payload.watchedGames.every(isPreviewWatchedGame))
+  ) {
+    throw new Error("API returned invalid watched games.");
+  }
+
   return {
     steamId64: payload.steamId64,
     feedPath: payload.feedPath,
@@ -43,6 +55,7 @@ export function parsePreviewResponse(payload: unknown): PreviewResponse {
     wishlistUrl: payload.wishlistUrl,
     ...(payload.profileName !== undefined ? { profileName: payload.profileName } : {}),
     ...(payload.wishlistGames !== undefined ? { wishlistGames: payload.wishlistGames } : {}),
+    ...(payload.watchedGames !== undefined ? { watchedGames: payload.watchedGames } : {}),
     ...(payload.locale !== undefined ? { locale: payload.locale } : {}),
     stats: payload.stats,
     events: payload.events,
@@ -87,6 +100,14 @@ export function isPreviewEvent(value: unknown): value is PreviewEvent {
 }
 
 export function isPreviewWishlistGame(value: unknown): value is PreviewWishlistGame {
+  return isPreviewPriceGame(value);
+}
+
+function isPreviewWatchedGame(value: unknown): value is PreviewWatchedGame {
+  return isPreviewPriceGame(value);
+}
+
+function isPreviewPriceGame(value: unknown): value is PreviewWishlistGame | PreviewWatchedGame {
   return (
     isRecord(value) &&
     isString(value.appId) &&
@@ -169,6 +190,7 @@ function isPreviewPrice(value: unknown): value is NonNullable<PreviewWishlistGam
   return (
     isRecord(value) &&
     isNumber(value.discountPercent) &&
+    isOptionalString(value.currency) &&
     isOptionalString(value.finalFormatted) &&
     isOptionalString(value.initialFormatted)
   );

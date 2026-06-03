@@ -12,6 +12,7 @@ export type GameSearchResult = {
   imageUrl?: string;
   genres?: string[];
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -30,6 +31,7 @@ export type SelectedGame = {
   name: string;
   imageUrl?: string;
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;

@@ -39,6 +39,7 @@ describe("preview response builders", () => {
       calendarPath: "/cal/steam-events",
       wishlistUrl: "",
       locale: { cc: "US", lang: "english", uiLang: "en" },
+      watchedGames: [],
       stats: {
         wishlistGames: 0,
         appDetails: 0,
@@ -93,6 +94,16 @@ describe("preview response builders", () => {
     });
 
     expect(response.wishlistGames).toEqual([
+      {
+        appId: "620",
+        imageUrl: "https://cdn.example.test/portal-2.jpg",
+        name: "Portal 2",
+        releaseDateText: "Apr 18, 2011",
+        reviewCount: 1000,
+        storeUrl: "https://store.steampowered.com/app/620/",
+      },
+    ]);
+    expect(response.watchedGames).toEqual([
       {
         appId: "620",
         imageUrl: "https://cdn.example.test/portal-2.jpg",

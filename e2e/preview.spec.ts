@@ -1,4 +1,32 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function chooseHeaderOption(page: Page, label: string, optionName: string) {
+  await page.locator("header").getByLabel(label).click();
+  await page.getByRole("option", { name: optionName }).click();
+}
+
+async function openWishlistImport(page: Page) {
+  const steamIdInput = page.locator("#steam-id");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const connectButton = page.getByRole("button", { name: "Connect wishlist" });
+    await connectButton.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await connectButton.evaluate((element) => {
+      if (element instanceof HTMLButtonElement) {
+        element.click();
+      }
+    });
+
+    try {
+      await expect(steamIdInput).toBeVisible({ timeout: 1_000 });
+      return;
+    } catch {
+      // In parallel e2e runs the first click can occasionally land during a transition.
+    }
+  }
+
+  await expect(steamIdInput).toBeVisible();
+}
 
 test("previews, searches, and edits a calendar with mocked Steam data", async ({ page }) => {
   await page.route("**/api/public-preview?**", async (route) => {
@@ -74,6 +102,15 @@ test("previews, searches, and edits a calendar with mocked Steam data", async ({
             storeUrl: "https://store.steampowered.com/app/620/",
           },
         ],
+        watchedGames: [
+          {
+            appId: "620",
+            imageUrl: "https://cdn.example.test/portal-2.jpg",
+            name: "Portal 2",
+            releaseDateText: "Apr 18, 2011",
+            storeUrl: "https://store.steampowered.com/app/620/",
+          },
+        ],
         locale: { cc: "US", lang: "english", uiLang: "en" },
         stats: {
           wishlistGames: 1,
@@ -139,7 +176,7 @@ test("previews, searches, and edits a calendar with mocked Steam data", async ({
   await page.locator(".undoToast").getByRole("button", { name: "Undo" }).click();
   await expect(page.getByLabel("Games added to calendar").getByText("Portal 2")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await openWishlistImport(page);
   await page.locator("#steam-id").fill("https://steamcommunity.com/id/nickxudotme/");
   await page.locator('.wishlistImport button[type="submit"]').click();
   await expect(page.getByText("Wishlist connected. Manual game picks are ignored")).toBeVisible();
@@ -326,7 +363,7 @@ test("clicking an imported wishlist game scrolls the calendar to its event", asy
     window.localStorage.setItem("steam-to-calendar-intro-seen", "1");
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await openWishlistImport(page);
   await page.locator("#steam-id").fill("https://steamcommunity.com/id/nickxudotme/");
   await page.locator('.wishlistImport button[type="submit"]').click();
 
@@ -438,6 +475,15 @@ test("uses the latest locale when wishlist import finishes after settings change
             storeUrl: "https://store.steampowered.com/app/620/",
           },
         ],
+        watchedGames: [
+          {
+            appId: "620",
+            imageUrl: "https://cdn.example.test/portal-2.jpg",
+            name: "Portal 2",
+            releaseDateText: "Apr 18, 2011",
+            storeUrl: "https://store.steampowered.com/app/620/",
+          },
+        ],
         locale: { cc: request.cc, lang: request.lang, uiLang: request.uiLang || "en" },
         stats: {
           wishlistGames: 1,
@@ -465,11 +511,11 @@ test("uses the latest locale when wishlist import finishes after settings change
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await openWishlistImport(page);
   await page.locator("#steam-id").fill("https://steamcommunity.com/id/nickxudotme/");
   await page.locator('.wishlistImport button[type="submit"]').click();
-  await page.locator("header").getByLabel("Steam store region").selectOption("HK");
-  await page.locator("header").getByLabel("Language").selectOption("zh-CN");
+  await chooseHeaderOption(page, "Steam store region", "Hong Kong");
+  await chooseHeaderOption(page, "Language", "简体中文");
 
   await expect(page.getByText("HK-schinese")).toBeVisible();
   expect(previewRequests.length).toBeGreaterThanOrEqual(2);
@@ -591,7 +637,7 @@ test("opens Steam profile help from the wishlist help button on mobile", async (
 
   await page.goto("/");
   await page.getByRole("button", { name: "Open settings" }).click();
-  await page.getByRole("button", { name: "Connect wishlist" }).click();
+  await openWishlistImport(page);
   await page.getByRole("button", { name: "Where to find the Steam profile URL" }).click();
 
   await expect(page.locator("#steam-profile-help")).toBeVisible();

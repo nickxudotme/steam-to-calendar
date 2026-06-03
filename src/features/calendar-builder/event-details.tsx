@@ -7,6 +7,7 @@ import {
   detailFacts,
   detailKind,
   detailTitle,
+  formatDisplayPrice,
   formatDetailDateSentence,
   hasGameEventImage,
   steamStoreUrlForEvent,
@@ -97,8 +98,10 @@ export function EventDetails({
 
             {event.finalPrice ? (
               <div className="priceLine">
-                <strong>{event.finalPrice}</strong>
-                {event.originalPrice ? <span>{event.originalPrice}</span> : null}
+                <strong>{formatDisplayPrice(event.finalPrice, uiLanguage)}</strong>
+                {event.originalPrice ? (
+                  <span>{formatDisplayPrice(event.originalPrice, uiLanguage)}</span>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -330,17 +330,44 @@ export function WishlistConnector({
         </AnimatedSizePresence>
 
         <AnimatedSizePresence id="wishlist-error" marginTop={8} visible={Boolean(error)}>
-          <div className="notice error wishlistAnimatedBlock">{error}</div>
+          <div className="notice error wishlistAnimatedBlock">
+            {wishlistErrorMessage(error, errorCode, copy)}
+          </div>
         </AnimatedSizePresence>
         <AnimatedSizePresence id="wishlist-fallback" marginTop={8} visible={Boolean(error)}>
           <div className="notice fallbackNotice wishlistAnimatedBlock">
-            {errorCode === "wishlist_private_or_unavailable"
-              ? copy.wishlistPrivateHint
-              : copy.wishlistGenericHint}
+            {wishlistFallbackMessage(errorCode, copy)}
           </div>
         </AnimatedSizePresence>
       </section>
       {hasMounted ? createPortal(profileHelpPopover, document.body) : null}
     </>
   );
+}
+
+function wishlistErrorMessage(
+  error: string | null,
+  errorCode: string | null,
+  copy: (typeof UI_COPY)[UiLanguage],
+): string {
+  if (errorCode === "wishlist_rate_limited") {
+    return copy.wishlistRateLimitedError;
+  }
+
+  return error ?? copy.wishlistGenericHint;
+}
+
+function wishlistFallbackMessage(
+  errorCode: string | null,
+  copy: (typeof UI_COPY)[UiLanguage],
+): string {
+  if (errorCode === "wishlist_private_or_unavailable") {
+    return copy.wishlistPrivateHint;
+  }
+
+  if (errorCode === "wishlist_rate_limited") {
+    return copy.wishlistRateLimitedHint;
+  }
+
+  return copy.wishlistGenericHint;
 }

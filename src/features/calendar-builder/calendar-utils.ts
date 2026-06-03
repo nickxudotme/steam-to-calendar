@@ -467,62 +467,94 @@ export function formatCalendarMonthTitle(value: string, uiLanguage: UiLanguage):
   return formatMonth(value, uiLanguage);
 }
 
-export function storeRegionCurrencySymbol(regionCode: string, events: PreviewEvent[] = []): string {
+export function formatDisplayPrice(
+  value: string | undefined,
+  uiLanguage: UiLanguage = "en",
+): string | undefined {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return formatCurrencyCodePrice(trimmed, uiLocale(uiLanguage)) ?? trimmed;
+}
+
+function formatCurrencyCodePrice(value: string, locale: string): string | null {
+  const parsedPrice = parseCurrencyCodePrice(value);
+
+  if (!parsedPrice) {
+    return null;
+  }
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      currency: parsedPrice.currency,
+      style: "currency",
+    }).format(parsedPrice.amount);
+  } catch {
+    return null;
+  }
+}
+
+function parseCurrencyCodePrice(value: string): { amount: number; currency: string } | null {
+  const codeFirst = value.match(/^([A-Z]{3})\s*([\d.,]+)$/);
+  const amountFirst = value.match(/^([\d.,]+)\s*([A-Z]{3})$/);
+  const currency = codeFirst?.[1] ?? amountFirst?.[2];
+  const amountText = codeFirst?.[2] ?? amountFirst?.[1];
+
+  if (!currency || !amountText) {
+    return null;
+  }
+
+  const amount = Number(amountText.replace(/,/g, ""));
+
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  return { amount, currency };
+}
+
+type CurrencySource = {
+  price?: {
+    currency?: string;
+    finalFormatted?: string;
+    initialFormatted?: string;
+  };
+};
+
+export function storeRegionCurrencySymbol(
+  events: PreviewEvent[] = [],
+  priceSources: CurrencySource[] = [],
+): string {
+  const currentPriceSymbol = inferCurrencySymbolFromPriceSources(priceSources);
+
+  if (currentPriceSymbol) {
+    return currentPriceSymbol;
+  }
+
   const actualPriceSymbol = inferCurrencySymbolFromEvents(events);
 
   if (actualPriceSymbol) {
     return actualPriceSymbol;
   }
 
-  const currencyByRegion: Record<string, string> = {
-    AE: "$",
-    AR: "$",
-    AT: "€",
-    AU: "A$",
-    BE: "€",
-    BR: "R$",
-    CA: "C$",
-    CH: "CHF",
-    CL: "CLP$",
-    CN: "¥",
-    CO: "COL$",
-    CZ: "Kč",
-    DK: "kr",
-    DE: "€",
-    EU: "€",
-    ES: "€",
-    FI: "€",
-    FR: "€",
-    GB: "£",
-    HK: "HK$",
-    HU: "Ft",
-    ID: "Rp",
-    IN: "₹",
-    IT: "€",
-    JP: "¥",
-    KR: "₩",
-    MY: "RM",
-    MX: "MX$",
-    NL: "€",
-    NO: "kr",
-    NZ: "NZ$",
-    PE: "S/",
-    PH: "₱",
-    PL: "zł",
-    RO: "lei",
-    SA: "$",
-    SE: "kr",
-    SG: "S$",
-    TH: "฿",
-    TR: "$",
-    TW: "NT$",
-    UA: "₴",
-    US: "$",
-    VN: "₫",
-    ZA: "R",
-  };
+  return "";
+}
 
-  return currencyByRegion[regionCode.toUpperCase()] ?? "$";
+function inferCurrencySymbolFromPriceSources(games: CurrencySource[]): string | null {
+  for (const game of games) {
+    const symbol =
+      inferCurrencySymbol(game.price?.finalFormatted) ??
+      inferCurrencySymbol(game.price?.initialFormatted);
+
+    if (symbol) {
+      return symbol;
+    }
+  }
+
+  return games.find((game) => game.price?.currency)?.price?.currency ?? null;
 }
 
 function inferCurrencySymbolFromEvents(events: PreviewEvent[]): string | null {
@@ -769,7 +801,7 @@ export function detailFacts(
 
 function formatHistoricalLowFact(event: PreviewEvent, uiLanguage: UiLanguage): string {
   const parts = [
-    event.historicalLowPrice,
+    formatDisplayPrice(event.historicalLowPrice, uiLanguage),
     event.historicalLowDate ? formatDate(event.historicalLowDate, uiLanguage) : null,
     event.historicalLowStore,
   ].filter((part): part is string => Boolean(part));

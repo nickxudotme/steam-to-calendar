@@ -24,6 +24,7 @@ type SteamCliApp = {
     name?: string;
     publishers?: string[];
     price_overview?: {
+      currency?: string;
       discount_percent?: number;
       final_formatted?: string;
       initial_formatted?: string;
@@ -115,6 +116,7 @@ export type WatchedGameSnapshot = SteamCliGameMetadata & {
   name: string;
   originalPrice?: string;
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -257,6 +259,7 @@ export function mapSteamCliAppToWatchedGameSnapshot(
     bestPurchase?.formatted_original_price ?? app.details?.price_overview?.initial_formatted;
   const discountPercent =
     bestPurchase?.discount_pct ?? app.details?.price_overview?.discount_percent ?? 0;
+  const currency = app.details?.price_overview?.currency?.trim();
   const metadata = steamCliGameMetadata(app);
 
   return {
@@ -269,6 +272,7 @@ export function mapSteamCliAppToWatchedGameSnapshot(
     ...(finalPrice || originalPrice || discountPercent > 0
       ? {
           price: {
+            ...(currency ? { currency } : {}),
             discountPercent,
             ...(finalPrice ? { finalFormatted: finalPrice } : {}),
             ...(originalPrice ? { initialFormatted: originalPrice } : {}),

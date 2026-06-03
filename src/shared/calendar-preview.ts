@@ -40,6 +40,7 @@ export type PreviewWishlistGame = {
   name: string;
   imageUrl?: string;
   price?: {
+    currency?: string;
     discountPercent: number;
     finalFormatted?: string;
     initialFormatted?: string;
@@ -52,6 +53,8 @@ export type PreviewWishlistGame = {
   storeUrl: string;
 };
 
+export type PreviewWatchedGame = PreviewWishlistGame;
+
 export type PreviewResponse = {
   steamId64: string;
   feedPath: string;
@@ -59,6 +62,7 @@ export type PreviewResponse = {
   wishlistUrl: string;
   profileName?: string | null;
   wishlistGames?: PreviewWishlistGame[];
+  watchedGames?: PreviewWatchedGame[];
   locale?: {
     cc: string;
     lang: string;
@@ -108,6 +112,7 @@ export const PUBLIC_PREVIEW: PreviewResponse = {
   wishlistUrl: "",
   profileName: null,
   wishlistGames: [],
+  watchedGames: [],
   stats: {
     wishlistGames: 0,
     appDetails: 0,

@@ -109,6 +109,7 @@ type SteamCliWishlistItem = {
     header_image?: string;
     name?: string;
     price_overview?: {
+      currency?: string;
       discount_percent?: number;
       final_formatted?: string;
       initial_formatted?: string;
@@ -259,6 +260,7 @@ function steamCliWishlistGameMetadata(
   const publishers = uniqueStrings(details.publishers ?? []).slice(0, 2);
   const price = details.price_overview
     ? {
+        ...(details.price_overview.currency ? { currency: details.price_overview.currency } : {}),
         discountPercent: details.price_overview.discount_percent ?? 0,
         ...(details.price_overview.final_formatted
           ? { finalFormatted: details.price_overview.final_formatted }

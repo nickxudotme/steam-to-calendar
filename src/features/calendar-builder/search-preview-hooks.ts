@@ -64,8 +64,20 @@ function previewGameForSelectedGame(
 ): GameSearchResult {
   const matchingSearchResult = gameSearchResults.find((result) => result.appId === game.appId);
   if (matchingSearchResult) {
-    // Prefer the live search result because it has the freshest localized price/review data.
-    return matchingSearchResult;
+    return {
+      ...matchingSearchResult,
+      name: game.name,
+      ...(game.imageUrl ? { imageUrl: game.imageUrl } : {}),
+      ...(game.genres?.length ? { genres: game.genres } : {}),
+      ...(typeof game.reviewCount === "number" ? { reviewCount: game.reviewCount } : {}),
+      ...(typeof game.reviewPercentage === "number"
+        ? { reviewPercentage: game.reviewPercentage }
+        : {}),
+      ...(game.reviewSummary ? { reviewSummary: game.reviewSummary } : {}),
+      ...(game.releaseDateText !== undefined ? { releaseDateText: game.releaseDateText } : {}),
+      ...(game.price ? { price: game.price } : {}),
+      storeUrl: game.storeUrl,
+    };
   }
 
   const matchingEvent = previewEvents.find((event) => event.appId === game.appId);
@@ -80,6 +92,7 @@ function previewGameForSelectedGame(
             : {}),
         }
       : null;
+  const price = game.price ?? eventPrice ?? undefined;
 
   return {
     appId: game.appId,
@@ -95,7 +108,7 @@ function previewGameForSelectedGame(
     ...((matchingEvent?.reviewSummary ?? game.reviewSummary)
       ? { reviewSummary: matchingEvent?.reviewSummary ?? game.reviewSummary }
       : {}),
-    ...((eventPrice ?? game.price) ? { price: eventPrice ?? game.price } : {}),
+    ...(price ? { price } : {}),
     storeUrl: game.storeUrl,
   };
 }

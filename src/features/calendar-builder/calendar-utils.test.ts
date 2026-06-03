@@ -8,6 +8,7 @@ import {
   detailFacts,
   detailKind,
   detailTitle,
+  formatDisplayPrice,
   selectedGameFromEvent,
   eventOccursOn,
   shouldLoadDefaultDealPreview,
@@ -182,15 +183,24 @@ describe("calendar builder utilities", () => {
     });
   });
 
-  it("infers currency symbols from actual event prices before region fallbacks", () => {
+  it("infers currency symbols from CLI current-price snapshots before event prices", () => {
     expect(
-      storeRegionCurrencySymbol("US", [
-        previewEvent({
-          finalPrice: "HK$ 198.00",
-        }),
-      ]),
-    ).toBe("HK$");
-    expect(storeRegionCurrencySymbol("CN")).toBe("¥");
+      storeRegionCurrencySymbol(
+        [
+          previewEvent({
+            finalPrice: "$19.79",
+          }),
+        ],
+        [{ price: { currency: "THB", finalFormatted: "฿472.00" } }],
+      ),
+    ).toBe("฿");
+    expect(storeRegionCurrencySymbol([], [{ price: { currency: "THB" } }])).toBe("THB");
+  });
+
+  it("formats historical currency-code prices through Intl without touching Steam formatted prices", () => {
+    expect(formatDisplayPrice("29.99 INR", "en")).toBe("₹29.99");
+    expect(formatDisplayPrice("INR 1,299.00", "en")).toBe("₹1,299.00");
+    expect(formatDisplayPrice("₹472.00", "en")).toBe("₹472.00");
   });
 
   it("normalizes detail titles for discounts and game icons", () => {
