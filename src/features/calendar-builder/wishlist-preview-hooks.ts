@@ -9,13 +9,13 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
-import { track } from "@vercel/analytics";
 import type { CalendarConfig } from "@/domain/calendar/config";
 import type { ConnectedPreviewStreamEvent, PreviewResponse } from "@/shared/calendar-preview";
 import {
   WISHLIST_CONNECTED_EVENT,
   type WishlistConnectedAnalyticsProperties,
 } from "@/shared/observability";
+import { trackAnalyticsEvent } from "./analytics";
 import { fetchConnectedPreview } from "./api";
 
 export function useWishlistPreview({
@@ -268,7 +268,7 @@ function trackWishlistConnected(preview: PreviewResponse) {
     wishlistReleaseEvents: preview.stats.wishlistReleaseEvents,
   };
 
-  track(WISHLIST_CONNECTED_EVENT, properties);
+  trackAnalyticsEvent(WISHLIST_CONNECTED_EVENT, properties);
 }
 
 function applyWishlistStreamEvent(

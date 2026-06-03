@@ -6,6 +6,7 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 import { languageCodeFromAcceptLanguage } from "@/features/calendar-builder/browser-locale";
 import "@/features/calendar-builder/styles.css";
+import { UmamiAnalytics } from "./umami-analytics";
 
 export const metadata: Metadata = {
   title: "Steam To Calendar",
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           dangerouslySetInnerHTML={{ __html: workbenchLayoutScript }}
         />
         {children}
+        <UmamiAnalytics />
         <Analytics />
         <SpeedInsights />
       </body>

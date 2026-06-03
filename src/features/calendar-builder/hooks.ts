@@ -16,7 +16,6 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
-import { track } from "@vercel/analytics";
 import {
   calendarConfigToSearchParams,
   DEFAULT_CALENDAR_CONFIG,
@@ -33,6 +32,7 @@ import {
   type ManualGameAnalyticsProperties,
 } from "@/shared/observability";
 import { fetchPublicPreview, searchCalendarGames } from "./api";
+import { trackAnalyticsEvent } from "./analytics";
 import {
   languageCodeFromBrowser,
   shouldSendClientStoreRegion,
@@ -711,7 +711,7 @@ export function useGameSearch({
 
       setLastQuery(trimmedQuery);
       setResults(nextResults);
-      track(GAME_SEARCH_COMPLETED_EVENT, {
+      trackAnalyticsEvent(GAME_SEARCH_COMPLETED_EVENT, {
         queryLength: trimmedQuery.length,
         region: locale.cc,
         resultCount: nextResults.length,
@@ -896,7 +896,7 @@ export function useSelectedGames({
     // Keep manual tracking compact; the preview is meant for a curated watch list, not a full
     // wishlist replacement.
     setSelectedGames((games) => [...games, game].slice(-10));
-    track(MANUAL_GAME_ADDED_EVENT, {
+    trackAnalyticsEvent(MANUAL_GAME_ADDED_EVENT, {
       selectedGameCount: Math.min(selectedGames.length + 1, 10),
     } satisfies ManualGameAnalyticsProperties);
   }
@@ -907,7 +907,7 @@ export function useSelectedGames({
     setRecentlyAddedAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
     setSelectedGameNoticeAppId((currentAppId) => (currentAppId === appId ? null : currentAppId));
     setUndoableGame((currentGame) => (currentGame?.appId === appId ? null : currentGame));
-    track(MANUAL_GAME_REMOVED_EVENT, {
+    trackAnalyticsEvent(MANUAL_GAME_REMOVED_EVENT, {
       selectedGameCount: Math.max(selectedGames.length - 1, 0),
     } satisfies ManualGameAnalyticsProperties);
   }

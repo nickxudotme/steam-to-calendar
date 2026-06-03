@@ -13,7 +13,6 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { track } from "@vercel/analytics";
 import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calendar/config";
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import {
@@ -24,6 +23,7 @@ import {
 } from "@/shared/observability";
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
 import { languageOptionByCode } from "./browser-locale";
+import { trackAnalyticsEvent } from "./analytics";
 import {
   calendarLegendItems,
   clampInteger,
@@ -288,14 +288,14 @@ export function CalendarBuilderPage({
   }
 
   function handleCalendarSubscribeClick(source: string) {
-    track(
+    trackAnalyticsEvent(
       CALENDAR_SUBSCRIBE_CLICKED_EVENT,
       subscriptionAnalyticsProperties(source) satisfies CalendarSubscribeAnalyticsProperties,
     );
   }
 
   function handleSubscriptionLinkCopy(source: string, didCopy: boolean) {
-    track(SUBSCRIPTION_LINK_COPIED_EVENT, {
+    trackAnalyticsEvent(SUBSCRIPTION_LINK_COPIED_EVENT, {
       ...subscriptionAnalyticsProperties(source),
       didCopy,
     } satisfies SubscriptionLinkCopiedAnalyticsProperties);
