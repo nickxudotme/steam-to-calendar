@@ -123,6 +123,8 @@ export const UI_COPY = {
     historicalLowLabel: "Historical low",
     saleStoreLabel: "Store",
     saleStatusLabel: "Sale status",
+    historicalCurrencyMismatchNote:
+      "This historical price source does not provide the selected store currency, so this event uses the source currency.",
     nextDays: "Next days",
     myGamesTitle: "Tracked Games",
     myGamesDescription:
@@ -267,6 +269,8 @@ export const UI_COPY = {
     historicalLowLabel: "史低",
     saleStoreLabel: "商店",
     saleStatusLabel: "促销状态",
+    historicalCurrencyMismatchNote:
+      "这个历史价格来源没有提供当前商店币种，所以此事件按数据源返回的币种显示。",
     nextDays: "未来天数",
     myGamesTitle: "关注游戏",
     myGamesDescription: "关注指定游戏；之后也可以关联公开 Steam 愿望单来替代手动选择",

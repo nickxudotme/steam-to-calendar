@@ -163,6 +163,17 @@
   overflow-wrap: anywhere;
 }
 
+.currencySourceNotice {
+  background: rgba(102, 192, 244, 0.08);
+  border: 1px solid rgba(102, 192, 244, 0.18);
+  border-radius: 6px;
+  color: #b8c7d2;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.45;
+  padding: 9px 11px;
+}
+
 .detailDescription {
   color: var(--text);
   font-size: 0.9rem;

@@ -9,6 +9,7 @@ import {
   detailTitle,
   formatDisplayPrice,
   formatDetailDateSentence,
+  hasDifferentDisplayCurrency,
   hasGameEventImage,
   steamStoreUrlForEvent,
 } from "./calendar-utils";
@@ -17,12 +18,14 @@ import { UI_COPY, type UiLanguage } from "./ui-copy";
 
 export function EventDetails({
   copy,
+  currentStoreCurrency,
   event,
   isMobileOpen,
   onCloseMobile,
   uiLanguage,
 }: {
   copy: (typeof UI_COPY)[UiLanguage];
+  currentStoreCurrency?: string;
   event: PreviewEvent | null;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
@@ -55,6 +58,11 @@ export function EventDetails({
       } as CSSProperties)
     : undefined;
   const steamStoreUrl = steamStoreUrlForEvent(event);
+  const shouldShowCurrencyMismatchNote = hasHistoricalCurrencyMismatch(
+    event,
+    currentStoreCurrency,
+    uiLanguage,
+  );
 
   return (
     <aside
@@ -107,6 +115,10 @@ export function EventDetails({
           </div>
         ) : null}
 
+        {shouldShowCurrencyMismatchNote ? (
+          <div className="currencySourceNotice">{copy.historicalCurrencyMismatchNote}</div>
+        ) : null}
+
         <p className="detailDescription">{detailDescription(event)}</p>
 
         <DetailFacts copy={copy} event={event} uiLanguage={uiLanguage} />
@@ -121,6 +133,20 @@ export function EventDetails({
         ) : null}
       </div>
     </aside>
+  );
+}
+
+function hasHistoricalCurrencyMismatch(
+  event: PreviewEvent,
+  currentStoreCurrency: string | undefined,
+  uiLanguage: UiLanguage,
+): boolean {
+  if (event.dataSource !== "steam_history") {
+    return false;
+  }
+
+  return [event.finalPrice, event.originalPrice, event.historicalLowPrice].some((price) =>
+    hasDifferentDisplayCurrency(price, currentStoreCurrency, uiLanguage),
   );
 }
 

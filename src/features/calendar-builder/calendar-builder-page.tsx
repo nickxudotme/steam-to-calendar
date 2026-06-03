@@ -912,6 +912,9 @@ export function CalendarBuilderPage({
           <EventDetails
             event={calendarSelection.selectedEvent}
             copy={copy}
+            currentStoreCurrency={
+              isStoreRegionCurrencyLoading ? undefined : effectiveStoreRegionCurrency
+            }
             isMobileOpen={isMobileDetailOpen}
             onCloseMobile={() => setIsMobileDetailOpen(false)}
             uiLanguage={uiLanguage}

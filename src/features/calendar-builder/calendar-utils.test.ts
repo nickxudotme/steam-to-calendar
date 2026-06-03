@@ -9,6 +9,7 @@ import {
   detailKind,
   detailTitle,
   formatDisplayPrice,
+  hasDifferentDisplayCurrency,
   selectedGameFromEvent,
   eventOccursOn,
   shouldLoadDefaultDealPreview,
@@ -201,6 +202,12 @@ describe("calendar builder utilities", () => {
     expect(formatDisplayPrice("29.99 INR", "en")).toBe("₹29.99");
     expect(formatDisplayPrice("INR 1,299.00", "en")).toBe("₹1,299.00");
     expect(formatDisplayPrice("₹472.00", "en")).toBe("₹472.00");
+  });
+
+  it("detects actual display currency mismatches after Intl normalization", () => {
+    expect(hasDifferentDisplayCurrency("29.99 INR", "₹", "en")).toBe(false);
+    expect(hasDifferentDisplayCurrency("29.99 INR", "INR", "en")).toBe(false);
+    expect(hasDifferentDisplayCurrency("29.99 USD", "₹", "en")).toBe(true);
   });
 
   it("normalizes detail titles for discounts and game icons", () => {

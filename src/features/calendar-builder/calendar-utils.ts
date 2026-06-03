@@ -480,6 +480,31 @@ export function formatDisplayPrice(
   return formatCurrencyCodePrice(trimmed, uiLocale(uiLanguage)) ?? trimmed;
 }
 
+export function hasDifferentDisplayCurrency(
+  price: string | undefined,
+  currentCurrency: string | undefined,
+  uiLanguage: UiLanguage = "en",
+): boolean {
+  const priceCurrency = displayCurrencyMarker(price, uiLanguage);
+  const currentCurrencyMarker = displayCurrencyMarker(currentCurrency, uiLanguage);
+
+  return Boolean(priceCurrency && currentCurrencyMarker && priceCurrency !== currentCurrencyMarker);
+}
+
+function displayCurrencyMarker(value: string | undefined, uiLanguage: UiLanguage): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const displayPrice = /^[A-Z]{3}$/.test(trimmed)
+    ? formatCurrencyCodePrice(`1 ${trimmed}`, uiLocale(uiLanguage))
+    : formatDisplayPrice(trimmed, uiLanguage);
+
+  return inferCurrencySymbol(displayPrice ?? undefined);
+}
+
 function formatCurrencyCodePrice(value: string, locale: string): string | null {
   const parsedPrice = parseCurrencyCodePrice(value);
 
