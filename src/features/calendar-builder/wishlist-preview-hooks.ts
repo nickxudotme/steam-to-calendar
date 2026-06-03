@@ -22,7 +22,7 @@ import {
   type WishlistConnectSubmittedAnalyticsProperties,
   type WishlistConnectedAnalyticsProperties,
 } from "@/shared/observability";
-import { trackAnalyticsEvent } from "./analytics";
+import { analyticsRawInput, trackAnalyticsEvent } from "./analytics";
 import { fetchConnectedPreview } from "./api";
 
 export function useWishlistPreview({
@@ -159,6 +159,7 @@ export function useWishlistPreview({
     trackAnalyticsEvent(WISHLIST_CONNECT_SUBMITTED_EVENT, {
       inputLength: trimmedSteamId64.length,
       locale: effectiveSteamLang,
+      ...analyticsRawInput({ rawSteamInput: trimmedSteamId64 }),
       region: effectiveStoreRegion,
     } satisfies WishlistConnectSubmittedAnalyticsProperties);
     const requestId = ++requestSequenceRef.current;
@@ -240,6 +241,7 @@ export function useWishlistPreview({
         errorName: analyticsErrorName(caught),
         inputLength: trimmedSteamId64.length,
         locale: effectiveSteamLang,
+        ...analyticsRawInput({ rawSteamInput: trimmedSteamId64 }),
         region: effectiveStoreRegion,
       } satisfies WishlistConnectFailedAnalyticsProperties);
       setErrorCode(caught instanceof Error && caught.name !== "Error" ? caught.name : null);

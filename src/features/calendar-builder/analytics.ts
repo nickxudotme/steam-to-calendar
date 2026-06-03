@@ -14,3 +14,7 @@ declare global {
 export function trackAnalyticsEvent(eventName: string, properties?: AnalyticsProperties) {
   window.umami?.track(eventName, properties);
 }
+
+export function analyticsRawInput(properties: AnalyticsProperties): AnalyticsProperties {
+  return process.env.NEXT_PUBLIC_ANALYTICS_CAPTURE_RAW_INPUTS === "1" ? properties : {};
+}

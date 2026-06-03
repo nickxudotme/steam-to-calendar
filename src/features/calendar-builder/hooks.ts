@@ -40,7 +40,7 @@ import {
   type SourceModeChangedAnalyticsProperties,
 } from "@/shared/observability";
 import { fetchPublicPreview, searchCalendarGames } from "./api";
-import { trackAnalyticsEvent } from "./analytics";
+import { analyticsRawInput, trackAnalyticsEvent } from "./analytics";
 import {
   languageCodeFromBrowser,
   shouldSendClientStoreRegion,
@@ -720,6 +720,7 @@ export function useGameSearch({
     setError(null);
     trackAnalyticsEvent(GAME_SEARCH_SUBMITTED_EVENT, {
       queryLength: trimmedQuery.length,
+      ...analyticsRawInput({ rawQuery: trimmedQuery }),
       region: locale.cc,
     } satisfies GameSearchSubmittedAnalyticsProperties);
 
@@ -730,6 +731,7 @@ export function useGameSearch({
       setResults(nextResults);
       trackAnalyticsEvent(GAME_SEARCH_COMPLETED_EVENT, {
         queryLength: trimmedQuery.length,
+        ...analyticsRawInput({ rawQuery: trimmedQuery }),
         region: locale.cc,
         resultCount: nextResults.length,
       } satisfies GameSearchAnalyticsProperties);
@@ -738,6 +740,7 @@ export function useGameSearch({
       trackAnalyticsEvent(GAME_SEARCH_FAILED_EVENT, {
         errorName: analyticsErrorName(caught),
         queryLength: trimmedQuery.length,
+        ...analyticsRawInput({ rawQuery: trimmedQuery }),
         region: locale.cc,
       } satisfies GameSearchFailedAnalyticsProperties);
       setError(caught instanceof Error ? caught.message : "Could not search Steam games.");

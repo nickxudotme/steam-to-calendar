@@ -28,6 +28,7 @@ export type SubscriptionLinkCopiedAnalyticsProperties = CalendarSubscribeAnalyti
 
 export type GameSearchAnalyticsProperties = {
   queryLength: number;
+  rawQuery?: string;
   region: string;
   resultCount: number;
 };
@@ -58,6 +59,7 @@ export type SourceModeChangedAnalyticsProperties = {
 export type WishlistConnectSubmittedAnalyticsProperties = {
   inputLength: number;
   locale: string;
+  rawSteamInput?: string;
   region: string;
 };
 
