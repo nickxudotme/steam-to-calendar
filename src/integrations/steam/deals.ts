@@ -100,7 +100,7 @@ export async function fetchSteamDealEvents(
           finalPrice: deal.final,
           originalPrice: deal.original,
         })
-      : mapSteamDealEvents([deal], { today: options.today });
+      : mapSteamDealEvents([deal], { storeRegion: options.cc, today: options.today });
 
     return dealEvents.map((event) =>
       dropHistoricalLowWhenCurrencyMismatch({ ...event, ...historicalLow }, options.cc),

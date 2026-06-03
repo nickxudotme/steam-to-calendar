@@ -243,6 +243,39 @@ describe("event mapper", () => {
     ]);
   });
 
+  it("maps regional Steam sale timestamps to local all-day ranges", () => {
+    expect(
+      mapSteamHistorySaleEvents(
+        {
+          appId: 1144200,
+          name: "Ready or Not",
+          sales: [
+            {
+              start: "2026-05-28",
+              start_at: "2026-05-29T01:19:00+08:00",
+              start_unix: Math.floor(Date.parse("2026-05-29T01:19:00+08:00") / 1000),
+              end: "2026-06-04",
+              end_at: "2026-06-05T01:00:00+08:00",
+              end_unix: Math.floor(Date.parse("2026-06-05T01:00:00+08:00") / 1000),
+              store: "Steam",
+              price: "¥79.50",
+              original: "¥159.00",
+              discount: "-50%",
+              status: "进行中",
+            },
+          ],
+        },
+        { storeRegion: "CN", today: "2026-06-04" },
+      )[0],
+    ).toMatchObject({
+      id: "steam-app-1144200-active-deal-2026-05-29-0",
+      startDate: "2026-05-29",
+      endDate: "2026-06-06",
+      discountStart: Math.floor(Date.parse("2026-05-29T01:19:00+08:00") / 1000),
+      discountEnd: Math.floor(Date.parse("2026-06-05T01:00:00+08:00") / 1000),
+    });
+  });
+
   it("keeps active history ranges but prefers live regional Steam store prices", () => {
     const [event] = mapSteamHistorySaleEvents(
       {

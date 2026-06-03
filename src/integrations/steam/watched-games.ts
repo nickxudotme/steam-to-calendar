@@ -7,6 +7,10 @@ import { STEAM_CLI_CACHE_TTL } from "@/integrations/steam/cache-policy";
 import { runSteamCliJson } from "@/integrations/steam/cli";
 import { mapWithConcurrency } from "@/integrations/steam/concurrency";
 import { fetchSteamHistorySaleEvents } from "@/integrations/steam/history";
+import {
+  steamStoreDiscountEndExclusiveIsoDate,
+  steamStoreTimeZone,
+} from "@/shared/steam-timezones";
 
 type SteamCliApp = {
   appid: number;
@@ -248,7 +252,7 @@ async function fetchSteamCliApp(
 
 export function mapSteamCliAppToWatchedGameSnapshot(
   app: SteamCliApp,
-  options: { today?: string } = {},
+  options: { cc?: string; today?: string } = {},
 ): WatchedGameSnapshot {
   const appId = String(app.appid);
   const name = app.details?.name?.trim() || `Steam app ${appId}`;
@@ -308,7 +312,9 @@ export function mapSteamCliAppToWatchedEvents(
 
   if (discountPercent > 0 && discountEnd) {
     // A discounted game becomes a date range from today through the discount end timestamp.
-    const endDate = unixSecondsToIsoDate(discountEnd);
+    const endDate = options.cc
+      ? steamStoreDiscountEndExclusiveIsoDate(discountEnd, steamStoreTimeZone(options.cc), addDays)
+      : unixSecondsToIsoDate(discountEnd);
 
     return [
       dropHistoricalLowWhenCurrencyMismatch(

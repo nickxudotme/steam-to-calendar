@@ -62,7 +62,7 @@ export async function fetchSteamHistorySaleEvents(
       review: options.review,
       activeDiscountEnd: options.activeDiscountEnd,
     },
-    { today: options.today },
+    { storeRegion: options.cc, today: options.today },
   );
 }
 

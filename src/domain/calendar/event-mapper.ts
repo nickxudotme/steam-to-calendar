@@ -1,4 +1,9 @@
 import type { SteamEventCategory } from "@/domain/calendar/config";
+import {
+  steamStoreDiscountEndExclusiveIsoDate,
+  steamStoreLocalIsoDate,
+  steamStoreTimeZone,
+} from "@/shared/steam-timezones";
 
 export type CalendarEventDataSource = "steam_history" | "steam_store" | "steam_events";
 
@@ -84,6 +89,7 @@ export type WishlistReleaseEventInput = {
 };
 
 export type EventMapperOptions = {
+  storeRegion?: string;
   today?: string;
 };
 
@@ -174,6 +180,7 @@ export function mapSteamDealEvents(
   options: EventMapperOptions = {},
 ): CalendarEvent[] {
   const today = options.today ?? todayIsoDate();
+  const timeZone = options.storeRegion ? steamStoreTimeZone(options.storeRegion) : null;
 
   return deals.flatMap((deal): CalendarEvent[] => {
     const appId = String(deal.appid);
@@ -184,7 +191,9 @@ export function mapSteamDealEvents(
     const imageUrl = cleanDealValue(deal.image_url);
 
     if (discount && deal.discount_end) {
-      const endDate = unixSecondsToIsoDate(deal.discount_end);
+      const endDate = timeZone
+        ? steamStoreDiscountEndExclusiveIsoDate(deal.discount_end, timeZone, addDays)
+        : unixSecondsToIsoDate(deal.discount_end);
 
       // Active deals start "today" in the calendar and end when Steam says the discount ends.
       return [
@@ -259,14 +268,17 @@ export function mapSteamHistorySaleEvents(
   },
   options: EventMapperOptions = {},
 ): CalendarEvent[] {
-  void options;
   const appId = String(input.appId);
+  const timeZone = options.storeRegion ? steamStoreTimeZone(options.storeRegion) : null;
   const sourceUrl = input.sourceUrl || steamStoreUrl(appId);
   const imageUrl = cleanDealValue(input.imageUrl);
   const review = cleanDealValue(input.review);
 
   return input.sales.flatMap((sale, index): CalendarEvent[] => {
-    if (!isIsoDate(sale.start)) {
+    const startDate =
+      sale.start_unix && timeZone ? steamStoreLocalIsoDate(sale.start_unix, timeZone) : sale.start;
+
+    if (!isIsoDate(startDate)) {
       return [];
     }
 
@@ -276,15 +288,19 @@ export function mapSteamHistorySaleEvents(
     }
 
     const inferredEndDate =
-      sale.end && isIsoDate(sale.end)
-        ? sale.end
-        : input.activeDiscountEnd
-          ? unixSecondsToIsoDate(input.activeDiscountEnd)
-          : undefined;
+      sale.end_unix && timeZone
+        ? steamStoreDiscountEndExclusiveIsoDate(sale.end_unix, timeZone, addDays)
+        : sale.end && isIsoDate(sale.end)
+          ? sale.end
+          : input.activeDiscountEnd
+            ? timeZone
+              ? steamStoreDiscountEndExclusiveIsoDate(input.activeDiscountEnd, timeZone, addDays)
+              : unixSecondsToIsoDate(input.activeDiscountEnd)
+            : undefined;
     // Some stores report same-day or missing sale ends; give calendar apps a visible one-day
     // event instead of a zero-length span.
     const endDate =
-      inferredEndDate && inferredEndDate <= sale.start ? addDays(sale.start, 1) : inferredEndDate;
+      inferredEndDate && inferredEndDate <= startDate ? addDays(startDate, 1) : inferredEndDate;
     const isActive =
       isActiveSteamSaleStatus(sale.status) || Boolean(input.activeDiscountEnd && !sale.end);
     const originalPrice = cleanDealValue(sale.original);
@@ -292,7 +308,7 @@ export function mapSteamHistorySaleEvents(
 
     return [
       {
-        id: `steam-app-${appId}-${isActive ? "active" : "history"}-deal-${sale.start}-${index}`,
+        id: `steam-app-${appId}-${isActive ? "active" : "history"}-deal-${startDate}-${index}`,
         title: `${discount} ${input.name}`,
         description: historySaleDescription({
           review,
@@ -301,7 +317,7 @@ export function mapSteamHistorySaleEvents(
           sale,
           sourceUrl,
         }),
-        startDate: sale.start,
+        startDate,
         ...(endDate ? { endDate } : {}),
         sourceUrl,
         type: "steam_deal",
