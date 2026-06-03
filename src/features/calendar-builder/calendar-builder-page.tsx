@@ -131,12 +131,8 @@ export function CalendarBuilderPage({
   const shouldShowResolvedStoreRegion =
     hasInitializedClientLocale || Boolean(storeRegion ?? preview.locale?.cc ?? detectedStoreRegion);
   const shouldShowStoreTooltip = isStoreTooltipOpen && activeLocaleSelect !== "region";
-  const isStoreRegionCurrencyLoading =
+  const isStoreRegionCurrencyOutOfSync =
     !shouldShowResolvedStoreRegion || preview.locale?.cc !== effectiveStoreRegion;
-  const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
-    ? copy.storeCurrencyLoading
-    : effectiveStoreRegionCurrency || effectiveStoreRegion;
-  const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
   const storeRegionOptions = useMemo(
     () =>
       STEAM_STORE_REGIONS.map((region) => ({
@@ -338,7 +334,7 @@ export function CalendarBuilderPage({
       window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", updateStoreTooltipPosition);
     };
-  }, [isStoreTooltipOpen, copy.storeNote, effectiveStoreRegionLabel]);
+  }, [isStoreTooltipOpen, copy.storeNote]);
 
   const calendarSelection = useCalendarSelection({
     onOpenMobileDetails: () => {
@@ -396,6 +392,12 @@ export function CalendarBuilderPage({
     setShowMyGames,
     webcalUrl,
   });
+  const isStoreRegionCurrencyLoading =
+    isStoreRegionCurrencyOutOfSync || isPreviewLoading || wishlistPreview.isLoading;
+  const effectiveStoreRegionCurrencyLabel = isStoreRegionCurrencyLoading
+    ? copy.storeCurrencyLoading
+    : effectiveStoreRegionCurrency || effectiveStoreRegion;
+  const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
 
   function handleAddSelectedGame(game: GameSearchResult) {
     handleAddManualGame({
