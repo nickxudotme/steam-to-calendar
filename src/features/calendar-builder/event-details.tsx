@@ -145,7 +145,7 @@ function hasHistoricalCurrencyMismatch(
     return false;
   }
 
-  return [event.finalPrice, event.originalPrice, event.historicalLowPrice].some((price) =>
+  return [event.finalPrice, event.originalPrice].some((price) =>
     hasDifferentDisplayCurrency(price, currentStoreCurrency, uiLanguage),
   );
 }
