@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 type LogLevel = "info" | "error";
 type UmamiDataValue = string | number | boolean | null | undefined;
 
-const DEFAULT_UMAMI_COLLECT_URL = "https://cloud.umami.is/api/send";
+const DEFAULT_UMAMI_COLLECT_URL = "https://umami.nickxu.me/api/send";
 const SERVER_ANALYTICS_IGNORED_EVENTS = new Set(["health_checked"]);
 
 export function hashLogValue(value: string): string {

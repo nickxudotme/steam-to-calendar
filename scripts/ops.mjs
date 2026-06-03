@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 const command = process.argv[2] || "today";
 const args = new Set(process.argv.slice(3));
 const rootDir = resolve(import.meta.dirname, "..");
-const UMAMI_API_BASE_URL = "https://api.umami.is/v1";
+const UMAMI_API_BASE_URL = "https://umami.nickxu.me/api";
 
 loadEnvFile(resolve(rootDir, ".env.local"));
 loadEnvFile(resolve(rootDir, ".env"));
@@ -193,7 +193,7 @@ function umamiConfig() {
       message: [
         "Umami API is not configured.",
         "Set UMAMI_API_KEY and UMAMI_WEBSITE_ID in .env.local or your shell.",
-        "For Umami Cloud, create an API key and use https://api.umami.is/v1.",
+        "For self-hosted Umami, create an API key and use https://umami.nickxu.me/api.",
       ].join("\n"),
       ok: false,
     };

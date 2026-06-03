@@ -1,6 +1,6 @@
 import Script from "next/script";
 
-const DEFAULT_UMAMI_SCRIPT_URL = "https://cloud.umami.is/script.js";
+const DEFAULT_UMAMI_SCRIPT_URL = "https://umami.nickxu.me/script.js";
 
 export function UmamiAnalytics() {
   const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID?.trim();
