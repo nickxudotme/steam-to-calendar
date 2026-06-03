@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { headers } from "next/headers";
 import Script from "next/script";
@@ -83,7 +82,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         />
         {children}
         <UmamiAnalytics />
-        <Analytics />
         <SpeedInsights />
       </body>
     </html>

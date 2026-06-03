@@ -22,7 +22,6 @@
     "verify:full": "npm run verify && npm run test:e2e"
   },
   "dependencies": {
-    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "flag-icons": "^7.5.0",
     "ics": "^3.12.0",

@@ -26,10 +26,18 @@ import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import type { PreviewEvent, PreviewResponse } from "@/shared/calendar-preview";
 import {
   GAME_SEARCH_COMPLETED_EVENT,
+  GAME_SEARCH_FAILED_EVENT,
+  GAME_SEARCH_SUBMITTED_EVENT,
   MANUAL_GAME_ADDED_EVENT,
   MANUAL_GAME_REMOVED_EVENT,
+  PREVIEW_LOAD_FAILED_EVENT,
+  SOURCE_MODE_CHANGED_EVENT,
   type GameSearchAnalyticsProperties,
+  type GameSearchFailedAnalyticsProperties,
+  type GameSearchSubmittedAnalyticsProperties,
   type ManualGameAnalyticsProperties,
+  type PreviewLoadFailedAnalyticsProperties,
+  type SourceModeChangedAnalyticsProperties,
 } from "@/shared/observability";
 import { fetchPublicPreview, searchCalendarGames } from "./api";
 import { trackAnalyticsEvent } from "./analytics";
@@ -636,6 +644,11 @@ export function usePublicPreviewLoader({
       } catch (caught) {
         console.error(caught);
         if (isMounted) {
+          trackAnalyticsEvent(PREVIEW_LOAD_FAILED_EVENT, {
+            errorName: analyticsErrorName(caught),
+            region: effectiveStoreRegion,
+            route: "/api/public-preview",
+          } satisfies PreviewLoadFailedAnalyticsProperties);
           setPublicPreviewError(
             caught instanceof Error ? caught.message : "Could not load Steam events.",
           );
@@ -705,6 +718,10 @@ export function useGameSearch({
 
     setIsSearching(true);
     setError(null);
+    trackAnalyticsEvent(GAME_SEARCH_SUBMITTED_EVENT, {
+      queryLength: trimmedQuery.length,
+      region: locale.cc,
+    } satisfies GameSearchSubmittedAnalyticsProperties);
 
     try {
       const nextResults = await searchCalendarGames({ locale, query: trimmedQuery });
@@ -718,6 +735,11 @@ export function useGameSearch({
       } satisfies GameSearchAnalyticsProperties);
     } catch (caught) {
       setLastQuery(trimmedQuery);
+      trackAnalyticsEvent(GAME_SEARCH_FAILED_EVENT, {
+        errorName: analyticsErrorName(caught),
+        queryLength: trimmedQuery.length,
+        region: locale.cc,
+      } satisfies GameSearchFailedAnalyticsProperties);
       setError(caught instanceof Error ? caught.message : "Could not search Steam games.");
     } finally {
       setIsSearching(false);
@@ -896,6 +918,9 @@ export function useSelectedGames({
     // Keep manual tracking compact; the preview is meant for a curated watch list, not a full
     // wishlist replacement.
     setSelectedGames((games) => [...games, game].slice(-10));
+    trackAnalyticsEvent(SOURCE_MODE_CHANGED_EVENT, {
+      sourceMode: "manual",
+    } satisfies SourceModeChangedAnalyticsProperties);
     trackAnalyticsEvent(MANUAL_GAME_ADDED_EVENT, {
       selectedGameCount: Math.min(selectedGames.length + 1, 10),
     } satisfies ManualGameAnalyticsProperties);
@@ -961,4 +986,8 @@ export function useSelectedGames({
 
 function selectedGamesEqual(first: SelectedGame, second: SelectedGame): boolean {
   return JSON.stringify(first) === JSON.stringify(second);
+}
+
+function analyticsErrorName(error: unknown): string {
+  return error instanceof Error && error.name ? error.name : "Error";
 }

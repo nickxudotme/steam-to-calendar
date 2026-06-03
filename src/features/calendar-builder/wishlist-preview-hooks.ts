@@ -12,7 +12,14 @@ import {
 import type { CalendarConfig } from "@/domain/calendar/config";
 import type { ConnectedPreviewStreamEvent, PreviewResponse } from "@/shared/calendar-preview";
 import {
+  SOURCE_MODE_CHANGED_EVENT,
   WISHLIST_CONNECTED_EVENT,
+  WISHLIST_CONNECT_FAILED_EVENT,
+  WISHLIST_CONNECT_SUBMITTED_EVENT,
+  WISHLIST_DISCONNECTED_EVENT,
+  type SourceModeChangedAnalyticsProperties,
+  type WishlistConnectFailedAnalyticsProperties,
+  type WishlistConnectSubmittedAnalyticsProperties,
   type WishlistConnectedAnalyticsProperties,
 } from "@/shared/observability";
 import { trackAnalyticsEvent } from "./analytics";
@@ -149,6 +156,11 @@ export function useWishlistPreview({
     setIsLoading(true);
     setError(null);
     setErrorCode(null);
+    trackAnalyticsEvent(WISHLIST_CONNECT_SUBMITTED_EVENT, {
+      inputLength: trimmedSteamId64.length,
+      locale: effectiveSteamLang,
+      region: effectiveStoreRegion,
+    } satisfies WishlistConnectSubmittedAnalyticsProperties);
     const requestId = ++requestSequenceRef.current;
     let requestContext = latestRequestRef.current;
     let requestKey = connectedWishlistRequestKey(trimmedSteamId64, requestContext);
@@ -216,11 +228,20 @@ export function useWishlistPreview({
         requestContext,
       );
       trackWishlistConnected(payload);
+      trackAnalyticsEvent(SOURCE_MODE_CHANGED_EVENT, {
+        sourceMode: "wishlist",
+      } satisfies SourceModeChangedAnalyticsProperties);
       setPreview(payload);
       setShowMyGames(true);
       setIsImportOpen(false);
       onConnected();
     } catch (caught) {
+      trackAnalyticsEvent(WISHLIST_CONNECT_FAILED_EVENT, {
+        errorName: analyticsErrorName(caught),
+        inputLength: trimmedSteamId64.length,
+        locale: effectiveSteamLang,
+        region: effectiveStoreRegion,
+      } satisfies WishlistConnectFailedAnalyticsProperties);
       setErrorCode(caught instanceof Error && caught.name !== "Error" ? caught.name : null);
       setError(caught instanceof Error ? caught.message : "Could not preview this Steam wishlist.");
     } finally {
@@ -240,6 +261,10 @@ export function useWishlistPreview({
     setError(null);
     setErrorCode(null);
     setIsImportOpen(false);
+    trackAnalyticsEvent(WISHLIST_DISCONNECTED_EVENT);
+    trackAnalyticsEvent(SOURCE_MODE_CHANGED_EVENT, {
+      sourceMode: "public",
+    } satisfies SourceModeChangedAnalyticsProperties);
     onDisconnected();
   }
 
@@ -269,6 +294,10 @@ function trackWishlistConnected(preview: PreviewResponse) {
   };
 
   trackAnalyticsEvent(WISHLIST_CONNECTED_EVENT, properties);
+}
+
+function analyticsErrorName(error: unknown): string {
+  return error instanceof Error && error.name ? error.name : "Error";
 }
 
 function applyWishlistStreamEvent(

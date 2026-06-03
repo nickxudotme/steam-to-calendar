@@ -18,6 +18,7 @@ import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import {
   CALENDAR_SUBSCRIBE_CLICKED_EVENT,
   SUBSCRIPTION_LINK_COPIED_EVENT,
+  SUBSCRIPTION_LINK_COPY_FAILED_EVENT,
   type CalendarSubscribeAnalyticsProperties,
   type SubscriptionLinkCopiedAnalyticsProperties,
 } from "@/shared/observability";
@@ -295,10 +296,15 @@ export function CalendarBuilderPage({
   }
 
   function handleSubscriptionLinkCopy(source: string, didCopy: boolean) {
-    trackAnalyticsEvent(SUBSCRIPTION_LINK_COPIED_EVENT, {
+    const properties = {
       ...subscriptionAnalyticsProperties(source),
-      didCopy,
-    } satisfies SubscriptionLinkCopiedAnalyticsProperties);
+      copyMethod: "clipboard" as const,
+    } satisfies SubscriptionLinkCopiedAnalyticsProperties;
+
+    trackAnalyticsEvent(
+      didCopy ? SUBSCRIPTION_LINK_COPIED_EVENT : SUBSCRIPTION_LINK_COPY_FAILED_EVENT,
+      properties,
+    );
   }
 
   const calendarSummaryItems = [
