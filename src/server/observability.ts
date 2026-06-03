@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { after } from "next/server";
 
 type LogLevel = "info" | "error";
 type UmamiDataValue = string | number | boolean | null | undefined;
@@ -123,7 +124,21 @@ function trackServerAnalyticsEvent(
     type: "event",
   };
 
-  void fetch(collectUrl, {
+  const task = () => sendServerAnalyticsEvent(collectUrl, body, event);
+
+  try {
+    after(task);
+  } catch {
+    void task();
+  }
+}
+
+async function sendServerAnalyticsEvent(
+  collectUrl: string,
+  body: Record<string, unknown>,
+  event: string,
+) {
+  await fetch(collectUrl, {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
     method: "POST",
