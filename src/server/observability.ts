@@ -115,7 +115,7 @@ function trackServerAnalyticsEvent(
       language: request?.headers.get("accept-language") ?? undefined,
       name: event,
       referrer: request?.headers.get("referer") ?? undefined,
-      screen: "server",
+      screen: "1920x1080",
       title: "Server event",
       url,
       website: websiteId,
