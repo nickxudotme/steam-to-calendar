@@ -30,12 +30,16 @@ import {
   GAME_SEARCH_SUBMITTED_EVENT,
   MANUAL_GAME_ADDED_EVENT,
   MANUAL_GAME_REMOVED_EVENT,
+  PREVIEW_LOAD_COMPLETED_EVENT,
   PREVIEW_LOAD_FAILED_EVENT,
+  PREVIEW_LOAD_STARTED_EVENT,
   SOURCE_MODE_CHANGED_EVENT,
   type GameSearchAnalyticsProperties,
   type GameSearchFailedAnalyticsProperties,
   type GameSearchSubmittedAnalyticsProperties,
   type ManualGameAnalyticsProperties,
+  type PreviewLoadAnalyticsProperties,
+  type PreviewLoadCompletedAnalyticsProperties,
   type PreviewLoadFailedAnalyticsProperties,
   type SourceModeChangedAnalyticsProperties,
 } from "@/shared/observability";
@@ -617,6 +621,18 @@ export function usePublicPreviewLoader({
       }
 
       setIsPreviewLoading(true);
+      const startedAt = performance.now();
+      const previewAnalyticsProperties = {
+        includeDeals: calendarConfig.includeDeals,
+        includePriceHistory: calendarConfig.includePriceHistory,
+        includeSteamEvents: calendarConfig.includeSteamEvents,
+        locale: effectiveSteamLang,
+        region: effectiveStoreRegion,
+        route: "/api/public-preview",
+        selectedGameCount: calendarConfig.watchedAppIds.length,
+      } satisfies PreviewLoadAnalyticsProperties;
+
+      trackAnalyticsEvent(PREVIEW_LOAD_STARTED_EVENT, previewAnalyticsProperties);
 
       try {
         const payload = await fetchPublicPreview({
@@ -630,6 +646,14 @@ export function usePublicPreviewLoader({
         });
 
         if (isMounted) {
+          trackAnalyticsEvent(PREVIEW_LOAD_COMPLETED_EVENT, {
+            ...previewAnalyticsProperties,
+            durationMs: Math.round(performance.now() - startedAt),
+            eventCount: payload.events.length,
+            steamMajorEvents: payload.stats.steamMajorEvents,
+            watchedGameCount: payload.watchedGames?.length ?? 0,
+          } satisfies PreviewLoadCompletedAnalyticsProperties);
+
           // publicPreviewRef is the clean fallback we restore when a user disconnects a wishlist.
           publicPreviewRef.current = payload;
           setPublicPreviewError(null);
@@ -645,9 +669,9 @@ export function usePublicPreviewLoader({
         console.error(caught);
         if (isMounted) {
           trackAnalyticsEvent(PREVIEW_LOAD_FAILED_EVENT, {
+            ...previewAnalyticsProperties,
+            durationMs: Math.round(performance.now() - startedAt),
             errorName: analyticsErrorName(caught),
-            region: effectiveStoreRegion,
-            route: "/api/public-preview",
           } satisfies PreviewLoadFailedAnalyticsProperties);
           setPublicPreviewError(
             caught instanceof Error ? caught.message : "Could not load Steam events.",

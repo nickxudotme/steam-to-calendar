@@ -6,7 +6,8 @@ const DEFAULT_UMAMI_RECORDER_URL = "https://umami.nickxu.me/recorder.js";
 const DEFAULT_UMAMI_REPLAY_BLOCK_SELECTOR = ".manualSubscribeHint";
 const DEFAULT_UMAMI_REPLAY_MAX_DURATION = "300000";
 const DEFAULT_UMAMI_REPLAY_MASK_LEVEL = "moderate";
-const DEFAULT_UMAMI_REPLAY_SAMPLE_RATE = "0.15";
+const DEFAULT_UMAMI_REPLAY_SAMPLE_RATE = "1";
+const LOCAL_ANALYTICS_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
 
 function isReplayEnabled() {
   const value = process.env.NEXT_PUBLIC_UMAMI_REPLAY_ENABLED?.trim().toLowerCase();
@@ -14,10 +15,18 @@ function isReplayEnabled() {
   return value !== "0" && value !== "false";
 }
 
-export function UmamiAnalytics() {
+function isLocalAnalyticsDisabled(hostname: string | null) {
+  if (process.env.NEXT_PUBLIC_UMAMI_ALLOW_LOCALHOST === "1") {
+    return false;
+  }
+
+  return Boolean(hostname && LOCAL_ANALYTICS_HOSTS.has(hostname));
+}
+
+export function UmamiAnalytics({ hostname }: { hostname: string | null }) {
   const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID?.trim();
 
-  if (!websiteId) {
+  if (!websiteId || isLocalAnalyticsDisabled(hostname)) {
     return null;
   }
 

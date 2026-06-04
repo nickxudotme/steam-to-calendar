@@ -71,6 +71,7 @@ const workbenchLayoutScript = `
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   const requestHeaders = await headers();
   const initialLanguage = languageCodeFromAcceptLanguage(requestHeaders.get("accept-language"));
+  const hostname = requestHeaders.get("host")?.split(":")[0]?.toLowerCase() ?? null;
 
   return (
     <html lang={initialLanguage.uiLang}>
@@ -81,7 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           dangerouslySetInnerHTML={{ __html: workbenchLayoutScript }}
         />
         {children}
-        <UmamiAnalytics />
+        <UmamiAnalytics hostname={hostname} />
         <SpeedInsights />
       </body>
     </html>

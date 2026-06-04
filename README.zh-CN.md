@@ -96,12 +96,15 @@ npm run dev:clean
 
 - 客户端 page view 和自定义事件使用 `NEXT_PUBLIC_UMAMI_SCRIPT_URL` 与
   `NEXT_PUBLIC_UMAMI_WEBSITE_ID`。
-- Session Replay 使用 `NEXT_PUBLIC_UMAMI_RECORDER_URL`；默认开启，采样率
-  `0.15`，输入框会被 mask，单次最多录 5 分钟，并且会屏蔽手动订阅 URL 区域。
+- Session Replay 使用 `NEXT_PUBLIC_UMAMI_RECORDER_URL`；默认开启，低流量阶段采样率
+  `1.0`，输入框会被 mask，单次最多录 5 分钟，并且会屏蔽手动订阅 URL 区域。
+- 本地 localhost analytics 默认关闭，避免本地 QA session 污染生产 Umami。只有明确要
+  本地调试 Umami 时才设置 `NEXT_PUBLIC_UMAMI_ALLOW_LOCALHOST=1`。
 - 服务端诊断事件使用 `UMAMI_COLLECT_URL` 与 `UMAMI_WEBSITE_ID`。
 - 当前 Steam to Calendar website ID 是
   `312a5b89-c994-4d81-a96b-63239f4fdbf0`。
 - 搜索词或愿望单输入默认不会记录原文，只有显式打开 debug capture flag 时才会采集。
+- 客户端 preview timing 事件会记录 public preview 的开始、成功、失败和耗时，但不会记录搜索词或愿望单原文。
 - Umami 的 Session Replay 保存 30 天。
 
 本地运行 ops 报表时，在 `.env.local` 里设置 `UMAMI_USERNAME` 和

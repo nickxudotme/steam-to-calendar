@@ -98,13 +98,18 @@ Production analytics are sent to the self-hosted Umami instance at
 - Client page views and custom events use `NEXT_PUBLIC_UMAMI_SCRIPT_URL` and
   `NEXT_PUBLIC_UMAMI_WEBSITE_ID`.
 - Session replays use `NEXT_PUBLIC_UMAMI_RECORDER_URL`; they are enabled by
-  default at a `0.15` sample rate, mask inputs, stop after 5 minutes, and block
+  default at a `1.0` sample rate while traffic is low, mask inputs, stop after 5 minutes, and block
   the manual subscription URL area from recordings.
+- Localhost analytics are disabled by default to keep local QA sessions out of
+  the production Umami website. Set `NEXT_PUBLIC_UMAMI_ALLOW_LOCALHOST=1` only
+  when intentionally testing Umami locally.
 - Server-side diagnostic events use `UMAMI_COLLECT_URL` and `UMAMI_WEBSITE_ID`.
 - The current Steam to Calendar website ID is
   `312a5b89-c994-4d81-a96b-63239f4fdbf0`.
 - Raw search or wishlist inputs stay disabled unless the explicit debug capture
   flags are enabled.
+- Client preview timing events record public preview start, completion, failure,
+  and duration without recording raw search or wishlist inputs.
 - Umami keeps session replays for 30 days.
 
 For local operations reports against the self-hosted Umami instance, set
