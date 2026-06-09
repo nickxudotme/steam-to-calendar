@@ -132,6 +132,13 @@
   margin-top: 0;
 }
 
+.steamProfileInputHint {
+  color: rgba(185, 207, 223, 0.78);
+  font-size: 0.74rem;
+  line-height: 1.36;
+  margin: -2px 0 0;
+}
+
 .steamProfileHelpButton {
   align-items: center;
   background: rgba(12, 25, 38, 0.86);

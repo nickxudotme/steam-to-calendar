@@ -193,6 +193,23 @@
     min-height: 0;
   }
 
+  .nextActionStrip {
+    align-items: stretch;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nextActionButtons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+    justify-content: stretch;
+  }
+
+  .nextActionButton {
+    min-width: 0;
+    padding: 0 10px;
+  }
+
   .detailPanel {
     grid-column: auto;
     grid-template-columns: none;
@@ -774,6 +791,10 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
+  }
+
+  .nextActionStrip {
+    display: none;
   }
 
   .calendarApp {

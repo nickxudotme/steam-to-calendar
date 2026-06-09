@@ -26,6 +26,7 @@ export type PublicPreviewRequest = {
   config: CalendarConfig;
   locale: CalendarBuilderLocale;
   sendStoreRegion: boolean;
+  signal?: AbortSignal;
 };
 
 export type ConnectedPreviewRequest = {
@@ -44,6 +45,7 @@ export async function fetchPublicPreview({
   config,
   locale,
   sendStoreRegion,
+  signal,
 }: PublicPreviewRequest): Promise<PreviewResponse> {
   const params = calendarConfigToSearchParams(config);
   if (sendStoreRegion) {
@@ -52,7 +54,7 @@ export async function fetchPublicPreview({
   params.set("lang", locale.lang);
   params.set("uiLang", locale.uiLang);
 
-  const response = await fetch(`/api/public-preview?${params.toString()}`);
+  const response = await fetch(`/api/public-preview?${params.toString()}`, { signal });
   const payload = await parseJson(response);
 
   if (!response.ok) {

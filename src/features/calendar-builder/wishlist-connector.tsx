@@ -247,6 +247,7 @@ export function WishlistConnector({
               <button disabled={isLoading} type="submit">
                 {isLoading ? copy.importing : copy.importWishlistShort}
               </button>
+              <p className="steamProfileInputHint">{copy.steamProfileAcceptedInputs}</p>
             </form>
           ) : (
             <button className="connectWishlistButton" type="button" onClick={onImportOpen}>
@@ -350,6 +351,14 @@ function wishlistErrorMessage(
   errorCode: string | null,
   copy: (typeof UI_COPY)[UiLanguage],
 ): string {
+  if (errorCode === "invalid_steam_id") {
+    return copy.wishlistInvalidInputError;
+  }
+
+  if (errorCode === "fetch_failed") {
+    return copy.wishlistFetchFailedError;
+  }
+
   if (errorCode === "wishlist_rate_limited") {
     return copy.wishlistRateLimitedError;
   }
@@ -361,6 +370,14 @@ function wishlistFallbackMessage(
   errorCode: string | null,
   copy: (typeof UI_COPY)[UiLanguage],
 ): string {
+  if (errorCode === "invalid_steam_id") {
+    return copy.wishlistInvalidInputHint;
+  }
+
+  if (errorCode === "fetch_failed") {
+    return copy.wishlistFetchFailedHint;
+  }
+
   if (errorCode === "wishlist_private_or_unavailable") {
     return copy.wishlistPrivateHint;
   }
