@@ -25,6 +25,7 @@ export function WishlistConnector({
   copy,
   error,
   errorCode,
+  errorProfileSettingsUrl,
   hasConnectedWishlist,
   isLoading,
   isWishlistImportOpen,
@@ -48,6 +49,7 @@ export function WishlistConnector({
   copy: (typeof UI_COPY)[UiLanguage];
   error: string | null;
   errorCode: string | null;
+  errorProfileSettingsUrl: string | null;
   hasConnectedWishlist: boolean;
   isLoading: boolean;
   isWishlistImportOpen: boolean;
@@ -337,7 +339,15 @@ export function WishlistConnector({
         </AnimatedSizePresence>
         <AnimatedSizePresence id="wishlist-fallback" marginTop={8} visible={Boolean(error)}>
           <div className="notice fallbackNotice wishlistAnimatedBlock">
-            {wishlistFallbackMessage(errorCode, copy)}
+            <p>{wishlistFallbackMessage(errorCode, copy)}</p>
+            {errorProfileSettingsUrl ? (
+              <div className="wishlistSettingsRecovery">
+                <span>{copy.wishlistSettingsHint}</span>
+                <a href={errorProfileSettingsUrl} rel="noreferrer" target="_blank">
+                  {copy.wishlistSettingsLink}
+                </a>
+              </div>
+            ) : null}
           </div>
         </AnimatedSizePresence>
       </section>

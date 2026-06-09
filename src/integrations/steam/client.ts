@@ -63,6 +63,7 @@ export class SteamWishlistError extends Error {
     readonly code: SteamWishlistErrorCode,
     message: string,
     readonly cause?: unknown,
+    readonly recovery?: { profileSettingsUrl?: string },
   ) {
     super(message);
     this.name = "SteamWishlistError";
@@ -135,6 +136,47 @@ export function normalizeSteamProfileInput(input: string): string {
   }
 
   throw new SteamWishlistError("invalid_steam_id", STEAM_PROFILE_URL_HINT);
+}
+
+export function buildSteamProfileSettingsUrl(input: string): string | null {
+  const value = input.trim();
+
+  if (isSteamId64(value)) {
+    return `https://steamcommunity.com/profiles/${value}/edit/settings`;
+  }
+
+  const steamInput = extractSupportedSteamProfileUrl(value);
+  if (!steamInput) {
+    return null;
+  }
+
+  if (isSteamId64(steamInput)) {
+    return `https://steamcommunity.com/profiles/${steamInput}/edit/settings`;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(steamInput);
+  } catch {
+    return `https://steamcommunity.com/id/${encodeURIComponent(steamInput)}/edit/settings`;
+  }
+
+  const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+  const segments = url.pathname.split("/").filter(Boolean);
+
+  if (hostname !== "steamcommunity.com" || segments.length < 2) {
+    return null;
+  }
+
+  if (segments[0].toLowerCase() === "profiles" && isSteamId64(segments[1])) {
+    return `https://steamcommunity.com/profiles/${segments[1]}/edit/settings`;
+  }
+
+  if (segments[0].toLowerCase() === "id" && isSteamCustomUrlName(segments[1])) {
+    return `https://steamcommunity.com/id/${encodeURIComponent(segments[1])}/edit/settings`;
+  }
+
+  return null;
 }
 
 function extractSupportedSteamProfileUrl(value: string): string | null {
@@ -336,17 +378,44 @@ export async function fetchSteamWishlist(
 ): Promise<SteamWishlistResult> {
   const steamId64 = await resolveSteamId64(input, options);
   const wishlistUrl = buildWishlistUrl(steamId64);
-  const json = await fetchText(wishlistUrl, options);
-  const games = parseWishlistApiJson(json);
+  const profileSettingsUrl =
+    buildSteamProfileSettingsUrl(input) ??
+    `https://steamcommunity.com/profiles/${steamId64}/edit/settings`;
+  let games: SteamWishlistGame[];
+
+  try {
+    const json = await fetchText(wishlistUrl, options);
+    games = parseWishlistApiJson(json);
+  } catch (error) {
+    throw withProfileSettingsUrl(error, profileSettingsUrl);
+  }
 
   if (games.length === 0) {
     throw new SteamWishlistError(
       "wishlist_private_or_unavailable",
       "This Steam wishlist is private, empty, or unavailable.",
+      undefined,
+      { profileSettingsUrl },
     );
   }
 
   return { steamId64, wishlistUrl, games };
+}
+
+export function withProfileSettingsUrl(error: unknown, profileSettingsUrl: string): unknown {
+  if (!(error instanceof SteamWishlistError)) {
+    return error;
+  }
+
+  if (error.recovery?.profileSettingsUrl) {
+    return error;
+  }
+
+  if (error.code !== "wishlist_private_or_unavailable") {
+    return error;
+  }
+
+  return new SteamWishlistError(error.code, error.message, error.cause, { profileSettingsUrl });
 }
 
 export async function fetchSteamProfileSummary(

@@ -832,6 +832,7 @@ export function CalendarBuilderPage({
                         copy={copy}
                         error={wishlistPreview.error}
                         errorCode={wishlistPreview.errorCode}
+                        errorProfileSettingsUrl={wishlistPreview.errorProfileSettingsUrl}
                         hasConnectedWishlist={hasConnectedWishlist}
                         isLoading={wishlistPreview.isLoading}
                         isWishlistImportOpen={wishlistPreview.isImportOpen}

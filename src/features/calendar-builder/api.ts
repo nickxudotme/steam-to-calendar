@@ -20,6 +20,7 @@ type CalendarBuilderLocale = {
 type ApiErrorPayload = {
   code?: string;
   message?: string;
+  profileSettingsUrl?: string;
 };
 
 export type PublicPreviewRequest = {
@@ -108,6 +109,10 @@ export async function fetchConnectedPreview({
     if (isApiErrorPayload(payload) && typeof payload.code === "string") {
       // The UI uses Error.name as a small error code channel for targeted copy.
       error.name = payload.code;
+    }
+    if (isApiErrorPayload(payload) && typeof payload.profileSettingsUrl === "string") {
+      (error as Error & { profileSettingsUrl?: string }).profileSettingsUrl =
+        payload.profileSettingsUrl;
     }
     throw error;
   }
@@ -249,12 +254,14 @@ export function parseConnectedPreviewStreamEvent(line: string): ConnectedPreview
     payload.type === "error" &&
     isString(payload.code) &&
     isString(payload.message) &&
+    (payload.profileSettingsUrl === undefined || isString(payload.profileSettingsUrl)) &&
     isNumber(payload.status)
   ) {
     return {
       type: "error",
       code: payload.code,
       message: payload.message,
+      ...(payload.profileSettingsUrl ? { profileSettingsUrl: payload.profileSettingsUrl } : {}),
       status: payload.status,
     };
   }
@@ -276,6 +283,10 @@ function isStreamWishlistStats(
 function streamError(event: Extract<ConnectedPreviewStreamEvent, { type: "error" }>): Error {
   const error = new Error(event.message || "Could not preview this Steam wishlist.");
   error.name = event.code || "Error";
+  if (event.profileSettingsUrl) {
+    (error as Error & { profileSettingsUrl?: string }).profileSettingsUrl =
+      event.profileSettingsUrl;
+  }
   return error;
 }
 

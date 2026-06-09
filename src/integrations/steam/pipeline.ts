@@ -1,9 +1,11 @@
 import {
+  buildSteamProfileSettingsUrl,
   fetchSteamAppDetails,
   fetchSteamProfileSummary,
   fetchSteamWishlist,
   isExactSteamReleaseDate,
   normalizeSteamProfileInput,
+  withProfileSettingsUrl,
   type SteamAppDetails,
   type SteamProfileSummary,
   type SteamWishlistGame,
@@ -41,7 +43,15 @@ export async function fetchWishlistCalendarData(
   if (!options.fetcher) {
     // Prefer steam-cli in production/dev because it already handles Steam's quirks and gives us
     // richer wishlist data. Tests pass a fetcher to exercise the pure HTTP fallback.
-    const cliData = await fetchWishlistCalendarDataFromCli(input, options);
+    const cliData = await fetchWishlistCalendarDataFromCli(input, options).catch((error) => {
+      const profileSettingsUrl = buildSteamProfileSettingsUrl(input);
+
+      if (profileSettingsUrl) {
+        throw withProfileSettingsUrl(error, profileSettingsUrl);
+      }
+
+      throw error;
+    });
     if (cliData) {
       return {
         ...cliData,

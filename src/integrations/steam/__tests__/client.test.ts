@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSteamProfileSettingsUrl,
   buildWishlistUrl,
   fetchSteamAppDetails,
   fetchSteamWishlist,
@@ -61,6 +62,21 @@ describe("steam client", () => {
         "https://store.steampowered.com/wishlist/id/nickxudotme/#sort=order",
       ),
     ).toBe("nickxudotme");
+  });
+
+  it("builds Steam profile settings URLs from supported profile inputs", () => {
+    expect(buildSteamProfileSettingsUrl(steamId64)).toBe(
+      `https://steamcommunity.com/profiles/${steamId64}/edit/settings`,
+    );
+    expect(buildSteamProfileSettingsUrl(`https://steamcommunity.com/profiles/${steamId64}/`)).toBe(
+      `https://steamcommunity.com/profiles/${steamId64}/edit/settings`,
+    );
+    expect(buildSteamProfileSettingsUrl("https://steamcommunity.com/id/nickxudotme/")).toBe(
+      "https://steamcommunity.com/id/nickxudotme/edit/settings",
+    );
+    expect(
+      buildSteamProfileSettingsUrl("https://store.steampowered.com/wishlist/id/nickxudotme/"),
+    ).toBe("https://steamcommunity.com/id/nickxudotme/edit/settings");
   });
 
   it("rejects unsupported Steam and arbitrary URLs", () => {
@@ -241,6 +257,19 @@ describe("steam client", () => {
       "https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=76561198115468824",
     ]);
     expect(result.games).toHaveLength(1);
+  });
+
+  it("adds profile settings recovery to unavailable resolved wishlists", async () => {
+    await expect(
+      fetchSteamWishlist(`https://steamcommunity.com/profiles/${steamId64}/`, {
+        fetcher: async () => new Response(JSON.stringify({ response: { items: [] } })),
+      }),
+    ).rejects.toMatchObject({
+      code: "wishlist_private_or_unavailable",
+      recovery: {
+        profileSettingsUrl: `https://steamcommunity.com/profiles/${steamId64}/edit/settings`,
+      },
+    });
   });
 
   it("resolves custom Steam profile URLs before using the wishlist API fallback", async () => {

@@ -102,6 +102,7 @@ export type ConnectedPreviewStreamEvent =
       type: "error";
       code: string;
       message: string;
+      profileSettingsUrl?: string;
       status: number;
     };
 

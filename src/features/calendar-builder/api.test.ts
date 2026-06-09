@@ -83,6 +83,26 @@ describe("calendar builder API client contract", () => {
     });
   });
 
+  it("accepts streaming error recovery settings URLs", () => {
+    expect(
+      parseConnectedPreviewStreamEvent(
+        JSON.stringify({
+          type: "error",
+          code: "wishlist_private_or_unavailable",
+          message: "Private wishlist.",
+          profileSettingsUrl: "https://steamcommunity.com/id/nickxudotme/edit/settings",
+          status: 404,
+        }),
+      ),
+    ).toEqual({
+      type: "error",
+      code: "wishlist_private_or_unavailable",
+      message: "Private wishlist.",
+      profileSettingsUrl: "https://steamcommunity.com/id/nickxudotme/edit/settings",
+      status: 404,
+    });
+  });
+
   it("accepts valid Steam search result payloads", () => {
     expect(
       parseSearchResults({

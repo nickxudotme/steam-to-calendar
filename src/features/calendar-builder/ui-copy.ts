@@ -163,6 +163,9 @@ export const UI_COPY = {
     wishlistFetchFailedError: "Steam did not return this wishlist.",
     wishlistFetchFailedHint:
       "This is often temporary. Try the full profile URL, or add games manually while Steam catches up.",
+    wishlistSettingsHint:
+      "If this is your profile, open Steam privacy settings and make Game details public.",
+    wishlistSettingsLink: "Open Steam settings",
     wishlistGenericHint: "Steam did not respond. You can keep Steam events and add games manually.",
     wishlistConnected:
       "Wishlist connected. Manual game picks are ignored while this calendar uses your Steam wishlist.",
@@ -321,6 +324,8 @@ export const UI_COPY = {
       "可以粘贴 SteamID64、/profiles/ 链接、/id/ 自定义链接，或 Steam 愿望单链接。",
     wishlistFetchFailedError: "Steam 没有返回这个愿望单。",
     wishlistFetchFailedHint: "这通常是临时问题。可以试试完整个人资料链接，或先手动添加游戏。",
+    wishlistSettingsHint: "如果这是你的账号，打开 Steam 隐私设置，把游戏详情 / 愿望单设为公开。",
+    wishlistSettingsLink: "打开 Steam 设置",
     wishlistGenericHint: "Steam 暂时没有响应。你仍然可以保留 Steam 活动并手动添加游戏。",
     wishlistConnected: "愿望单已关联。当前日历使用你的 Steam 愿望单，手动添加的游戏会被忽略。",
     syncingPreview: "正在从 Steam 同步日历预览...",

@@ -6,12 +6,15 @@ describe("Steam API errors", () => {
   it("preserves Steam error codes for client copy", () => {
     expect(
       steamApiErrorPayload(
-        new SteamWishlistError("wishlist_private_or_unavailable", "Private wishlist."),
+        new SteamWishlistError("wishlist_private_or_unavailable", "Private wishlist.", undefined, {
+          profileSettingsUrl: "https://steamcommunity.com/id/nickxudotme/edit/settings",
+        }),
         "Fallback",
       ),
     ).toEqual({
       code: "wishlist_private_or_unavailable",
       message: "Private wishlist.",
+      profileSettingsUrl: "https://steamcommunity.com/id/nickxudotme/edit/settings",
     });
   });
 

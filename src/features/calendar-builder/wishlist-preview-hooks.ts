@@ -53,6 +53,7 @@ export function useWishlistPreview({
   const [steamId64, setSteamId64] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorProfileSettingsUrl, setErrorProfileSettingsUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const latestRequestRef = useRef(
@@ -92,6 +93,7 @@ export function useWishlistPreview({
     setIsLoading(true);
     setError(null);
     setErrorCode(null);
+    setErrorProfileSettingsUrl(null);
 
     async function refreshConnectedPreview() {
       try {
@@ -123,6 +125,7 @@ export function useWishlistPreview({
         }
 
         setErrorCode(caught instanceof Error && caught.name !== "Error" ? caught.name : null);
+        setErrorProfileSettingsUrl(profileSettingsUrlFromError(caught));
         setError(
           caught instanceof Error ? caught.message : "Could not preview this Steam wishlist.",
         );
@@ -156,6 +159,7 @@ export function useWishlistPreview({
     setIsLoading(true);
     setError(null);
     setErrorCode(null);
+    setErrorProfileSettingsUrl(null);
     trackAnalyticsEvent(WISHLIST_CONNECT_SUBMITTED_EVENT, {
       inputLength: trimmedSteamId64.length,
       locale: effectiveSteamLang,
@@ -245,6 +249,7 @@ export function useWishlistPreview({
         region: effectiveStoreRegion,
       } satisfies WishlistConnectFailedAnalyticsProperties);
       setErrorCode(caught instanceof Error && caught.name !== "Error" ? caught.name : null);
+      setErrorProfileSettingsUrl(profileSettingsUrlFromError(caught));
       setError(caught instanceof Error ? caught.message : "Could not preview this Steam wishlist.");
     } finally {
       if (requestSequenceRef.current === requestId) {
@@ -262,6 +267,7 @@ export function useWishlistPreview({
     setSteamId64("");
     setError(null);
     setErrorCode(null);
+    setErrorProfileSettingsUrl(null);
     setIsImportOpen(false);
     trackAnalyticsEvent(WISHLIST_DISCONNECTED_EVENT);
     trackAnalyticsEvent(SOURCE_MODE_CHANGED_EVENT, {
@@ -274,6 +280,7 @@ export function useWishlistPreview({
     disconnect,
     error,
     errorCode,
+    errorProfileSettingsUrl,
     isImportOpen,
     isLoading,
     openImport: () => setIsImportOpen(true),
@@ -300,6 +307,18 @@ function trackWishlistConnected(preview: PreviewResponse) {
 
 function analyticsErrorName(error: unknown): string {
   return error instanceof Error && error.name ? error.name : "Error";
+}
+
+function profileSettingsUrlFromError(error: unknown): string | null {
+  if (
+    error instanceof Error &&
+    "profileSettingsUrl" in error &&
+    typeof error.profileSettingsUrl === "string"
+  ) {
+    return error.profileSettingsUrl;
+  }
+
+  return null;
 }
 
 function applyWishlistStreamEvent(

@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       }),
     );
   } catch (error) {
-    const { code, message, status } = previewErrorResponse(error);
+    const { code, message, profileSettingsUrl, status } = previewErrorResponse(error);
 
     logWishlistPreviewError({
       code,
@@ -91,7 +91,10 @@ export async function POST(request: Request) {
       status,
     });
 
-    return Response.json({ code, message }, { status });
+    return Response.json(
+      { code, message, ...(profileSettingsUrl ? { profileSettingsUrl } : {}) },
+      { status },
+    );
   }
 }
 
@@ -181,7 +184,7 @@ function streamConnectedPreview({
             }),
           });
         } catch (error) {
-          const { code, message, status } = previewErrorResponse(error);
+          const { code, message, profileSettingsUrl, status } = previewErrorResponse(error);
 
           logWishlistPreviewError({
             code,
@@ -192,7 +195,13 @@ function streamConnectedPreview({
             status,
           });
 
-          send({ type: "error", code, message, status });
+          send({
+            type: "error",
+            code,
+            message,
+            ...(profileSettingsUrl ? { profileSettingsUrl } : {}),
+            status,
+          });
         } finally {
           controller.close();
         }
@@ -355,7 +364,12 @@ function validateOptionalNumber(payload: Record<string, unknown>, key: string) {
 
 function previewErrorResponse(error: unknown) {
   if (error instanceof PreviewRequestError) {
-    return { code: error.code, message: error.message, status: 400 };
+    return {
+      code: error.code,
+      message: error.message,
+      profileSettingsUrl: undefined,
+      status: 400,
+    };
   }
 
   if (error instanceof SteamWishlistError) {
@@ -370,6 +384,7 @@ function previewErrorResponse(error: unknown) {
   return {
     code: "unknown_error",
     message: "Could not preview this Steam wishlist.",
+    profileSettingsUrl: undefined,
     status: 502,
   };
 }
