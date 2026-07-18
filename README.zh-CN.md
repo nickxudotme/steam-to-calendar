@@ -12,6 +12,8 @@
   <a href="README.md">English README</a>
   ·
   <a href="https://steamcalendar.com/">打开官网</a>
+  ·
+  <a href="https://blog.nickxu.me/steam-to-calendar/">阅读博客</a>
 </p>
 
 Steam to Calendar 可以把 Steam 折扣、游戏发售、预购、愿望单更新和官方活动变成可订阅的日历。选择你关心的游戏和事件类型，先在页面里预览效果，再订阅到 Apple Calendar、Google Calendar、Outlook、Fantastical 或任何支持 ICS/WebCal 的日历应用。
