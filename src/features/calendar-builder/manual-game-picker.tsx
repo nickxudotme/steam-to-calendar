@@ -39,7 +39,7 @@ export function ManualGamePicker({
   isPreviewLoading: boolean;
   isSearchingGames: boolean;
   lastGameSearchQuery: string;
-  onAddGame: (game: GameSearchResult) => void;
+  onAddGame: (game: GameSearchResult, resultIndex: number) => void;
   onGameClick: (appId: string) => void;
   onGamePreview: (game: GameSearchResult | SelectedGame, element: HTMLElement) => void;
   onGameSearchChange: (value: string) => void;
@@ -161,7 +161,7 @@ function GameSearchResults({
   copy: (typeof UI_COPY)[UiLanguage];
   gameSearchResults: GameSearchResult[];
   hasConnectedWishlist: boolean;
-  onAddGame: (game: GameSearchResult) => void;
+  onAddGame: (game: GameSearchResult, resultIndex: number) => void;
   onGamePreview: (game: GameSearchResult, element: HTMLElement) => void;
   onSearchPreviewClear: () => void;
   selectedGames: SelectedGame[];
@@ -174,7 +174,7 @@ function GameSearchResults({
           {gameSearchResults.length} {copy.searchResultsCount}
         </span>
       </div>
-      {gameSearchResults.map((game) => {
+      {gameSearchResults.map((game, resultIndex) => {
         const isSelected = selectedGames.some((selectedGame) => selectedGame.appId === game.appId);
 
         return (
@@ -188,7 +188,7 @@ function GameSearchResults({
             onFocus={(event) => onGamePreview(game, event.currentTarget)}
             onMouseEnter={(event) => onGamePreview(game, event.currentTarget)}
             onMouseLeave={onSearchPreviewClear}
-            onClick={() => onAddGame(game)}
+            onClick={() => onAddGame(game, resultIndex)}
           >
             <SteamCliImage fallbackClassName="gameThumbFallback" src={game.imageUrl} />
             <div className="gameSearchResultInfo">

@@ -1,7 +1,16 @@
 "use client";
 
 import NextLink from "next/link";
-import { BookOpenText, Coffee, Info, Languages, Settings } from "lucide-react";
+import {
+  BookOpenText,
+  CalendarPlus,
+  Coffee,
+  Info,
+  Languages,
+  Link as LinkIcon,
+  Search,
+  Settings,
+} from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   useCallback,
@@ -17,9 +26,13 @@ import { DEFAULT_CALENDAR_CONFIG, STEAM_EVENT_CATEGORIES } from "@/domain/calend
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import {
   CALENDAR_SUBSCRIBE_CLICKED_EVENT,
+  MANUAL_GAME_ADD_CLICKED_EVENT,
+  SEARCH_RESULT_CLICKED_EVENT,
   SUBSCRIPTION_LINK_COPIED_EVENT,
   SUBSCRIPTION_LINK_COPY_FAILED_EVENT,
   type CalendarSubscribeAnalyticsProperties,
+  type ManualGameAddClickedAnalyticsProperties,
+  type SearchResultClickedAnalyticsProperties,
   type SubscriptionLinkCopiedAnalyticsProperties,
 } from "@/shared/observability";
 import { countryFlag, STEAM_STORE_REGIONS, steamStoreRegionName } from "@/shared/steam-regions";
@@ -59,6 +72,7 @@ import {
   EVENT_PAST_DAYS_MAX,
   INTRO_STORAGE_KEY,
   PUBLIC_PREVIEW,
+  AUTO_TRACKED_GAME_COUNT,
   type GameSearchResult,
   type PreviewResponse,
   type SelectedGame,
@@ -75,6 +89,7 @@ const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar"
 const BLOG_URL = "https://blog.nickxu.me/steam-to-calendar/";
 const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
 type LocaleSelectKind = "region" | "language";
+type ConfigurationTarget = "wishlist" | "games";
 type LocaleSelectOption = {
   flagCode?: string;
   label: string;
@@ -279,6 +294,10 @@ export function CalendarBuilderPage({
   const trackedGameCount = hasConnectedWishlist
     ? preview.stats.wishlistGames
     : selectedGamesState.selectedGames.length;
+  const isStarterPreview =
+    !hasConnectedWishlist &&
+    !selectedGamesState.hasEditedSelectedGames &&
+    selectedGamesState.selectedGames.length === AUTO_TRACKED_GAME_COUNT;
 
   function subscriptionAnalyticsProperties(source: string): CalendarSubscribeAnalyticsProperties {
     return {
@@ -437,7 +456,19 @@ export function CalendarBuilderPage({
     : effectiveStoreRegionCurrency || effectiveStoreRegion;
   const effectiveStoreRegionLabel = `${steamStoreRegionName(effectiveStoreRegion)} (${effectiveStoreRegionCurrencyLabel})`;
 
-  function handleAddSelectedGame(game: GameSearchResult) {
+  function handleAddSelectedGame(game: GameSearchResult, resultIndex: number) {
+    trackAnalyticsEvent(SEARCH_RESULT_CLICKED_EVENT, {
+      appId: game.appId,
+      queryLength: gameSearch.lastQuery.length,
+      region: effectiveStoreRegion,
+      resultCount: gameSearch.results.length,
+      resultIndex,
+    } satisfies SearchResultClickedAnalyticsProperties);
+    trackAnalyticsEvent(MANUAL_GAME_ADD_CLICKED_EVENT, {
+      appId: game.appId,
+      resultIndex,
+      selectedGameCount: selectedGamesState.selectedGames.length,
+    } satisfies ManualGameAddClickedAnalyticsProperties);
     handleAddManualGame({
       appId: game.appId,
       ...(game.genres?.length ? { genres: game.genres } : {}),
@@ -489,6 +520,34 @@ export function CalendarBuilderPage({
   function handleCloseMobileOverlays() {
     setIsMobileSettingsOpen(false);
     setIsMobileDetailOpen(false);
+  }
+
+  function openConfigurationTarget(target: ConfigurationTarget) {
+    setIsIntroOpen(false);
+
+    if (window.matchMedia(MOBILE_WORKBENCH_MEDIA_QUERY).matches) {
+      setIsMobileDetailOpen(false);
+      setIsMobileSettingsOpen(true);
+    }
+
+    if (target === "wishlist") {
+      wishlistPreview.openImport();
+    } else {
+      setShowMyGames(true);
+    }
+
+    window.setTimeout(() => {
+      const elementId = target === "wishlist" ? "steam-connect" : "game-search";
+      const element = document.getElementById(elementId);
+
+      element?.scrollIntoView({ block: "center", inline: "nearest" });
+
+      if (target === "wishlist") {
+        document.getElementById("steam-id")?.focus();
+      } else {
+        document.getElementById("game-search")?.focus();
+      }
+    }, 120);
   }
 
   function handleCloseIntro() {
@@ -773,6 +832,7 @@ export function CalendarBuilderPage({
                         copy={copy}
                         error={wishlistPreview.error}
                         errorCode={wishlistPreview.errorCode}
+                        errorProfileSettingsUrl={wishlistPreview.errorProfileSettingsUrl}
                         hasConnectedWishlist={hasConnectedWishlist}
                         isLoading={wishlistPreview.isLoading}
                         isWishlistImportOpen={wishlistPreview.isImportOpen}
@@ -897,6 +957,14 @@ export function CalendarBuilderPage({
               onSubscriptionLinkCopy={(didCopy) =>
                 handleSubscriptionLinkCopy("calendar_footer", didCopy)
               }
+              webcalUrl={webcalUrl}
+            />
+            <NextActionStrip
+              copy={copy}
+              isStarterPreview={isStarterPreview}
+              onAddGames={() => openConfigurationTarget("games")}
+              onImportWishlist={() => openConfigurationTarget("wishlist")}
+              onSubscribe={() => handleCalendarSubscribeClick("next_action")}
               webcalUrl={webcalUrl}
             />
             <div className="calendarActionBar">
@@ -1039,6 +1107,53 @@ export function CalendarBuilderPage({
           )
         : null}
     </main>
+  );
+}
+
+function NextActionStrip({
+  copy,
+  isStarterPreview,
+  onAddGames,
+  onImportWishlist,
+  onSubscribe,
+  webcalUrl,
+}: {
+  copy: (typeof UI_COPY)[UiLanguage];
+  isStarterPreview: boolean;
+  onAddGames: () => void;
+  onImportWishlist: () => void;
+  onSubscribe: () => void;
+  webcalUrl: string;
+}) {
+  if (!isStarterPreview) {
+    return null;
+  }
+
+  return (
+    <section className="nextActionStrip">
+      <div className="nextActionCopy">
+        <span>{copy.starterPreviewEyebrow}</span>
+        <strong>{copy.starterPreviewTitle}</strong>
+        <p>{copy.starterPreviewBody}</p>
+      </div>
+      <div className="nextActionButtons">
+        <button className="nextActionButton" type="button" onClick={onImportWishlist}>
+          <LinkIcon aria-hidden="true" className="miniIcon" />
+          <span>{copy.nextActionImportWishlist}</span>
+        </button>
+        <button className="nextActionButton" type="button" onClick={onAddGames}>
+          <Search aria-hidden="true" className="miniIcon" />
+          <span>{copy.nextActionAddGames}</span>
+        </button>
+        <a className="nextActionButton isPrimary" href={webcalUrl} onClick={onSubscribe}>
+          <CalendarPlus aria-hidden="true" className="miniIcon" />
+          <span>
+            <strong>{copy.nextActionSubscribe}</strong>
+            <small>{copy.nextActionSubscribeHint}</small>
+          </span>
+        </a>
+      </div>
+    </section>
   );
 }
 

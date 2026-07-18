@@ -3,6 +3,7 @@ import { SteamWishlistError, type SteamWishlistErrorCode } from "@/integrations/
 export type SteamApiErrorPayload = {
   code: SteamWishlistErrorCode | "unknown_error";
   message: string;
+  profileSettingsUrl?: string;
 };
 
 export function steamApiErrorResponse(error: unknown, fallbackMessage: string): Response {
@@ -19,6 +20,9 @@ export function steamApiErrorPayload(
     return {
       code: error.code,
       message: error.message,
+      ...(error.recovery?.profileSettingsUrl
+        ? { profileSettingsUrl: error.recovery.profileSettingsUrl }
+        : {}),
     };
   }
 

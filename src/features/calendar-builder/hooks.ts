@@ -25,8 +25,10 @@ import {
 import { STEAM_EVENTS_CALENDAR_ID } from "@/domain/calendar/constants";
 import type { PreviewEvent, PreviewResponse } from "@/shared/calendar-preview";
 import {
+  FIRST_PUBLIC_PREVIEW_COMPLETED_EVENT,
   GAME_SEARCH_COMPLETED_EVENT,
   GAME_SEARCH_FAILED_EVENT,
+  GAME_SEARCH_ZERO_RESULTS_EVENT,
   GAME_SEARCH_SUBMITTED_EVENT,
   MANUAL_GAME_ADDED_EVENT,
   MANUAL_GAME_REMOVED_EVENT,
@@ -41,6 +43,7 @@ import {
   type PreviewLoadAnalyticsProperties,
   type PreviewLoadCompletedAnalyticsProperties,
   type PreviewLoadFailedAnalyticsProperties,
+  type PreviewLoadReason,
   type SourceModeChangedAnalyticsProperties,
 } from "@/shared/observability";
 import { fetchPublicPreview, searchCalendarGames } from "./api";
@@ -612,14 +615,50 @@ export function usePublicPreviewLoader({
   storeRegion: string | null;
   userSelectedRegionRef: MutableRefObject<boolean>;
 }) {
-  useEffect(() => {
-    let isMounted = true;
+  const activeRequestRef = useRef<{
+    controller: AbortController;
+    key: string;
+  } | null>(null);
+  const hasTrackedFirstPublicPreviewRef = useRef(false);
+  const isComponentMountedRef = useRef(false);
+  const requestSequenceRef = useRef(0);
+  const lastRequestSnapshotRef = useRef<PublicPreviewRequestSnapshot | null>(null);
 
+  useEffect(() => {
+    isComponentMountedRef.current = true;
+
+    return () => {
+      isComponentMountedRef.current = false;
+      activeRequestRef.current?.controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     async function loadPublicPreview() {
       if (!hasInitializedClientLocale) {
         return;
       }
 
+      const requestSnapshot = publicPreviewRequestSnapshot({
+        calendarConfig,
+        effectiveSteamLang,
+        effectiveStoreRegion,
+        effectiveUiLang,
+        sendStoreRegion: Boolean(storeRegion || shouldSendDetectedStoreRegion),
+      });
+
+      if (
+        activeRequestRef.current?.key === requestSnapshot.key &&
+        !activeRequestRef.current.controller.signal.aborted
+      ) {
+        return;
+      }
+
+      activeRequestRef.current?.controller.abort();
+      const controller = new AbortController();
+      activeRequestRef.current = { controller, key: requestSnapshot.key };
+      const requestId = `public-preview-${++requestSequenceRef.current}`;
+      const reason = previewLoadReason(lastRequestSnapshotRef.current, requestSnapshot);
       setIsPreviewLoading(true);
       const startedAt = performance.now();
       const previewAnalyticsProperties = {
@@ -627,7 +666,9 @@ export function usePublicPreviewLoader({
         includePriceHistory: calendarConfig.includePriceHistory,
         includeSteamEvents: calendarConfig.includeSteamEvents,
         locale: effectiveSteamLang,
+        reason,
         region: effectiveStoreRegion,
+        requestId,
         route: "/api/public-preview",
         selectedGameCount: calendarConfig.watchedAppIds.length,
       } satisfies PreviewLoadAnalyticsProperties;
@@ -642,10 +683,16 @@ export function usePublicPreviewLoader({
             lang: effectiveSteamLang,
             uiLang: effectiveUiLang,
           },
-          sendStoreRegion: Boolean(storeRegion || shouldSendDetectedStoreRegion),
+          sendStoreRegion: requestSnapshot.sendStoreRegion,
+          signal: controller.signal,
         });
 
-        if (isMounted) {
+        if (activeRequestRef.current?.controller !== controller) {
+          return;
+        }
+
+        if (isComponentMountedRef.current) {
+          lastRequestSnapshotRef.current = requestSnapshot;
           trackAnalyticsEvent(PREVIEW_LOAD_COMPLETED_EVENT, {
             ...previewAnalyticsProperties,
             durationMs: Math.round(performance.now() - startedAt),
@@ -653,6 +700,16 @@ export function usePublicPreviewLoader({
             steamMajorEvents: payload.stats.steamMajorEvents,
             watchedGameCount: payload.watchedGames?.length ?? 0,
           } satisfies PreviewLoadCompletedAnalyticsProperties);
+          if (!hasTrackedFirstPublicPreviewRef.current && payload.events.length > 0) {
+            hasTrackedFirstPublicPreviewRef.current = true;
+            trackAnalyticsEvent(FIRST_PUBLIC_PREVIEW_COMPLETED_EVENT, {
+              ...previewAnalyticsProperties,
+              durationMs: Math.round(performance.now() - startedAt),
+              eventCount: payload.events.length,
+              steamMajorEvents: payload.stats.steamMajorEvents,
+              watchedGameCount: payload.watchedGames?.length ?? 0,
+            } satisfies PreviewLoadCompletedAnalyticsProperties);
+          }
 
           // publicPreviewRef is the clean fallback we restore when a user disconnects a wishlist.
           publicPreviewRef.current = payload;
@@ -666,8 +723,12 @@ export function usePublicPreviewLoader({
           }
         }
       } catch (caught) {
+        if (controller.signal.aborted || isAbortError(caught)) {
+          return;
+        }
+
         console.error(caught);
-        if (isMounted) {
+        if (isComponentMountedRef.current) {
           trackAnalyticsEvent(PREVIEW_LOAD_FAILED_EVENT, {
             ...previewAnalyticsProperties,
             durationMs: Math.round(performance.now() - startedAt),
@@ -678,7 +739,13 @@ export function usePublicPreviewLoader({
           );
         }
       } finally {
-        if (isMounted) {
+        const isCurrentRequest = activeRequestRef.current?.controller === controller;
+
+        if (isCurrentRequest) {
+          activeRequestRef.current = null;
+        }
+
+        if (isComponentMountedRef.current && isCurrentRequest) {
           setIsPreviewLoading(false);
         }
       }
@@ -686,9 +753,7 @@ export function usePublicPreviewLoader({
 
     void loadPublicPreview();
 
-    return () => {
-      isMounted = false;
-    };
+    return undefined;
   }, [
     calendarConfig,
     effectiveSteamLang,
@@ -704,6 +769,67 @@ export function usePublicPreviewLoader({
     storeRegion,
     userSelectedRegionRef,
   ]);
+}
+
+type PublicPreviewRequestSnapshot = {
+  key: string;
+  localeKey: string;
+  selectedGamesKey: string;
+  sendStoreRegion: boolean;
+};
+
+function publicPreviewRequestSnapshot({
+  calendarConfig,
+  effectiveSteamLang,
+  effectiveStoreRegion,
+  effectiveUiLang,
+  sendStoreRegion,
+}: {
+  calendarConfig: CalendarConfig;
+  effectiveSteamLang: string;
+  effectiveStoreRegion: string;
+  effectiveUiLang: string;
+  sendStoreRegion: boolean;
+}): PublicPreviewRequestSnapshot {
+  const params = calendarConfigToSearchParams(calendarConfig);
+
+  if (sendStoreRegion) {
+    params.set("cc", effectiveStoreRegion);
+  }
+
+  params.set("lang", effectiveSteamLang);
+  params.set("uiLang", effectiveUiLang);
+  params.sort();
+
+  return {
+    key: params.toString(),
+    localeKey: `${effectiveStoreRegion}:${effectiveSteamLang}:${effectiveUiLang}:${sendStoreRegion}`,
+    selectedGamesKey: calendarConfig.watchedAppIds.join(","),
+    sendStoreRegion,
+  };
+}
+
+function previewLoadReason(
+  previous: PublicPreviewRequestSnapshot | null,
+  next: PublicPreviewRequestSnapshot,
+): PreviewLoadReason {
+  if (!previous) {
+    return "initial";
+  }
+
+  if (previous.localeKey !== next.localeKey) {
+    return "locale_changed";
+  }
+
+  if (previous.selectedGamesKey !== next.selectedGamesKey) {
+    return "selected_games_changed";
+  }
+
+  return "config_changed";
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 export function useTimedReset<T>(value: T | null, reset: () => void, delayMs: number) {
@@ -759,6 +885,15 @@ export function useGameSearch({
         region: locale.cc,
         resultCount: nextResults.length,
       } satisfies GameSearchAnalyticsProperties);
+
+      if (!nextResults.length) {
+        trackAnalyticsEvent(GAME_SEARCH_ZERO_RESULTS_EVENT, {
+          queryLength: trimmedQuery.length,
+          ...analyticsRawInput({ rawQuery: trimmedQuery }),
+          region: locale.cc,
+          resultCount: 0,
+        } satisfies GameSearchAnalyticsProperties);
+      }
     } catch (caught) {
       setLastQuery(trimmedQuery);
       trackAnalyticsEvent(GAME_SEARCH_FAILED_EVENT, {
