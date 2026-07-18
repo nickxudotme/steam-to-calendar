@@ -1,7 +1,7 @@
 "use client";
 
 import NextLink from "next/link";
-import { Coffee, Info, Languages, Settings } from "lucide-react";
+import { BookOpenText, Coffee, Info, Languages, Settings } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   useCallback,
@@ -72,6 +72,7 @@ import { useWishlistPreview } from "./wishlist-preview-hooks";
 const TOOLTIP_VIEWPORT_PADDING = 16;
 const MOBILE_WORKBENCH_MEDIA_QUERY = "(max-width: 900px)";
 const GITHUB_REPOSITORY_URL = "https://github.com/nickxudotme/steam-to-calendar";
+const BLOG_URL = "https://blog.nickxu.me/steam-to-calendar/";
 const DONATE_URL = "https://buymeacoffee.com/nickxu.me";
 type LocaleSelectKind = "region" | "language";
 type LocaleSelectOption = {
@@ -950,6 +951,23 @@ export function CalendarBuilderPage({
                   onPointerLeave={() => setProjectTooltip(null)}
                 >
                   <Coffee aria-hidden="true" />
+                </a>
+                <a
+                  aria-describedby="blog-link-tooltip"
+                  aria-label={copy.blogLinkLabel}
+                  href={BLOG_URL}
+                  rel="noreferrer"
+                  target="_blank"
+                  onBlur={() => setProjectTooltip(null)}
+                  onFocus={(event) =>
+                    showProjectTooltip("blog-link-tooltip", copy.blogLinkLabel, event.currentTarget)
+                  }
+                  onPointerEnter={(event) =>
+                    showProjectTooltip("blog-link-tooltip", copy.blogLinkLabel, event.currentTarget)
+                  }
+                  onPointerLeave={() => setProjectTooltip(null)}
+                >
+                  <BookOpenText aria-hidden="true" />
                 </a>
               </nav>
             </div>

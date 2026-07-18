@@ -12,6 +12,8 @@
   <a href="README.zh-CN.md">中文文档</a>
   ·
   <a href="https://steamcalendar.com/">Open App</a>
+  ·
+  <a href="https://blog.nickxu.me/steam-to-calendar/">Read the Blog</a>
 </p>
 
 Steam to Calendar turns Steam sales, game launches, preorders, wishlist updates, and official Steam events into a calendar you can subscribe to. Pick the games and event types you care about, preview the result, then add the generated feed to Apple Calendar, Google Calendar, Outlook, Fantastical, or any ICS/WebCal-compatible calendar app.
